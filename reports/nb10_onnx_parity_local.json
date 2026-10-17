@@ -1,0 +1,48 @@
+{
+  "notebook": "10_onnx_export_and_parity",
+  "generated_at_utc": "2026-10-17T18:49:22Z",
+  "onnx_meta": {
+    "opset_version": 17,
+    "ir_version": 8,
+    "graph_inputs": [
+      "tokens"
+    ],
+    "graph_outputs": [
+      "logits"
+    ],
+    "nodes": 17
+  },
+  "onnxruntime_version": "1.31.0",
+  "torch_version": "2.14.1+cpu",
+  "runs_parity": {
+    "real_runs_evaluated": 903,
+    "max_logit_difference": 4.76837158203125e-06,
+    "mean_loss_difference": 1.0107046741979858e-06,
+    "max_loss_difference": 2.288818359375e-05
+  },
+  "window_decision_parity": {
+    "windows_evaluated": 902,
+    "identical_decisions": 902,
+    "identical_percentage": 100.0
+  },
+  "latency_this_host": {
+    "runtime": [
+      "pytorch",
+      "onnxruntime"
+    ],
+    "runs": [
+      200,
+      200
+    ],
+    "mean_ms": [
+      0.8607,
+      0.3882
+    ],
+    "p99_ms": [
+      1.0723,
+      0.4751
+    ]
+  },
+  "canonical_report": "reports/onnx_parity_report.json",
+  "host": "Windows-10-10.0.26300-SP0"
+}

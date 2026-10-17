@@ -1,0 +1,47 @@
+{
+  "notebook": "05_lstm_next_event_model",
+  "generated_at_utc": "2026-10-17T18:45:35Z",
+  "checkpoint": "artifacts/lstm_next_event.pt",
+  "checkpoint_sha256": "a63fee0f25262c564f6b7c3f2183e410fb1e8c587862cd8168a4b9a175b1d0cc",
+  "checkpoint_config": {
+    "model_type": "LSTMNextEvent",
+    "vocab_size": 616,
+    "embedding_dim": 32,
+    "hidden_dim": 64,
+    "window_size": 100,
+    "padding_token": 0,
+    "unknown_token": 1,
+    "seed": 42,
+    "epochs": 8,
+    "learning_rate": 0.001,
+    "trained_on_normal_training_windows_only": true
+  },
+  "committed_report_config": {
+    "model_type": "LSTMNextEvent",
+    "vocab_size": 616,
+    "embedding_dim": 32,
+    "hidden_dim": 64,
+    "window_size": 100,
+    "padding_token": 0,
+    "unknown_token": 1,
+    "seed": 42,
+    "epochs": 8,
+    "learning_rate": 0.001,
+    "trained_on_normal_training_windows_only": true
+  },
+  "window_score_parity_max_abs_diff": 1.9073486328125e-06,
+  "known_run_transition_parity": "200/200",
+  "known_run_score_parity_max_abs_diff": 3.0825836505599113e-07,
+  "three_way_decision_agreement_on_test_sample": 1.0,
+  "inference_latency_this_host": {
+    "windows": 200,
+    "seconds": 0.094,
+    "ms_per_window": 0.469,
+    "host": "Windows-10-10.0.26300-SP0"
+  },
+  "constraints": [
+    "threshold selected on validation only; exploratory test used for diagnostics",
+    "production scoring uses known-run transitions (UNK/PAD break runs)",
+    "no refit of production artifacts anywhere in this lab"
+  ]
+}

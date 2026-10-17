@@ -1,0 +1,207 @@
+{
+  "notebook": "12_final_results_and_figures",
+  "generated_at_utc": "2026-10-17T18:50:15Z",
+  "consolidated": {
+    "evaluation_protocol": {
+      "label": "exploratory temporal test",
+      "test_windows": 7122,
+      "walk_forward_slices": 4,
+      "thresholds_validation_selected": true,
+      "test_labels_used_for_fitting": false,
+      "caveat": "exploratory temporal test period (inspected during drift diagnostics)"
+    },
+    "headline_metrics": {
+      "precision": 0.8173076923076923,
+      "recall": 0.85,
+      "f1": 0.8333333333333334,
+      "coverage": 0.33221005335579895,
+      "review_rate": 0.6677899466442011,
+      "false_alerts_per_hour": 0.013048106307729285
+    },
+    "f1_bootstrap_95_ci": {
+      "ci_lower_2_5": 0.6429987687887959,
+      "median": 0.8358006150325394,
+      "ci_upper_97_5": 0.948944212721585
+    },
+    "detection_delay": {
+      "episodes_total": 150,
+      "detected_episodes": 16,
+      "detection_rate": 0.10666666666666667,
+      "median_delay_seconds": 8.5,
+      "p90_delay_seconds": 9504.5
+    },
+    "three_way_decision_counts": {
+      "NOVELTY_DRIFT_REVIEW": 4756,
+      "NO_ANOMALY_DETECTED": 2262,
+      "ANOMALY_ALERT": 104
+    },
+    "onnx_parity_status": "PASS",
+    "benchmark_protocol": "bgl_test_period_live_ingestion"
+  },
+  "walk_forward_slice_table": [
+    {
+      "total_windows": 1780,
+      "coverage": 0.906741573,
+      "review_rate": 0.093258427,
+      "alert_count": 53,
+      "true_positives": 52,
+      "false_positives": 1,
+      "precision": 0.9811320755,
+      "recall": 0.8524590164
+    },
+    {
+      "total_windows": 1780,
+      "coverage": 0.0769662921,
+      "review_rate": 0.9230337079,
+      "alert_count": 14,
+      "true_positives": 14,
+      "false_positives": 0,
+      "precision": 1.0,
+      "recall": 0.7
+    },
+    {
+      "total_windows": 1780,
+      "coverage": 0.0,
+      "review_rate": 1.0,
+      "alert_count": 0,
+      "true_positives": 0,
+      "false_positives": 0,
+      "precision": 0.0,
+      "recall": 0.0
+    },
+    {
+      "total_windows": 1782,
+      "coverage": 0.3451178451,
+      "review_rate": 0.6548821549,
+      "alert_count": 37,
+      "true_positives": 19,
+      "false_positives": 18,
+      "precision": 0.5135135135,
+      "recall": 1.0
+    }
+  ],
+  "lab_report_inventory": [
+    {
+      "report": "nb00_run_manifest.json",
+      "bytes": 3843
+    },
+    {
+      "report": "nb01_data_quality_report.json",
+      "bytes": 1796
+    },
+    {
+      "report": "nb02_template_state_report.json",
+      "bytes": 1411
+    },
+    {
+      "report": "nb03_split_manifest.json",
+      "bytes": 1323
+    },
+    {
+      "report": "nb04_isolation_forest_report.json",
+      "bytes": 1644
+    },
+    {
+      "report": "nb05_lstm_checks.json",
+      "bytes": 1535
+    },
+    {
+      "report": "nb06_autoencoder_experiment.json",
+      "bytes": 1162
+    },
+    {
+      "report": "nb07_model_comparison_expanded.json",
+      "bytes": 1563
+    },
+    {
+      "report": "nb08_explainability_report.json",
+      "bytes": 1315
+    },
+    {
+      "report": "nb09_drift_report.json",
+      "bytes": 4634
+    },
+    {
+      "report": "nb10_onnx_parity_local.json",
+      "bytes": 1043
+    },
+    {
+      "report": "nb11_replay_benchmark.json",
+      "bytes": 2371
+    },
+    {
+      "report": "nb12_final_summary.json",
+      "bytes": 4982
+    }
+  ],
+  "limitations": {
+    "test_period": "exploratory (inspected during drift diagnostics); thresholds never fitted on it",
+    "coverage": "automatic decision coverage 33.2% aggregate on this test slice due to template drift",
+    "autoencoder": "NB 06 is a smoke-scale experiment; never production-promoted",
+    "onnx": "validated on x86-64 CPU only; s390x requires target-env verification (no Telum claim)",
+    "linuxone": "not yet validated on the target platform; portable-by-design",
+    "benchmarks": "committed 60s protocol + notebook 8s runs; no enterprise-load claims"
+  },
+  "reproduction_commands": [
+    [
+      "environment + contracts",
+      "jupyter nbconvert --to notebook --execute notebooks/00_environment_and_data_contracts.ipynb"
+    ],
+    [
+      "data exploration",
+      "jupyter nbconvert --to notebook --execute notebooks/01_data_exploration.ipynb"
+    ],
+    [
+      "template audit",
+      "jupyter nbconvert --to notebook --execute notebooks/02_log_parsing_and_templates.ipynb"
+    ],
+    [
+      "features/splits",
+      "notebooks/03_temporal_feature_engineering.ipynb; full pipeline: python scripts/build_window_features.py (requires frozen events)"
+    ],
+    [
+      "isolation forest",
+      "notebooks/04_isolation_forest_baseline.ipynb; full retrain: python scripts/train_isolation_forest.py"
+    ],
+    [
+      "lstm",
+      "notebooks/05_lstm_next_event_model.ipynb; full retrain: python scripts/train_lstm_predictor.py"
+    ],
+    [
+      "walk-forward evaluation",
+      "make evaluate"
+    ],
+    [
+      "model comparison",
+      "notebooks/07_model_evaluation_and_comparison.ipynb"
+    ],
+    [
+      "alerts/evidence",
+      "notebooks/08_explainability_and_alerts.ipynb"
+    ],
+    [
+      "drift/calibration",
+      "notebooks/09_drift_and_calibration.ipynb"
+    ],
+    [
+      "onnx parity",
+      "notebooks/10_onnx_export_and_parity.ipynb; make export-onnx"
+    ],
+    [
+      "live benchmarks",
+      "notebooks/11_streaming_replay_benchmarks.ipynb; make benchmark"
+    ],
+    [
+      "final summary",
+      "notebooks/12_final_results_and_figures.ipynb"
+    ],
+    [
+      "full training chain",
+      "make train (requires data/raw/BGL.log)"
+    ],
+    [
+      "live demo",
+      "make run-api + make run-dashboard"
+    ]
+  ]
+}

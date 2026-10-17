@@ -1,0 +1,46 @@
+{
+  "notebook": "06_lstm_autoencoder_experiment",
+  "generated_at_utc": "2026-10-17T18:45:44Z",
+  "status": "EXPERIMENTAL (smoke-scale, not production)",
+  "artifact": "artifacts\\lstm_autoencoder_exp.pt",
+  "artifact_sha256": "a550c3ca4e4a06549c5c3d81a9e19598ac7f3f68f87273b7a79fdd5ba5e1bc7f",
+  "artifact_bytes": 177247,
+  "threshold": 6.819447994232178,
+  "threshold_selection": {
+    "method": "95th percentile of VALIDATION reconstruction losses",
+    "test_used": false
+  },
+  "loss_curve": {
+    "epoch": [
+      1,
+      2,
+      3
+    ],
+    "train_recon": [
+      6.1916,
+      5.1951,
+      3.9464
+    ],
+    "val_recon": [
+      6.3239,
+      6.2975,
+      6.2668
+    ]
+  },
+  "smoke_fixture_metrics": {
+    "windows": 400,
+    "anomalous": 9,
+    "threshold": 6.8194,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "pr_auc": 0.02277431355302524,
+    "roc_auc": 0.37112816140949134
+  },
+  "inference_resources": {
+    "batch": 64,
+    "seconds": 0.0046,
+    "seconds_per_window": 7e-05
+  },
+  "policy": "must pass full-data retraining, parity and operator-review gates before any promotion"
+}

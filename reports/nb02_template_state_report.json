@@ -1,0 +1,42 @@
+{
+  "notebook": "02_log_parsing_and_templates",
+  "generated_at_utc": "2026-10-17T18:38:48Z",
+  "frozen_state": "C:\\Users\\noupa\\Desktop\\datathon\\artifacts\\drain3_train_state_0_7.bin",
+  "frozen_state_sha256": "c3442ca216c20d113fe5aef723e1aa8509ad345d378dc75b093c281228d600c3",
+  "frozen_template_count": 615,
+  "training_summary": {
+    "similarity_threshold": 0.7,
+    "drain_depth": 4,
+    "training_end_line_inclusive": 3323600,
+    "training_records_processed": 3323600,
+    "validation_or_test_used_for_fitting": false,
+    "labels_used_as_model_inputs": false
+  },
+  "no_refit_guard_test": "passed \u2014 add_log_message monkey-patch never triggered on 60 live matches",
+  "sample_probes": {
+    "lines_sampled": 321,
+    "status_counts": {
+      "unknown_template": 171,
+      "matched": 150
+    },
+    "unknown_by_split": {
+      "test": 170,
+      "validation": 1
+    }
+  },
+  "parse_error_analysis": [
+    {
+      "input": "- 1117838570 2005.06.03 R02-M1-N0-C:J12-",
+      "result": "ValueError: Line 100000: fewer than five fixed-prefix fields"
+    },
+    {
+      "input": "GARBAGE not-a-bgl-line",
+      "result": "ValueError: Line 100001: fewer than five fixed-prefix fields"
+    },
+    {
+      "input": "",
+      "result": "ValueError: Line 100002: fewer than five fixed-prefix fields"
+    }
+  ],
+  "templates_csv": "data\\processed\\templates.csv"
+}

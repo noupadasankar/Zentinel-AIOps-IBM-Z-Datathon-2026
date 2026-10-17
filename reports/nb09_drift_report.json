@@ -1,0 +1,217 @@
+{
+  "notebook": "09_drift_and_calibration",
+  "generated_at_utc": "2026-10-17T18:47:40Z",
+  "novelty_threshold": 0.02,
+  "test_unknown_rate_summary": {
+    "mean": 0.6074760077203212,
+    "windows_over_threshold": 4756
+  },
+  "coverage_buckets": {
+    "1131105600000": {
+      "windows": 76,
+      "automatic": 75,
+      "review": 1,
+      "automatic_coverage": 0.987,
+      "review_share": 0.013
+    },
+    "1131148800000": {
+      "windows": 13,
+      "automatic": 12,
+      "review": 1,
+      "automatic_coverage": 0.923,
+      "review_share": 0.077
+    },
+    "1131192000000": {
+      "windows": 28,
+      "automatic": 27,
+      "review": 1,
+      "automatic_coverage": 0.964,
+      "review_share": 0.036
+    },
+    "1131235200000": {
+      "windows": 7,
+      "automatic": 6,
+      "review": 1,
+      "automatic_coverage": 0.857,
+      "review_share": 0.143
+    },
+    "1131278400000": {
+      "windows": 4,
+      "automatic": 4,
+      "review": 0,
+      "automatic_coverage": 1.0,
+      "review_share": 0.0
+    },
+    "1131321600000": {
+      "windows": 10,
+      "automatic": 9,
+      "review": 1,
+      "automatic_coverage": 0.9,
+      "review_share": 0.1
+    },
+    "1131364800000": {
+      "windows": 77,
+      "automatic": 53,
+      "review": 24,
+      "automatic_coverage": 0.688,
+      "review_share": 0.312
+    },
+    "1131408000000": {
+      "windows": 156,
+      "automatic": 156,
+      "review": 0,
+      "automatic_coverage": 1.0,
+      "review_share": 0.0
+    },
+    "1131451200000": {
+      "windows": 446,
+      "automatic": 430,
+      "review": 16,
+      "automatic_coverage": 0.964,
+      "review_share": 0.036
+    },
+    "1131494400000": {
+      "windows": 17,
+      "automatic": 9,
+      "review": 8,
+      "automatic_coverage": 0.529,
+      "review_share": 0.471
+    },
+    "1131537600000": {
+      "windows": 105,
+      "automatic": 104,
+      "review": 1,
+      "automatic_coverage": 0.99,
+      "review_share": 0.01
+    },
+    "1131580800000": {
+      "windows": 376,
+      "automatic": 376,
+      "review": 0,
+      "automatic_coverage": 1.0,
+      "review_share": 0.0
+    }
+  },
+  "validation_threshold_sensitivity": {
+    "3.5291": {
+      "precision": 0.6914,
+      "recall": 0.7813,
+      "f1": 0.7336,
+      "alerts": 713,
+      "windows": 7122
+    },
+    "6.7424": {
+      "precision": 0.6667,
+      "recall": 0.6117,
+      "f1": 0.638,
+      "alerts": 579,
+      "windows": 7122
+    },
+    "9.2059": {
+      "precision": 0.5014,
+      "recall": 0.2837,
+      "f1": 0.3623,
+      "alerts": 357,
+      "windows": 7122
+    },
+    "9.2384": {
+      "precision": 1.0,
+      "recall": 0.2678,
+      "f1": 0.4225,
+      "alerts": 169,
+      "windows": 7122
+    },
+    "11.9179": {
+      "precision": 1.0,
+      "recall": 0.1648,
+      "f1": 0.283,
+      "alerts": 104,
+      "windows": 7122
+    }
+  },
+  "frozen_threshold_untouched": 3.479122797648112,
+  "feature_drift_table": {
+    "template_1_count": {
+      "val_med_p95_p99": [
+        0.0,
+        0.0,
+        8.8
+      ],
+      "test_med_p95_p99": [
+        0.0,
+        12.0,
+        100.0
+      ]
+    },
+    "template_2_count": {
+      "val_med_p95_p99": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "test_med_p95_p99": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "template_3_count": {
+      "val_med_p95_p99": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "test_med_p95_p99": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "template_613_count": {
+      "val_med_p95_p99": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "test_med_p95_p99": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "template_614_count": {
+      "val_med_p95_p99": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "test_med_p95_p99": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "template_615_count": {
+      "val_med_p95_p99": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "test_med_p95_p99": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "synthetic_scenario": {
+    "label": "SYNTHETIC (validation copy + fixed 0.30 unknown-rate corruption; not real traffic)",
+    "windows_rerouted_to_review": 7122,
+    "original_review_windows": 4756
+  },
+  "exports": [
+    "data\\processed\\drift_report.csv",
+    "data\\processed\\retraining_review_queue.csv"
+  ],
+  "policy": "frozen template state + production threshold never mutated in this notebook"
+}

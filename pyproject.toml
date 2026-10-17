@@ -5,6 +5,7 @@ exclude = [
     ".git",
     ".venv",
     "scripts/archive",
+    "notebooks",
 ]
 
 [tool.ruff.lint]

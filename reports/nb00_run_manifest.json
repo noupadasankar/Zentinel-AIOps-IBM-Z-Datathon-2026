@@ -1,0 +1,152 @@
+{
+  "notebook": "00_environment_and_data_contracts",
+  "generated_at_utc": "2026-10-17T18:36:31Z",
+  "runtime": {
+    "python": "3.11.9",
+    "python_executable": "C:\\Users\\noupa\\Desktop\\datathon\\.venv\\Scripts\\python.exe",
+    "platform": "Windows-10-10.0.26300-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "cpu_logical": 12,
+    "seed": 42,
+    "plotly_available": true
+  },
+  "dependency_status": {
+    "torch": {
+      "ok": true,
+      "version": "2.14.1+cpu"
+    },
+    "pandas": {
+      "ok": true,
+      "version": "3.0.6"
+    },
+    "numpy": {
+      "ok": true,
+      "version": "2.4.6"
+    },
+    "plotly": {
+      "ok": true,
+      "version": "6.9.0"
+    },
+    "sklearn": {
+      "ok": true,
+      "version": "1.9.1"
+    },
+    "drain3": {
+      "ok": true,
+      "version": "unknown"
+    },
+    "onnx": {
+      "ok": true,
+      "version": "1.23.2"
+    },
+    "onnxruntime": {
+      "ok": true,
+      "version": "1.31.0"
+    },
+    "fastapi": {
+      "ok": true,
+      "version": "0.143.3"
+    },
+    "streamlit": {
+      "ok": true,
+      "version": "1.66.0"
+    },
+    "scipy": {
+      "ok": true,
+      "version": "1.17.1"
+    },
+    "jinja2": {
+      "ok": true,
+      "version": "3.1.6"
+    }
+  },
+  "artifact_manifest": "C:\\Users\\noupa\\Desktop\\datathon\\artifacts\\manifest.json",
+  "artifact_count": 5,
+  "artifacts_verified": true,
+  "input_manifest": [
+    {
+      "input": "raw log (excluded from repo/ZIP by size)",
+      "path": "data\\raw\\BGL.log",
+      "exists": true,
+      "bytes": 743185031
+    },
+    {
+      "input": "replay fixture",
+      "path": "data\\raw\\sample_replay.log",
+      "exists": true,
+      "bytes": 67500
+    },
+    {
+      "input": "parsed sample (JSONL, committed)",
+      "path": "data\\processed\\bgl_parsed_sample.jsonl",
+      "exists": true,
+      "bytes": 14522249
+    },
+    {
+      "input": "window features (parquet, committed large)",
+      "path": "data\\processed\\bgl_window_features.parquet",
+      "exists": true,
+      "bytes": 6864889
+    },
+    {
+      "input": "test three-way decisions (parquet)",
+      "path": "data\\processed\\lstm_three_way_test_decisions.parquet",
+      "exists": true,
+      "bytes": 70398
+    },
+    {
+      "input": "test model comparison (parquet)",
+      "path": "data\\processed\\test_model_comparison.parquet",
+      "exists": true,
+      "bytes": 135876
+    },
+    {
+      "input": "training split report",
+      "path": "reports\\chronological_split_report.json",
+      "exists": true,
+      "bytes": 1864
+    },
+    {
+      "input": "event sequence summary",
+      "path": "reports\\event_sequence_summary_v2.json",
+      "exists": true,
+      "bytes": 1267
+    },
+    {
+      "input": "walk-forward evaluation",
+      "path": "reports\\temporal_walk_forward_evaluation.json",
+      "exists": true,
+      "bytes": 5087
+    }
+  ],
+  "parquet_shapes": {
+    "bgl_window_features.parquet": {
+      "rows": 47480,
+      "cols": 654
+    },
+    "lstm_three_way_test_decisions.parquet": {
+      "rows": 7122,
+      "cols": 12
+    },
+    "test_model_comparison.parquet": {
+      "rows": 7122,
+      "cols": 11
+    }
+  },
+  "schema_contracts": {
+    "window_size": 100,
+    "padding_token": 0,
+    "unknown_token": 1,
+    "max_recent_windows_retained": 500,
+    "documents": {
+      "decision categories": [
+        "ANOMALY_ALERT",
+        "NO_ANOMALY_DETECTED",
+        "NOVELTY_DRIFT_REVIEW"
+      ],
+      "split_protocol": "70/15/15 chronological (train: 3,323,600 lines | val: 712,200 | test: 712,163)",
+      "label_contract": "BGL per-line label is an audit/evaluation label only; never a model feature"
+    }
+  }
+}

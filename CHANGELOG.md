@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-10-18 — Notebook Laboratory Complete
+
+### Added
+- **13 executed Jupyter notebooks** (`notebooks/00_environment_and_data_contracts.ipynb` … `12_final_results_and_figures.ipynb`), all cells executed with a passing, assertion-checked final state on 2026-10-18 (ledger: `notebooks/notebook_execution_log.json`). Per-notebook machine-readable outputs: `reports/nb00_run_manifest.json` … `reports/nb12_final_summary.json`.
+  - nb02: frozen Drain3 state audit (615 templates), production parser probes, single-pass unknown-template scan of validation/test BGL lines, runtime no-refit guard (monkey-patch check).
+  - nb03: split/leakage guards — window-id contiguity, monotonic start lines, temporal split order, label-not-a-feature, zero PAD/UNK positions in the training split.
+  - nb04: frozen Isolation Forest re-scoring parity to 1e-9 against committed validation scores + exploratory test metrics/PR curve.
+  - nb05: production LSTM checkpoint parity (validation scores, known-run scoring on test windows, three-way decision parity), latency measurement.
+  - nb06: **experimental** smoke-scale LSTM reconstruction autoencoder, exported flagged `experimental: true` — never production-promoted.
+  - nb07: same-window comparison of IF vs LSTM (precision/recall/F1/PR-AUC/ROC-AUC + confusion matrices + runtime table); exports `data/processed/metrics_summary.csv`.
+  - nb08: live `IncidentPolicy` replay of all 7,122 test decisions, peak-alert forensics re-parsed from `data/raw/BGL.log` through the production pipeline (token parity asserted); exports `alert_evidence.csv`.
+  - nb09: unknown-rate/coverage timelines, validation-only threshold sensitivity grid, feature-drift table, labelled synthetic drift scenario; exports `drift_report.csv`, `retraining_review_queue.csv`.
+  - nb10: ONNX opset-17 graph checks + PyTorch↔ONNXRuntime logit/decision parity on real runs (x86-64 host; no s390x claims).
+  - nb11: live FastAPI ingest subprocess on a scratch SQLite DB; sequential + 8-client replay of test-period lines with p50/p95/p99 latency.
+  - nb12: final consolidation, limitations, and reproduction commands.
+- **Documentation**: `docs/LINUXONE_DEPLOYMENT.md` (portability inventory + target verification protocol), `docs/DATATHON_SCORING_ALIGNMENT.md` (criterion → deliverable mapping), `notebooks/README.md`, updated `docs/PROJECT_AUDIT.md` and `docs/IMPLEMENTATION_STATUS.md`.
+- **Engineering**: `make train` target wiring the real training chain; removed obsolete patch artifacts and backup files.
+
+### Notes
+- Notebook figures are rendered with plotly (matplotlib intentionally not used).
+- All notebook numbers are recomputed from committed artifacts at execution time; test labels are used only inside explicitly-declared exploratory evaluation cells and never for fitting or threshold selection.
+
 ## [1.0.0] - Phase 4: Packaging, Proof, and Production Readiness
 
 ### Added

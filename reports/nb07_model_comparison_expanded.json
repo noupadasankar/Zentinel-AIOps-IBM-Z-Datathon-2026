@@ -1,0 +1,58 @@
+{
+  "notebook": "07_model_evaluation_and_comparison",
+  "generated_at_utc": "2026-10-17T18:47:26Z",
+  "protocol": "same 7,122 exploratory test windows; thresholds validation-frozen",
+  "per_model_metrics": {
+    "isolation_forest": {
+      "precision": 0.3228,
+      "recall": 0.0636,
+      "f1": 0.1062,
+      "pr_auc": 0.3501,
+      "roc_auc": 0.8517,
+      "windows_alerting": 158
+    },
+    "lstm_next_event": {
+      "precision": 0.7798,
+      "recall": 0.2693,
+      "f1": 0.4004,
+      "pr_auc": 0.401,
+      "roc_auc": 0.5966,
+      "windows_alerting": 277
+    }
+  },
+  "three_way_policy_aggregate": {
+    "total_windows": 7122,
+    "decision_counts": {
+      "NOVELTY_DRIFT_REVIEW": 4756,
+      "NO_ANOMALY_DETECTED": 2262,
+      "ANOMALY_ALERT": 104
+    },
+    "automatic_decision_coverage": 0.33221005335579895,
+    "review_share": 0.6677899466442011,
+    "alert_windows": 104,
+    "alert_true_positives": 85,
+    "alert_false_positives": 19,
+    "alert_precision": 0.8173
+  },
+  "runtime_this_host": [
+    {
+      "scorer": "isolation_forest.decision_function",
+      "windows": 200,
+      "seconds": 2.741,
+      "ms_per_window": 13.706
+    },
+    {
+      "scorer": "lstm known-run scoring",
+      "windows": 200,
+      "seconds": 2.807,
+      "ms_per_window": 14.034
+    }
+  ],
+  "threshold_provenance": {
+    "isolation_forest_validation_only": true,
+    "lstm_validation_only": true
+  },
+  "cross_checks": [
+    "decision counts match reports/lstm_three_way_test_decision_report.json"
+  ]
+}

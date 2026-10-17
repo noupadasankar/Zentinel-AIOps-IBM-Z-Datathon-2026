@@ -1,0 +1,51 @@
+{
+  "notebook": "04_isolation_forest_baseline",
+  "generated_at_utc": "2026-10-17T18:41:27Z",
+  "model_params": {
+    "n_estimators": 200,
+    "max_samples": "auto",
+    "contamination": "auto",
+    "random_state": 42
+  },
+  "threshold": -0.07732971606857109,
+  "threshold_source": {
+    "model": "IsolationForest",
+    "threshold": -0.07732971606857109,
+    "score_convention": "-model.decision_function(X); higher is more anomalous",
+    "selection_method": "Maximum validation F1; ties prefer higher precision, then higher threshold",
+    "validation_only": true,
+    "test_used_for_threshold_selection": false,
+    "feature_manifest": "reports\\window_feature_columns.json"
+  },
+  "validation_metrics": {
+    "windows": 7122,
+    "anomalous": 631,
+    "precision": 0.33540372670807456,
+    "recall": 0.25673534072900156,
+    "f1": 0.29084380610412924,
+    "roc_auc": 0.6276304555301611,
+    "pr_auc": 0.17172790109175162,
+    "threshold": -0.07732971606857109
+  },
+  "validation_cross_check_vs_committed_report": "PASS (exact to 1e-9)",
+  "test_metrics_exploratory": {
+    "windows": 7122,
+    "anomalous": 802,
+    "precision": 0.3227848101265823,
+    "recall": 0.06359102244389027,
+    "f1": 0.10625,
+    "roc_auc": 0.851745241327062,
+    "pr_auc": 0.35008550581011655
+  },
+  "test_confusion_matrix": {
+    "tn": 6213,
+    "fp": 107,
+    "fn": 751,
+    "tp": 51
+  },
+  "false_alert_stats": {
+    "false_positives": 107,
+    "false_positive_rate_on_normals": 0.016930379746835443
+  },
+  "disclaimer": "test metrics are exploratory; threshold and model remain validation-frozen artifacts"
+}

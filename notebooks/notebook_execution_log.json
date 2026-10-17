@@ -1,0 +1,67 @@
+{
+  "00_environment_and_data_contracts.ipynb": {
+    "status": "PASS",
+    "seconds": 9.2,
+    "error": ""
+  },
+  "01_data_exploration.ipynb": {
+    "status": "PASS",
+    "seconds": 7.6,
+    "error": ""
+  },
+  "02_log_parsing_and_templates.ipynb": {
+    "status": "PASS",
+    "seconds": 8.3,
+    "error": ""
+  },
+  "03_temporal_feature_engineering.ipynb": {
+    "status": "PASS",
+    "seconds": 7.4,
+    "error": ""
+  },
+  "04_isolation_forest_baseline.ipynb": {
+    "status": "PASS",
+    "seconds": 8.3,
+    "error": ""
+  },
+  "05_lstm_next_event_model.ipynb": {
+    "status": "PASS",
+    "seconds": 11.3,
+    "error": ""
+  },
+  "06_lstm_autoencoder_experiment.ipynb": {
+    "status": "PASS",
+    "seconds": 8.8,
+    "error": ""
+  },
+  "07_model_evaluation_and_comparison.ipynb": {
+    "status": "PASS",
+    "seconds": 14.7,
+    "error": ""
+  },
+  "08_explainability_and_alerts.ipynb": {
+    "status": "PASS",
+    "seconds": 7.6,
+    "error": ""
+  },
+  "09_drift_and_calibration.ipynb": {
+    "status": "PASS",
+    "seconds": 6.7,
+    "error": ""
+  },
+  "10_onnx_export_and_parity.ipynb": {
+    "status": "PASS",
+    "seconds": 9.8,
+    "error": ""
+  },
+  "11_streaming_replay_benchmarks.ipynb": {
+    "status": "PASS",
+    "seconds": 44.7,
+    "error": ""
+  },
+  "12_final_results_and_figures.ipynb": {
+    "status": "PASS",
+    "seconds": 8.0,
+    "error": ""
+  }
+}

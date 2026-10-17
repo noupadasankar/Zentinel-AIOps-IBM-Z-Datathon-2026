@@ -1,0 +1,51 @@
+{
+  "notebook": "03_temporal_feature_engineering",
+  "generated_at_utc": "2026-10-17T18:41:18Z",
+  "window_features_shape": [
+    47480,
+    654
+  ],
+  "leakage_checks": {
+    "window_ids_contiguous": true,
+    "start_line_monotonic": true,
+    "start_timestamp_monotonic": true,
+    "split_temporal_order": true,
+    "label_not_a_feature": true,
+    "train_windows_have_no_unknown_or_pad_positions": true
+  },
+  "sequence_summary": {
+    "final_sequence_length": 63,
+    "median_length": 100,
+    "full_length_windows": 47479,
+    "short_tail_windows": 1,
+    "anomalous_windows_total": 4803
+  },
+  "entropy_summary": {
+    "mean_window_template_entropy": 0.181406401694997,
+    "p95_entropy": 1.1712988548014325,
+    "zero_entropy_windows_in_sample": 475
+  },
+  "split_stats": {
+    "test": {
+      "windows": 7122,
+      "first_start": 1131148265,
+      "last_start": 1136366225,
+      "anomalous": 802,
+      "anomaly_pct": 11.26
+    },
+    "train": {
+      "windows": 33236,
+      "first_start": 1117838570,
+      "last_start": 1125694234,
+      "anomalous": 3370,
+      "anomaly_pct": 10.14
+    },
+    "validation": {
+      "windows": 7122,
+      "first_start": 1125694247,
+      "last_start": 1131148263,
+      "anomalous": 631,
+      "anomaly_pct": 8.86
+    }
+  }
+}

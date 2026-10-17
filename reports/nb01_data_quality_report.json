@@ -1,0 +1,72 @@
+{
+  "notebook": "01_data_exploration",
+  "generated_at_utc": "2026-10-17T18:38:06Z",
+  "extract": {
+    "path": "data\\processed\\bgl_parsed_sample.jsonl",
+    "records": 20000
+  },
+  "basic": {
+    "records_in_extract": 20000,
+    "first_line_number": 1,
+    "last_line_number": 20000,
+    "timestamp_min": 1117838570,
+    "timestamp_max": 1117955360,
+    "span_days": 1.35,
+    "monotonic_timestamps": true
+  },
+  "quality": {
+    "parse_status_counts": {
+      "standard": 20000
+    },
+    "empty_message_records": 0,
+    "duplicate_raw_lines": 0,
+    "duplicate_template_inputs": 13832,
+    "nodes_seen": 6747
+  },
+  "severity_counts": {
+    "INFO": 17743,
+    "FATAL": 2257
+  },
+  "event_type_top10": {
+    "RAS": 20000
+  },
+  "component_top10": {
+    "KERNEL": 17760,
+    "APP": 2216,
+    "LINKCARD": 21,
+    "MMCS": 3
+  },
+  "class_imbalance": {
+    "test": {
+      "normal_windows": 6320,
+      "anomalous_windows": 802,
+      "anomaly_share_pct": 11.26
+    },
+    "train": {
+      "normal_windows": 29866,
+      "anomalous_windows": 3370,
+      "anomaly_share_pct": 10.14
+    },
+    "validation": {
+      "normal_windows": 6491,
+      "anomalous_windows": 631,
+      "anomaly_share_pct": 8.86
+    }
+  },
+  "label_provenance": "BGL operational labels (first field) define target_anomaly only; stripped from all model inputs.",
+  "cross_check_vs_window_feature_summary": {
+    "pipeline_reports_total_rows": 4747963,
+    "pipeline_windows_created": 47480,
+    "recomputed_windows_in_parquet": 47480,
+    "pipeline_split_windows": {
+      "train": 33236,
+      "validation": 7122,
+      "test": 7122
+    },
+    "recomputed_split_windows": {
+      "test": 7122,
+      "train": 33236,
+      "validation": 7122
+    }
+  }
+}

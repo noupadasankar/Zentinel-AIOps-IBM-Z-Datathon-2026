@@ -1,0 +1,43 @@
+{
+  "notebook": "08_explainability_and_alerts",
+  "generated_at_utc": "2026-10-17T18:47:34Z",
+  "policy_replay": {
+    "windows_replayed": 7122,
+    "action_counts": {
+      "NONE": 4366,
+      "ACTIVE": 2427,
+      "UPDATED": 194,
+      "OPENED": 53,
+      "CLOSED": 52,
+      "COOLDOWN": 30
+    },
+    "incidents_opened": 53,
+    "max_incident_length": 1
+  },
+  "deep_dive_window": {
+    "window_id": 42388,
+    "score": 11.917944089330808,
+    "line_range": [
+      4238801,
+      4238900
+    ],
+    "top_templates": [
+      {
+        "template": "RAS APP FATAL ciod: Error reading message prefix after <*> on CioStream socket to <*> Link has been severed",
+        "event_count": 99,
+        "mean_loss": 11.91794421456077,
+        "max_loss": 12.24533748626709,
+        "sample_line_number": 4238802
+      }
+    ],
+    "unknown_rate_evaluation": {
+      "observed_unknown_rate": 0.0,
+      "validation_novelty_threshold": 0.02,
+      "unknown_event_count": 0,
+      "exceeded_threshold": false
+    }
+  },
+  "pipeline_parity": "live parse+match reconstruction equals committed token array (0 mismatches)",
+  "evidence_export": "data\\processed\\alert_evidence.csv",
+  "explanation_policy": "deterministic quantities only; no LLM layer active; no invented root causes"
+}

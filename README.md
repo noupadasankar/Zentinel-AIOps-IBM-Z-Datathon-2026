@@ -128,6 +128,9 @@ Comprehensive engineering documentation is available in [`docs/`](docs/):
 - 🧠 [**Model Card**](docs/MODEL_CARD.md): LSTM architecture, hyperparameters, calibration, and ONNX opset 17 specifications.
 - 🔌 [**REST API Reference**](docs/API.md): Complete OpenAPI endpoint documentation, authentication, curl examples, and JSON schemas.
 - 🛡️ [**Security Architecture**](docs/SECURITY.md): Threat model, constant-time key validation, SQL injection defense, and non-root container isolation.
+- 🧪 [**Notebook Laboratory**](notebooks/README.md): 13 fully executed research/verification notebooks (00–12) with per-notebook JSON reports.
+- 🐧 [**LinuxONE Deployment**](docs/LINUXONE_DEPLOYMENT.md): s390x portability inventory and target-side verification protocol (no on-device claims made).
+- 🎯 [**Scoring Alignment**](docs/DATATHON_SCORING_ALIGNMENT.md): Requirement-by-requirement mapping to the datathon criteria with evidence pointers.
 - 🚀 [**Operations & Runbook**](docs/OPERATIONS.md): Deployment, numbered migrations, retention purge, backup procedures, and troubleshooting.
 - 📈 [**Evaluation Report**](docs/EVALUATION.md): Walk-forward temporal evaluation, detection delay, false alert rate, and CI methodology.
 - ⚖️ [**Architectural Decisions (ADR)**](docs/DECISIONS.md): Record of design decisions (ADR-001 through ADR-011).
