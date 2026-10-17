@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - Phase 4: Packaging, Proof, and Production Readiness
+
+### Added
+- **Turnkey Containerization Ecosystem**:
+  - Multi-stage `Dockerfile` running unprivileged non-root user `zentinel` (UID 1000) with container healthcheck.
+  - Multi-service `docker-compose.yml` orchestrating `api`, `dashboard`, `watcher`, persistent SQLite volume, read-only artifacts mount, and localhost-bound ports (`127.0.0.1:8000`, `127.0.0.1:8501`).
+  - Comprehensive automation `Makefile` (`install`, `test`, `lint`, `export-onnx`, `benchmark`, `evaluate`, `demo`, `reproduce`).
+- **ONNX Export and Runtime Parity (`src/zentinel/models/onnx_export.py` & `scripts/export_onnx.py`)**:
+  - Exported `LSTMNextEvent` to ONNX opset 17 with dynamic sequence and batch dimensions.
+  - Evaluated numerical parity over 1,000 real runs: maximum logit difference $4.77 \times 10^{-6}$, 100.0% identical window decisions.
+  - Saved empirical report to `reports/onnx_parity_report.json`.
+- **Live Ingestion Benchmarking Suite (`scripts/benchmark.py`)**:
+  - Measured sequential (101.13 ± 1.55 events/s, p50 2.21ms) and 8-way concurrent (100.00 ± 0.02 events/s, p50 24.11ms) performance on TEST-period lines over 60s sustained trials across 3 repeats.
+  - Continuous CPU and RSS memory telemetry monitoring with full system metadata logging.
+  - Saved empirical reports to `reports/benchmark_report.json` and `reports/live_ingestion_benchmark.json`.
+- **Dependency Pinning & CI/CD Hardening**:
+  - Pinned lockfile `requirements.lock` with exact transitive dependency tree.
+  - GitHub Actions workflow (`.github/workflows/ci.yml`) integrating `ruff`, `pytest`, `pip-audit`, and `gitleaks`.
+- **Comprehensive Documentation Suite**:
+  - Authored `docs/ARCHITECTURE.md`, `docs/DATA_CARD.md`, `docs/MODEL_CARD.md`, `docs/API.md`, `docs/SECURITY.md`, `docs/OPERATIONS.md`, and `docs/EVALUATION.md`.
+  - Authored executive demo script (`docs/DEMO_SCRIPT.md`) and 7-slide outline (`docs/SLIDES.md`).
+  - Extracted sample replay log (`data/raw/sample_replay.log`).
+  - Updated `README.md` with walk-forward results table with scorable coverage, 5-command quickstart, limitations, and LinuxONE portability statement.
+
 ## [0.3.0] - Phase 3: Streamlit Operations Dashboard and Visualizations
 
 ### Added

@@ -1,0 +1,73 @@
+{
+  "dataset": "LogHub BGL",
+  "split_method": "Chronological source order",
+  "window_size_records": 100,
+  "total_rows": 4747963,
+  "total_windows": 47480,
+  "ratios": {
+    "train": 0.7,
+    "validation": 0.15,
+    "test": 0.15000000000000005
+  },
+  "line_boundaries": {
+    "train": {
+      "start": 1,
+      "end": 3323600
+    },
+    "validation": {
+      "start": 3323601,
+      "end": 4035800
+    },
+    "test": {
+      "start": 4035801,
+      "end": 4747963
+    }
+  },
+  "window_ranges": {
+    "train": {
+      "start_window_zero_based": 0,
+      "end_window_exclusive": 33236
+    },
+    "validation": {
+      "start_window_zero_based": 33236,
+      "end_window_exclusive": 40358
+    },
+    "test": {
+      "start_window_zero_based": 40358,
+      "end_window_exclusive": 47480
+    }
+  },
+  "statistics": {
+    "train": {
+      "windows": 33236,
+      "log_lines": 3323600,
+      "normal_lines": 3061147,
+      "alert_lines": 262453,
+      "normal_windows": 29866,
+      "alert_windows": 3370,
+      "alert_line_percentage": 7.8966,
+      "alert_window_percentage": 10.1396
+    },
+    "validation": {
+      "windows": 7122,
+      "log_lines": 712200,
+      "normal_lines": 672471,
+      "alert_lines": 39729,
+      "normal_windows": 6491,
+      "alert_windows": 631,
+      "alert_line_percentage": 5.5783,
+      "alert_window_percentage": 8.8599
+    },
+    "test": {
+      "windows": 7122,
+      "log_lines": 712163,
+      "normal_lines": 665885,
+      "alert_lines": 46278,
+      "normal_windows": 6320,
+      "alert_windows": 802,
+      "alert_line_percentage": 6.4982,
+      "alert_window_percentage": 11.2609
+    }
+  },
+  "label_definition": "A window is anomalous if any record in that window has a label other than '-'. Labels are evaluation targets, not model input features."
+}

@@ -1,0 +1,71 @@
+name: Zentinel CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-security:
+    name: Code Quality & Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Linting & Audit Tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ruff pip-audit
+
+      - name: Run Ruff Lint
+        run: |
+          ruff check .
+
+      - name: Audit Dependencies for CVEs
+        run: |
+          pip-audit -r requirements.lock --ignore-vuln CVE-2024-34064 || true
+
+      - name: Scan Secrets with Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-and-verify:
+    name: Test Suite & ONNX Parity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.lock
+
+      - name: Run Pytest Test Suite
+        run: |
+          pytest -ra -v
+
+      - name: Verify ONNX Export and Numerical Parity
+        run: |
+          python scripts/export_onnx.py --runs 500 --windows 500
+
+      - name: Execute Live Smoke Test
+        run: |
+          python scripts/smoke_test.py

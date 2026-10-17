@@ -22,6 +22,7 @@ env/
 # Datasets and generated data
 data/raw/*
 !data/raw/.gitkeep
+!data/raw/sample_replay.log
 data/processed/*
 !data/processed/.gitkeep
 data/ingest/*
@@ -35,11 +36,12 @@ artifacts/*
 !artifacts/event_token_vocabulary_v2.json
 !artifacts/lstm_next_event.pt
 !artifacts/lstm_known_run_threshold.json
+!artifacts/bgl_lstm_next_event.onnx
 
 # Reports
 reports/*
 !reports/.gitkeep
-!reports/lstm_three_way_test_decision_report.json
+!reports/*.json
 
 # Editors and operating systems
 .vscode/

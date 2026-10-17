@@ -1,0 +1,167 @@
+{
+  "evaluation_name": "temporal_walk_forward_evaluation",
+  "description": "Walk-forward evaluation over 4 consecutive temporal slices with coverage, bootstrap CIs, and detection delays.",
+  "label": "exploratory temporal test",
+  "total_test_windows": 7122,
+  "slices_evaluated": 4,
+  "slice_results": [
+    {
+      "total_windows": 1780,
+      "coverage": 0.9067415730337078,
+      "review_rate": 0.09325842696629214,
+      "automatic_windows": 1614,
+      "review_windows": 166,
+      "alert_count": 53,
+      "normal_count": 1561,
+      "true_positives": 52,
+      "false_positives": 1,
+      "true_negatives": 1552,
+      "false_negatives": 9,
+      "precision": 0.9811320754716981,
+      "recall": 0.8524590163934426,
+      "f1": 0.9122807017543859,
+      "total_ground_truth_anomalies": 136,
+      "recall_over_all_anomalies": 0.38235294117647056,
+      "span_hours": 284.77166666666665,
+      "false_alerts_per_hour": 0.0035115853051860264,
+      "slice_index": 1,
+      "window_range": [
+        0,
+        1779
+      ]
+    },
+    {
+      "total_windows": 1780,
+      "coverage": 0.07696629213483146,
+      "review_rate": 0.9230337078651686,
+      "automatic_windows": 137,
+      "review_windows": 1643,
+      "alert_count": 14,
+      "normal_count": 123,
+      "true_positives": 14,
+      "false_positives": 0,
+      "true_negatives": 117,
+      "false_negatives": 6,
+      "precision": 1.0,
+      "recall": 0.7,
+      "f1": 0.8235294117647058,
+      "total_ground_truth_anomalies": 354,
+      "recall_over_all_anomalies": 0.03954802259887006,
+      "span_hours": 354.1147222222222,
+      "false_alerts_per_hour": 0.0,
+      "slice_index": 2,
+      "window_range": [
+        1780,
+        3559
+      ]
+    },
+    {
+      "total_windows": 1780,
+      "coverage": 0.0,
+      "review_rate": 1.0,
+      "automatic_windows": 0,
+      "review_windows": 1780,
+      "alert_count": 0,
+      "normal_count": 0,
+      "true_positives": 0,
+      "false_positives": 0,
+      "true_negatives": 0,
+      "false_negatives": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "total_ground_truth_anomalies": 1,
+      "recall_over_all_anomalies": 0.0,
+      "span_hours": 2.0122222222222224,
+      "false_alerts_per_hour": 0.0,
+      "slice_index": 3,
+      "window_range": [
+        3560,
+        5339
+      ]
+    },
+    {
+      "total_windows": 1782,
+      "coverage": 0.3451178451178451,
+      "review_rate": 0.6548821548821548,
+      "automatic_windows": 615,
+      "review_windows": 1167,
+      "alert_count": 37,
+      "normal_count": 578,
+      "true_positives": 19,
+      "false_positives": 18,
+      "true_negatives": 578,
+      "false_negatives": 0,
+      "precision": 0.5135135135135135,
+      "recall": 1.0,
+      "f1": 0.6785714285714286,
+      "total_ground_truth_anomalies": 311,
+      "recall_over_all_anomalies": 0.06109324758842444,
+      "span_hours": 815.2513888888889,
+      "false_alerts_per_hour": 0.022079079220622133,
+      "slice_index": 4,
+      "window_range": [
+        5340,
+        7121
+      ]
+    }
+  ],
+  "overall_test_metrics": {
+    "total_windows": 7122,
+    "coverage": 0.33221005335579895,
+    "review_rate": 0.6677899466442011,
+    "automatic_windows": 2366,
+    "review_windows": 4756,
+    "alert_count": 104,
+    "normal_count": 2262,
+    "true_positives": 85,
+    "false_positives": 19,
+    "true_negatives": 2247,
+    "false_negatives": 15,
+    "precision": 0.8173076923076923,
+    "recall": 0.85,
+    "f1": 0.8333333333333334,
+    "total_ground_truth_anomalies": 802,
+    "recall_over_all_anomalies": 0.1059850374064838,
+    "span_hours": 1456.15,
+    "false_alerts_per_hour": 0.013048106307729285
+  },
+  "detection_delay_metrics": {
+    "episodes_total": 150,
+    "detected_episodes": 16,
+    "detection_rate": 0.10666666666666667,
+    "median_delay_seconds": 8.5,
+    "p90_delay_seconds": 9504.5
+  },
+  "block_bootstrap_95_percent_ci": {
+    "precision": {
+      "ci_lower_2_5": 0.5350198412698413,
+      "median": 0.8209036742800397,
+      "ci_upper_97_5": 1.0
+    },
+    "recall": {
+      "ci_lower_2_5": 0.691330329153605,
+      "median": 0.8488980497859522,
+      "ci_upper_97_5": 0.9387570356472795
+    },
+    "f1": {
+      "ci_lower_2_5": 0.6429987687887959,
+      "median": 0.8358006150325394,
+      "ci_upper_97_5": 0.948944212721585
+    },
+    "coverage": {
+      "ci_lower_2_5": 0.26731957315360855,
+      "median": 0.32933164841336704,
+      "ci_upper_97_5": 0.41360221847795564
+    },
+    "false_alerts_per_hour": {
+      "ci_lower_2_5": 0.0,
+      "median": 0.013424799310861792,
+      "ci_upper_97_5": 0.043029765531637024
+    }
+  },
+  "provenance": {
+    "source_decisions": "data\\processed\\lstm_three_way_test_decisions.parquet",
+    "caveat": "Test data was inspected for drift diagnostics, so results are described as exploratory. Labels are proxies for anomalies. Coverage must be reported alongside every automatic decision metric."
+  }
+}

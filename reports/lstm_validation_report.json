@@ -1,0 +1,51 @@
+{
+  "model_config": {
+    "model_type": "LSTMNextEvent",
+    "vocab_size": 616,
+    "embedding_dim": 32,
+    "hidden_dim": 64,
+    "window_size": 100,
+    "padding_token": 0,
+    "unknown_token": 1,
+    "seed": 42,
+    "epochs": 8,
+    "learning_rate": 0.001,
+    "trained_on_normal_training_windows_only": true
+  },
+  "normal_training_windows_used": 29866,
+  "validation_windows": 7122,
+  "threshold_selection": {
+    "model": "LSTMNextEvent",
+    "threshold": 3.5033535957336426,
+    "score_definition": "Mean next-event cross-entropy per valid sequence position",
+    "higher_score_means_more_anomalous": true,
+    "selected_using_validation_only": true,
+    "test_used_for_threshold_selection": false
+  },
+  "validation_metrics": {
+    "threshold": 3.5033535957336426,
+    "windows_evaluated": 7122,
+    "actual_anomalous_windows": 631,
+    "predicted_anomalous_windows": 715,
+    "true_positives": 495,
+    "false_positives": 220,
+    "true_negatives": 6271,
+    "false_negatives": 136,
+    "precision": 0.6923076923076923,
+    "recall": 0.7844690966719493,
+    "f1": 0.7355126300148589,
+    "false_positive_rate": 0.03389308272993376,
+    "false_positive_windows_per_1000_normal_windows": 33.89308272993376,
+    "average_precision_pr_auc": 0.7212044133946593,
+    "roc_auc": 0.9672654151634067,
+    "score_min": 0.009023967199027538,
+    "score_median": 0.054847102612257004,
+    "score_max": 11.934263229370117
+  },
+  "test_evaluated": false,
+  "outputs": {
+    "model": "artifacts\\lstm_next_event.pt",
+    "threshold": "artifacts\\lstm_threshold.json",
+    "validation_scores": "data\\processed\\lstm_validation_scores.parquet"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "expected_rows": 4747963,
+  "checked_rows": 4747963,
+  "row_count_matches": true,
+  "decreasing_timestamp_pairs": 0,
+  "invalid_timestamps": 0,
+  "minimum_event_time": "2005-06-03-15.42.50.363779",
+  "maximum_event_time": "2006-01-04-08.00.05.233639",
+  "examples": [],
+  "source_order_is_nondecreasing": true
+}

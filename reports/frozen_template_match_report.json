@@ -1,0 +1,237 @@
+{
+  "dataset": "LogHub BGL",
+  "matching_method": "Frozen training-only Drain3 match()",
+  "loaded_training_templates": 615,
+  "similarity_threshold": 0.7,
+  "template_updates_during_matching": false,
+  "labels_used_as_matcher_input": false,
+  "total_processed": 4747963,
+  "total_matched": 4293219,
+  "total_unknown": 454744,
+  "total_match_percentage": 90.4223,
+  "total_unknown_percentage": 9.5777,
+  "split_summary": {
+    "train": {
+      "records": 3323600,
+      "matched": 3323600,
+      "unknown": 0,
+      "match_percentage": 100.0,
+      "unknown_percentage": 0.0,
+      "normal_label_records": 3061147,
+      "alert_label_records": 262453,
+      "unique_event_ids_including_unknown": 614,
+      "label_counts": {
+        "-": 3061147,
+        "KERNDTLB": 152723,
+        "KERNSTOR": 63488,
+        "KERNTERM": 16100,
+        "APPSEV": 7814,
+        "KERNMNTF": 7126,
+        "APPREAD": 5983,
+        "KERNRTSP": 3373,
+        "APPUNAV": 2048,
+        "KERNMICRO": 1486,
+        "KERNMNT": 720,
+        "APPBUSY": 512,
+        "APPCHILD": 288,
+        "APPALLOC": 144,
+        "KERNMC": 129,
+        "LINKIAP": 114,
+        "KERNSOCK": 111,
+        "APPRES": 109,
+        "KERNPOW": 96,
+        "LINKDISC": 24,
+        "MASABNORM": 18,
+        "LINKPAP": 10,
+        "KERNPAN": 10,
+        "MASNORM": 9,
+        "KERNNOETH": 7,
+        "KERNCON": 6,
+        "APPTORUS": 2,
+        "KERNPROG": 1,
+        "MONPOW": 1,
+        "MONNULL": 1
+      }
+    },
+    "validation": {
+      "records": 712200,
+      "matched": 690064,
+      "unknown": 22136,
+      "match_percentage": 96.8919,
+      "unknown_percentage": 3.1081,
+      "normal_label_records": 672471,
+      "alert_label_records": 39729,
+      "unique_event_ids_including_unknown": 191,
+      "label_counts": {
+        "-": 672471,
+        "KERNMNTF": 21965,
+        "APPSEV": 13759,
+        "KERNTERM": 2118,
+        "KERNREC": 1024,
+        "KERNRTSP": 522,
+        "KERNMC": 129,
+        "KERNPOW": 96,
+        "LINKIAP": 44,
+        "KERNMICRO": 17,
+        "KERNSOCK": 11,
+        "KERNCON": 8,
+        "KERNPAN": 6,
+        "KERNNOETH": 6,
+        "APPRES": 5,
+        "LINKPAP": 4,
+        "KERNPROG": 4,
+        "MONPOW": 2,
+        "KERNFLOAT": 2,
+        "KERNRTSA": 2,
+        "KERNEXT": 1,
+        "MONNULL": 1,
+        "KERNBIT": 1,
+        "MMCS": 1,
+        "MASNORM": 1
+      }
+    },
+    "test": {
+      "records": 712163,
+      "matched": 279555,
+      "unknown": 432608,
+      "match_percentage": 39.2544,
+      "unknown_percentage": 60.7456,
+      "normal_label_records": 665885,
+      "alert_label_records": 46278,
+      "unique_event_ids_including_unknown": 168,
+      "label_counts": {
+        "-": 665885,
+        "APPSEV": 28078,
+        "KERNREC": 5121,
+        "KERNTERM": 5120,
+        "KERNMNTF": 2440,
+        "APPRES": 2256,
+        "APPTO": 1991,
+        "APPOUT": 816,
+        "KERNSERV": 94,
+        "KERNRTSP": 88,
+        "KERNSOCK": 87,
+        "KERNMC": 84,
+        "APPCHILD": 32,
+        "MASABNORM": 19,
+        "KERNDTLB": 11,
+        "MONPOW": 9,
+        "APPTORUS": 8,
+        "LINKIAP": 8,
+        "KERNSTOR": 3,
+        "KERNPAN": 2,
+        "KERNCON": 2,
+        "LINKBLL": 2,
+        "MMCS": 2,
+        "KERNFLOAT": 1,
+        "MONILL": 1,
+        "KERNNOETH": 1,
+        "KERNTLBE": 1,
+        "KERNRTSA": 1
+      }
+    }
+  },
+  "top_matched_templates": [
+    {
+      "event_id": 3,
+      "matched_records": 1706751,
+      "template": "RAS KERNEL INFO generating <*>"
+    },
+    {
+      "event_id": 601,
+      "matched_records": 442966,
+      "template": "RAS KERNEL INFO iar <*> dear <*>"
+    },
+    {
+      "event_id": 11,
+      "matched_records": 295764,
+      "template": "RAS KERNEL INFO <*> double-hummer alignment exceptions"
+    },
+    {
+      "event_id": 310,
+      "matched_records": 267725,
+      "template": "RAS KERNEL INFO <*> floating point alignment exceptions"
+    },
+    {
+      "event_id": 6,
+      "matched_records": 201206,
+      "template": "RAS KERNEL INFO CE sym <*> at <*> mask <*>"
+    },
+    {
+      "event_id": 18,
+      "matched_records": 152734,
+      "template": "RAS KERNEL FATAL data TLB error interrupt"
+    },
+    {
+      "event_id": 1,
+      "matched_records": 105924,
+      "template": "RAS KERNEL INFO instruction cache parity error corrected"
+    },
+    {
+      "event_id": 526,
+      "matched_records": 84168,
+      "template": "RAS MMCS ERROR idoproxydb hit ASSERT condition: ASSERT expression=0 Source file=idotransportmgr.cpp Source line=1043 Function=int IdoTransportMgr::SendPacket(IdoUdpMgr*, BglCtlPavTrace*)"
+    },
+    {
+      "event_id": 190,
+      "matched_records": 63493,
+      "template": "RAS KERNEL <*> data storage interrupt"
+    },
+    {
+      "event_id": 575,
+      "matched_records": 62484,
+      "template": "RAS KERNEL INFO ciod: generated <*> core files for program <*>"
+    },
+    {
+      "event_id": 19,
+      "matched_records": 47563,
+      "template": "RAS KERNEL FATAL instruction address: <*>"
+    },
+    {
+      "event_id": 10,
+      "matched_records": 46416,
+      "template": "RAS APP FATAL ciod: Error loading <*> invalid or missing program image, No such file or directory"
+    },
+    {
+      "event_id": 16,
+      "matched_records": 43647,
+      "template": "RAS APP FATAL ciod: LOGIN <*> failed: No such file or directory"
+    },
+    {
+      "event_id": 574,
+      "matched_records": 43040,
+      "template": "RAS APP FATAL ciod: Error loading <*> invalid or missing program image, Permission denied"
+    },
+    {
+      "event_id": 193,
+      "matched_records": 41065,
+      "template": "RAS KERNEL FATAL program interrupt: <*> <*>"
+    },
+    {
+      "event_id": 4,
+      "matched_records": 33939,
+      "template": "RAS KERNEL INFO <*> ddr errors(s) detected and corrected on rank 0, symbol <*> bit <*>"
+    },
+    {
+      "event_id": 602,
+      "matched_records": 33933,
+      "template": "RAS KERNEL INFO"
+    },
+    {
+      "event_id": 7,
+      "matched_records": 28485,
+      "template": "RAS KERNEL INFO total of <*> ddr error(s) detected and corrected"
+    },
+    {
+      "event_id": 605,
+      "matched_records": 26426,
+      "template": "RAS KERNEL FATAL Lustre mount FAILED : <*> : point /p/gb1"
+    },
+    {
+      "event_id": 447,
+      "matched_records": 23105,
+      "template": "RAS APP FATAL ciod: Error reading message prefix after <*> on CioStream socket to <*> Link has been severed"
+    }
+  ],
+  "output_file": "data\\processed\\bgl_frozen_events.parquet"
+}

@@ -1,0 +1,229 @@
+{
+  "dataset": "LogHub BGL",
+  "input_file": "data\\raw\\BGL.log",
+  "input_size_bytes": 743185031,
+  "processed_lines": 4747963,
+  "normal_label": "-",
+  "normal_label_lines": 4399503,
+  "alert_label_lines": 348460,
+  "alert_label_percentage": 7.3391,
+  "empty_message_lines": 34470,
+  "parse_status_counts": {
+    "standard": 4747953,
+    "fallback": 10
+  },
+  "severity_counts": {
+    "INFO": 3735813,
+    "FATAL": 855195,
+    "ERROR": 112355,
+    "WARNING": 23357,
+    "SEVERE": 19213,
+    "FAILURE": 1714,
+    "Kill": 306
+  },
+  "label_counts": {
+    "-": 4399503,
+    "KERNDTLB": 152734,
+    "KERNSTOR": 63491,
+    "APPSEV": 49651,
+    "KERNMNTF": 31531,
+    "KERNTERM": 23338,
+    "KERNREC": 6145,
+    "APPREAD": 5983,
+    "KERNRTSP": 3983,
+    "APPRES": 2370,
+    "APPUNAV": 2048,
+    "APPTO": 1991,
+    "KERNMICRO": 1503,
+    "APPOUT": 816,
+    "KERNMNT": 720,
+    "APPBUSY": 512,
+    "KERNMC": 342,
+    "APPCHILD": 320,
+    "KERNSOCK": 209,
+    "KERNPOW": 192,
+    "LINKIAP": 166,
+    "APPALLOC": 144,
+    "KERNSERV": 94,
+    "MASABNORM": 37,
+    "LINKDISC": 24,
+    "KERNPAN": 18,
+    "KERNCON": 16,
+    "KERNNOETH": 14,
+    "LINKPAP": 14,
+    "MONPOW": 12,
+    "MASNORM": 10,
+    "APPTORUS": 10,
+    "KERNPROG": 5,
+    "KERNFLOAT": 3,
+    "KERNRTSA": 3,
+    "MMCS": 3,
+    "MONNULL": 2,
+    "LINKBLL": 2,
+    "KERNEXT": 1,
+    "KERNBIT": 1,
+    "MONILL": 1,
+    "KERNTLBE": 1
+  },
+  "unique_event_templates": 240,
+  "template_change_counts": {
+    "cluster_created": 240,
+    "none": 4747464,
+    "cluster_template_changed": 259
+  },
+  "top_templates": [
+    {
+      "event_id": 3,
+      "count": 1732699,
+      "template": "RAS KERNEL <*> <*> <*>"
+    },
+    {
+      "event_id": 11,
+      "count": 761186,
+      "template": "RAS KERNEL INFO <*> <*> <*> <*>"
+    },
+    {
+      "event_id": 18,
+      "count": 268774,
+      "template": "RAS KERNEL FATAL <*> <*> <*> <*>"
+    },
+    {
+      "event_id": 85,
+      "count": 267725,
+      "template": "RAS KERNEL INFO <*> floating point alignment exceptions"
+    },
+    {
+      "event_id": 19,
+      "count": 223464,
+      "template": "RAS KERNEL FATAL <*> <*> <*>"
+    },
+    {
+      "event_id": 6,
+      "count": 201206,
+      "template": "RAS KERNEL INFO CE sym <*> at <*> mask <*>"
+    },
+    {
+      "event_id": 231,
+      "count": 135092,
+      "template": "RAS KERNEL INFO <*> microseconds spent in the rbs signal handler during <*> calls. <*> microseconds was the maximum time for a single instance of a correctable ddr."
+    },
+    {
+      "event_id": 232,
+      "count": 135092,
+      "template": "RAS KERNEL INFO <*> total interrupts. <*> critical input interrupts. <*> microseconds total spent on critical input interrupts, <*> microseconds max time in a critical input interrupt."
+    },
+    {
+      "event_id": 1,
+      "count": 105924,
+      "template": "RAS KERNEL INFO instruction cache parity error corrected"
+    },
+    {
+      "event_id": 147,
+      "count": 84250,
+      "template": "RAS MMCS ERROR idoproxydb hit ASSERT condition: ASSERT <*> Source <*> Source <*> Function=int <*> <*>"
+    },
+    {
+      "event_id": 161,
+      "count": 62484,
+      "template": "RAS KERNEL INFO ciod: generated <*> core files for program <*>"
+    },
+    {
+      "event_id": 10,
+      "count": 46416,
+      "template": "RAS APP FATAL ciod: Error loading <*> invalid or missing program image, No such file or directory"
+    },
+    {
+      "event_id": 80,
+      "count": 44552,
+      "template": "RAS APP FATAL ciod: Error loading <*> <*> <*> <*> <*> <*> <*> <*>"
+    },
+    {
+      "event_id": 16,
+      "count": 43647,
+      "template": "RAS APP FATAL ciod: LOGIN <*> failed: No such file or directory"
+    },
+    {
+      "event_id": 202,
+      "count": 39457,
+      "template": "RAS KERNEL INFO ciod: Received signal <*> <*> errno=0, <*>"
+    },
+    {
+      "event_id": 115,
+      "count": 34470,
+      "template": "RAS KERNEL <*>"
+    },
+    {
+      "event_id": 4,
+      "count": 33939,
+      "template": "RAS KERNEL INFO <*> ddr errors(s) detected and corrected on rank 0, symbol <*> bit <*>"
+    },
+    {
+      "event_id": 206,
+      "count": 28802,
+      "template": "RAS APP FATAL ciod: Error reading message prefix on CioStream socket to <*> <*> <*> <*> <*>"
+    },
+    {
+      "event_id": 7,
+      "count": 28485,
+      "template": "RAS KERNEL INFO total of <*> ddr error(s) detected and corrected"
+    },
+    {
+      "event_id": 169,
+      "count": 26426,
+      "template": "RAS KERNEL FATAL Lustre mount FAILED : <*> : point /p/gb1"
+    },
+    {
+      "event_id": 127,
+      "count": 23219,
+      "template": "RAS APP FATAL ciod: Error reading message prefix after <*> on CioStream socket to <*> <*> <*> <*> <*>"
+    },
+    {
+      "event_id": 237,
+      "count": 22175,
+      "template": "RAS KERNEL INFO Kernel detected <*> integer alignment exceptions <*> iar <*> dear <*> <*> iar <*> dear <*> <*> iar <*> dear <*> <*> iar <*> dear <*> <*> iar <*> dear <*> <*> iar <*> dear <*> <*> iar <*> dear <*> <*> iar <*> dear <*>"
+    },
+    {
+      "event_id": 123,
+      "count": 22040,
+      "template": "RAS APP FATAL ciod: Error loading <*> invalid or missing program image, <*> <*> <*>"
+    },
+    {
+      "event_id": 54,
+      "count": 21356,
+      "template": "NULL DISCOVERY <*> Node card VPD check: <*> node in processor card slot <*> do not match. VPD ecid <*> found <*>"
+    },
+    {
+      "event_id": 61,
+      "count": 19646,
+      "template": "RAS KERNEL <*> data store interrupt caused by <*>"
+    },
+    {
+      "event_id": 162,
+      "count": 18587,
+      "template": "RAS KERNEL FATAL rts: kernel terminated for reason <*>"
+    },
+    {
+      "event_id": 51,
+      "count": 17364,
+      "template": "NULL DISCOVERY WARNING Node card is not fully functional"
+    },
+    {
+      "event_id": 52,
+      "count": 17305,
+      "template": "NULL DISCOVERY SEVERE Can not get assembly information for node card"
+    },
+    {
+      "event_id": 53,
+      "count": 16897,
+      "template": "NULL DISCOVERY ERROR Node card status: no ALERTs are active. Clock Mode is Low. Clock Select is Midplane. Phy JTAG Reset is asserted. ASIC JTAG Reset is <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> <*> OK. MPGOOD ERROR LATCH IS ACTIVE. The 2.5 volt rail is OK. The 1.5 volt rail is OK."
+    },
+    {
+      "event_id": 225,
+      "count": 14482,
+      "template": "RAS KERNEL INFO MACHINE CHECK <*> <*> <*> <*> iar 0x00000000 lr <*>"
+    }
+  ],
+  "output_file": "data\\processed\\bgl_parsed.parquet",
+  "model_state_file": "artifacts\\drain3_bgl_state.bin",
+  "output_rows_written": 4747963
+}

@@ -1,0 +1,35 @@
+{
+  "source_rows": 4747963,
+  "processed_rows": 4747963,
+  "window_size": 100,
+  "windows_created": 47480,
+  "model_feature_count": 647,
+  "training_template_count": 614,
+  "target_definition": "1 if any log in the window has a BGL label other than '-'; 0 otherwise",
+  "labels_used_as_model_features": false,
+  "statistics_by_split": {
+    "train": {
+      "windows": 33236,
+      "records": 3323600,
+      "anomalous_windows": 3370,
+      "unknown_windows": 0,
+      "windows_with_empty_messages": 74
+    },
+    "validation": {
+      "windows": 7122,
+      "records": 712200,
+      "anomalous_windows": 631,
+      "unknown_windows": 430,
+      "windows_with_empty_messages": 326
+    },
+    "test": {
+      "windows": 7122,
+      "records": 712163,
+      "anomalous_windows": 802,
+      "unknown_windows": 4813,
+      "windows_with_empty_messages": 149
+    }
+  },
+  "output_file": "data\\processed\\bgl_window_features.parquet",
+  "feature_manifest": "reports\\window_feature_columns.json"
+}

@@ -1,0 +1,26 @@
+{
+  "expected_rows": 4747963,
+  "parquet_rows": 4747963,
+  "validated_rows": 4747963,
+  "row_count_matches_expected": true,
+  "source_has_extra_lines": false,
+  "source_ended_early": 0,
+  "raw_line_mismatches": 0,
+  "line_number_mismatches": 0,
+  "label_mismatches": 0,
+  "timestamp_mismatches": 0,
+  "missing_required_values": 0,
+  "normal_label_lines": 4399503,
+  "alert_label_lines": 348460,
+  "empty_message_lines": 34470,
+  "parse_status_counts": {
+    "standard": 4747953,
+    "fallback": 10
+  },
+  "unique_event_ids": 240,
+  "timestamp_range": {
+    "min": 1117838570,
+    "max": 1136390405
+  },
+  "mismatch_samples": []
+}

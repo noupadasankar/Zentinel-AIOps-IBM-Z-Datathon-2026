@@ -1,0 +1,254 @@
+{
+  "dataset": "LogHub BGL",
+  "source_file": "data\\raw\\BGL.log",
+  "file_size_bytes": 743185031,
+  "total_lines": 4747963,
+  "valid_lines": 4747963,
+  "malformed_lines": 0,
+  "empty_message_lines": 34470,
+  "normal_label": "-",
+  "normal_lines": 4399503,
+  "alert_label_lines": 348460,
+  "alert_percentage": 7.3391,
+  "unique_labels": 42,
+  "label_counts": {
+    "-": 4399503,
+    "KERNDTLB": 152734,
+    "KERNSTOR": 63491,
+    "APPSEV": 49651,
+    "KERNMNTF": 31531,
+    "KERNTERM": 23338,
+    "KERNREC": 6145,
+    "APPREAD": 5983,
+    "KERNRTSP": 3983,
+    "APPRES": 2370,
+    "APPUNAV": 2048,
+    "APPTO": 1991,
+    "KERNMICRO": 1503,
+    "APPOUT": 816,
+    "KERNMNT": 720,
+    "APPBUSY": 512,
+    "KERNMC": 342,
+    "APPCHILD": 320,
+    "KERNSOCK": 209,
+    "KERNPOW": 192,
+    "LINKIAP": 166,
+    "APPALLOC": 144,
+    "KERNSERV": 94,
+    "MASABNORM": 37,
+    "LINKDISC": 24,
+    "KERNPAN": 18,
+    "KERNCON": 16,
+    "KERNNOETH": 14,
+    "LINKPAP": 14,
+    "MONPOW": 12,
+    "APPTORUS": 10,
+    "MASNORM": 10,
+    "KERNPROG": 5,
+    "KERNFLOAT": 3,
+    "KERNRTSA": 3,
+    "MMCS": 3,
+    "LINKBLL": 2,
+    "MONNULL": 2,
+    "KERNBIT": 1,
+    "KERNEXT": 1,
+    "KERNTLBE": 1,
+    "MONILL": 1
+  },
+  "top_alert_labels": {
+    "KERNDTLB": 152734,
+    "KERNSTOR": 63491,
+    "APPSEV": 49651,
+    "KERNMNTF": 31531,
+    "KERNTERM": 23338,
+    "KERNREC": 6145,
+    "APPREAD": 5983,
+    "KERNRTSP": 3983,
+    "APPRES": 2370,
+    "APPUNAV": 2048,
+    "APPTO": 1991,
+    "KERNMICRO": 1503,
+    "APPOUT": 816,
+    "KERNMNT": 720,
+    "APPBUSY": 512
+  },
+  "severity_counts": {
+    "INFO": 3735813,
+    "FATAL": 855195,
+    "ERROR": 112355,
+    "WARNING": 23357,
+    "SEVERE": 19213,
+    "FAILURE": 1714,
+    "Kill": 306,
+    "single": 4,
+    "microseconds": 4,
+    "0x00544eb8,": 2
+  },
+  "unexpected_severity_counts": {
+    "single": 4,
+    "microseconds": 4,
+    "0x00544eb8,": 2
+  },
+  "unexpected_severity_samples": [
+    {
+      "line_number": 4344697,
+      "level": "single",
+      "event_type": "for",
+      "component": "a",
+      "sample": "- 1133447861 2005.12.01 - 2005-12-01-06.37.41.417709 time for a single instance of a correctable ddr. RAS KERNEL INFO 0 microseconds spent in the rbs signal handler during 0 calls. 0 microseconds was the maximum time for a single instance of a correc"
+    },
+    {
+      "line_number": 4344703,
+      "level": "microseconds",
+      "event_type": "interrupts,",
+      "component": "0",
+      "sample": "- 1133447861 2005.12.01 - 2005-12-01-06.37.41.737383 nput interrupts, 0 microseconds max time in a cr RAS KERNEL INFO 10760 total interrupts. 0 critical input interrupts. 0 microseconds total spent on critical input interrupts, 0 microseconds max tim"
+    },
+    {
+      "line_number": 4344708,
+      "level": "single",
+      "event_type": "for",
+      "component": "a",
+      "sample": "- 1133447861 2005.12.01 - 2005-12-01-06.37.41.857288 time for a single instance of a correctable ddr. RAS KERNEL INFO 0 microseconds spent in the rbs signal handler during 0 calls. 0 microseconds was the maximum time for a single instance of a correc"
+    },
+    {
+      "line_number": 4344713,
+      "level": "microseconds",
+      "event_type": "interrupts,",
+      "component": "0",
+      "sample": "- 1133447862 2005.12.01 - 2005-12-01-06.37.42.094120 nput interrupts, 0 microseconds max time in a cr RAS KERNEL INFO 10742 total interrupts. 0 critical input interrupts. 0 microseconds total spent on critical input interrupts, 0 microseconds max tim"
+    },
+    {
+      "line_number": 4501496,
+      "level": "single",
+      "event_type": "for",
+      "component": "a",
+      "sample": "- 1133454922 2005.12.01 - 2005-12-01-08.35.22.816148 time for a single instance of a correctable ddr. RAS KERNEL INFO 0 microseconds spent in the rbs signal handler during 0 calls. 0 microseconds was the maximum time for a single instance of a correc"
+    },
+    {
+      "line_number": 4501503,
+      "level": "microseconds",
+      "event_type": "interrupts,",
+      "component": "0",
+      "sample": "- 1133454922 2005.12.01 - 2005-12-01-08.35.22.850902 nput interrupts, 0 microseconds max time in a cr RAS KERNEL INFO 10760 total interrupts. 0 critical input interrupts. 0 microseconds total spent on critical input interrupts, 0 microseconds max tim"
+    },
+    {
+      "line_number": 4501527,
+      "level": "single",
+      "event_type": "for",
+      "component": "a",
+      "sample": "- 1133454923 2005.12.01 - 2005-12-01-08.35.23.010225 time for a single instance of a correctable ddr. RAS KERNEL INFO 0 microseconds spent in the rbs signal handler during 0 calls. 0 microseconds was the maximum time for a single instance of a correc"
+    },
+    {
+      "line_number": 4501550,
+      "level": "microseconds",
+      "event_type": "interrupts,",
+      "component": "0",
+      "sample": "- 1133454923 2005.12.01 - 2005-12-01-08.35.23.131061 nput interrupts, 0 microseconds max time in a cr RAS KERNEL INFO 10742 total interrupts. 0 critical input interrupts. 0 microseconds total spent on critical input interrupts, 0 microseconds max tim"
+    },
+    {
+      "line_number": 4643092,
+      "level": "0x00544eb8,",
+      "event_type": "(5438708)",
+      "component": "iar",
+      "sample": "- 1133928921 2005.12.06 - 2005-12-06-20.15.21.720577 0 (5438708) iar 0x00544eb8, dear 0x01fc5640 (543 RAS KERNEL INFO Kernel detected 5438714 integer alignment exceptions (5438707) iar 0x00544ea8, dear 0x01fc5620 (5438708) iar 0x00544eb8, dear 0x01fc"
+    },
+    {
+      "line_number": 4643093,
+      "level": "0x00544eb8,",
+      "event_type": "(4211594)",
+      "component": "iar",
+      "sample": "- 1133928921 2005.12.06 - 2005-12-06-20.15.21.825122 0 (4211594) iar 0x00544eb8, dear 0x01fc1e20 (421 RAS KERNEL INFO Kernel detected 4211600 integer alignment exceptions (4211593) iar 0x00544ea8, dear 0x01fc1e00 (4211594) iar 0x00544eb8, dear 0x01fc"
+    }
+  ],
+  "top_event_types": {
+    "RAS": 4643432,
+    "NULL": 104215,
+    "KERNEL": 306,
+    "for": 4,
+    "interrupts,": 4,
+    "(5438708)": 1,
+    "(4211594)": 1
+  },
+  "top_components": {
+    "KERNEL": 4324651,
+    "APP": 228536,
+    "DISCOVERY": 97172,
+    "MMCS": 88930,
+    "HARDWARE": 5148,
+    "MONITOR": 1681,
+    "LINKCARD": 1170,
+    "FATAL": 306,
+    "CMCS": 211,
+    "BGLMASTER": 145
+  },
+  "timestamp_range": {
+    "min_unix": 1117838570,
+    "max_unix": 1136390405,
+    "min_utc": "2005-06-03T22:42:50+00:00",
+    "max_utc": "2006-01-04T16:00:05+00:00"
+  },
+  "sample_records": [
+    {
+      "label": "-",
+      "timestamp": 1117838570,
+      "date": "2005.06.03",
+      "node": "R02-M1-N0-C:J12-U11",
+      "time": "2005-06-03-15.42.50.363779",
+      "node_repeat": "R02-M1-N0-C:J12-U11",
+      "type": "RAS",
+      "component": "KERNEL",
+      "level": "INFO",
+      "content": "instruction cache parity error corrected"
+    },
+    {
+      "label": "-",
+      "timestamp": 1117838570,
+      "date": "2005.06.03",
+      "node": "R02-M1-N0-C:J12-U11",
+      "time": "2005-06-03-15.42.50.527847",
+      "node_repeat": "R02-M1-N0-C:J12-U11",
+      "type": "RAS",
+      "component": "KERNEL",
+      "level": "INFO",
+      "content": "instruction cache parity error corrected"
+    },
+    {
+      "label": "-",
+      "timestamp": 1117838570,
+      "date": "2005.06.03",
+      "node": "R02-M1-N0-C:J12-U11",
+      "time": "2005-06-03-15.42.50.675872",
+      "node_repeat": "R02-M1-N0-C:J12-U11",
+      "type": "RAS",
+      "component": "KERNEL",
+      "level": "INFO",
+      "content": "instruction cache parity error corrected"
+    },
+    {
+      "label": "-",
+      "timestamp": 1117838570,
+      "date": "2005.06.03",
+      "node": "R02-M1-N0-C:J12-U11",
+      "time": "2005-06-03-15.42.50.823719",
+      "node_repeat": "R02-M1-N0-C:J12-U11",
+      "type": "RAS",
+      "component": "KERNEL",
+      "level": "INFO",
+      "content": "instruction cache parity error corrected"
+    },
+    {
+      "label": "-",
+      "timestamp": 1117838570,
+      "date": "2005.06.03",
+      "node": "R02-M1-N0-C:J12-U11",
+      "time": "2005-06-03-15.42.50.982731",
+      "node_repeat": "R02-M1-N0-C:J12-U11",
+      "type": "RAS",
+      "component": "KERNEL",
+      "level": "INFO",
+      "content": "instruction cache parity error corrected"
+    }
+  ],
+  "malformed_samples": []
+}

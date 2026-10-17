@@ -1,0 +1,203 @@
+{
+  "dataset": "LogHub BGL",
+  "method": "Training-period-only Drain3 template mining",
+  "training_end_line_inclusive": 3323600,
+  "training_records_processed": 3323600,
+  "validation_and_test_used_during_fit": false,
+  "label_used_as_model_input": false,
+  "drain_config": {
+    "similarity_threshold": 0.4,
+    "depth": 4
+  },
+  "unique_training_templates": 170,
+  "label_counts_for_audit_only": {
+    "-": 3061147,
+    "KERNDTLB": 152723,
+    "KERNSTOR": 63488,
+    "KERNTERM": 16100,
+    "APPSEV": 7814,
+    "KERNMNTF": 7126,
+    "APPREAD": 5983,
+    "KERNRTSP": 3373,
+    "APPUNAV": 2048,
+    "KERNMICRO": 1486,
+    "KERNMNT": 720,
+    "APPBUSY": 512,
+    "APPCHILD": 288,
+    "APPALLOC": 144,
+    "KERNMC": 129,
+    "LINKIAP": 114,
+    "KERNSOCK": 111,
+    "APPRES": 109,
+    "KERNPOW": 96,
+    "LINKDISC": 24,
+    "MASABNORM": 18,
+    "LINKPAP": 10,
+    "KERNPAN": 10,
+    "MASNORM": 9,
+    "KERNNOETH": 7,
+    "KERNCON": 6,
+    "APPTORUS": 2,
+    "KERNPROG": 1,
+    "MONPOW": 1,
+    "MONNULL": 1
+  },
+  "parse_status_counts": {
+    "standard": 3323600
+  },
+  "empty_message_records": 3693,
+  "model_state_file": "artifacts\\drain3_train_state.bin",
+  "model_state_size_bytes": 10592,
+  "top_training_templates": [
+    {
+      "event_id": 3,
+      "training_count": 1730586,
+      "template": "RAS KERNEL <*> <*> <*>"
+    },
+    {
+      "event_id": 11,
+      "training_count": 423302,
+      "template": "RAS KERNEL INFO <*> <*> <*> <*>"
+    },
+    {
+      "event_id": 18,
+      "training_count": 262631,
+      "template": "RAS KERNEL FATAL <*> <*> <*> <*>"
+    },
+    {
+      "event_id": 19,
+      "training_count": 218811,
+      "template": "RAS KERNEL FATAL <*> <*> <*>"
+    },
+    {
+      "event_id": 85,
+      "training_count": 184248,
+      "template": "RAS KERNEL INFO <*> floating point alignment exceptions"
+    },
+    {
+      "event_id": 6,
+      "training_count": 76158,
+      "template": "RAS KERNEL INFO CE sym <*> at <*> mask <*>"
+    },
+    {
+      "event_id": 1,
+      "training_count": 66726,
+      "template": "RAS KERNEL INFO instruction cache parity error corrected"
+    },
+    {
+      "event_id": 161,
+      "training_count": 26088,
+      "template": "RAS KERNEL INFO ciod: generated <*> core files for program <*>"
+    },
+    {
+      "event_id": 123,
+      "training_count": 21000,
+      "template": "RAS APP FATAL ciod: Error loading <*> invalid or missing program image, Exec format error"
+    },
+    {
+      "event_id": 16,
+      "training_count": 19968,
+      "template": "RAS APP FATAL ciod: LOGIN <*> failed: No such file or directory"
+    },
+    {
+      "event_id": 61,
+      "training_count": 19616,
+      "template": "RAS KERNEL <*> data store interrupt caused by <*>"
+    },
+    {
+      "event_id": 147,
+      "training_count": 19320,
+      "template": "RAS MMCS ERROR idoproxydb hit ASSERT condition: ASSERT expression=0 Source file=idotransportmgr.cpp Source line=1043 Function=int IdoTransportMgr::SendPacket(IdoUdpMgr*, BglCtlPavTrace*)"
+    },
+    {
+      "event_id": 4,
+      "training_count": 15098,
+      "template": "RAS KERNEL INFO <*> ddr errors(s) detected and corrected on rank 0, symbol <*> bit <*>"
+    },
+    {
+      "event_id": 54,
+      "training_count": 14818,
+      "template": "NULL DISCOVERY <*> Node card VPD check: <*> node in processor card slot <*> do not match. VPD ecid <*> found <*>"
+    },
+    {
+      "event_id": 51,
+      "training_count": 13257,
+      "template": "NULL DISCOVERY WARNING Node card is not fully functional"
+    },
+    {
+      "event_id": 52,
+      "training_count": 13203,
+      "template": "NULL DISCOVERY SEVERE Can not get assembly information for node card"
+    },
+    {
+      "event_id": 83,
+      "training_count": 13156,
+      "template": "RAS KERNEL INFO <*> <*> <*>"
+    },
+    {
+      "event_id": 53,
+      "training_count": 13049,
+      "template": "NULL DISCOVERY ERROR Node card status: no ALERTs are active. Clock Mode is Low. Clock Select is Midplane. Phy JTAG Reset is asserted. ASIC JTAG Reset is asserted. Temperature Mask is not active. No temperature error. Temperature Limit Error Latch is clear. PGOOD IS NOT ASSERTED. PGOOD ERROR LATCH IS ACTIVE. MPGOOD IS NOT OK. MPGOOD ERROR LATCH IS ACTIVE. The 2.5 volt rail is OK. The 1.5 volt rail is OK."
+    },
+    {
+      "event_id": 7,
+      "training_count": 12700,
+      "template": "RAS KERNEL INFO total of <*> ddr error(s) detected and corrected"
+    },
+    {
+      "event_id": 22,
+      "training_count": 12692,
+      "template": "RAS KERNEL <*> floating pt ex mode <*> <*>"
+    },
+    {
+      "event_id": 162,
+      "training_count": 11349,
+      "template": "RAS KERNEL FATAL rts: kernel terminated for reason <*>"
+    },
+    {
+      "event_id": 10,
+      "training_count": 11264,
+      "template": "RAS APP FATAL ciod: Error loading <*> invalid or missing program image, No such file or directory"
+    },
+    {
+      "event_id": 62,
+      "training_count": 8087,
+      "template": "RAS KERNEL <*> program interrupt: fp cr update.............0"
+    },
+    {
+      "event_id": 63,
+      "training_count": 8087,
+      "template": "RAS KERNEL <*> program interrupt: fp cr field .............0"
+    },
+    {
+      "event_id": 127,
+      "training_count": 7923,
+      "template": "RAS APP FATAL ciod: Error reading message prefix after <*> on CioStream socket to <*> <*> <*> <*> <*>"
+    },
+    {
+      "event_id": 67,
+      "training_count": 7398,
+      "template": "NULL DISCOVERY INFO Ido chip status changed: <*> <*> <*> <*> status=M <*> <*> <*> <*> PDT 2005"
+    },
+    {
+      "event_id": 169,
+      "training_count": 6264,
+      "template": "RAS KERNEL FATAL Lustre mount FAILED : <*> : point /p/gb1"
+    },
+    {
+      "event_id": 25,
+      "training_count": 6018,
+      "template": "RAS KERNEL INFO <*> torus receiver <*> input pipe error(s) (dcr <*> detected and corrected"
+    },
+    {
+      "event_id": 17,
+      "training_count": 5983,
+      "template": "RAS APP FATAL ciod: failed to read message prefix on control stream (CioStream socket to <*>"
+    },
+    {
+      "event_id": 140,
+      "training_count": 5558,
+      "template": "NULL DISCOVERY ERROR Found invalid node ecid in processor card slot <*> ecid 0000000000000000000000000000"
+    }
+  ]
+}

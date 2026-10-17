@@ -1,0 +1,197 @@
+{
+  "dataset": "LogHub BGL",
+  "similarity_threshold": 0.7,
+  "drain_depth": 4,
+  "training_end_line_inclusive": 3323600,
+  "training_records_processed": 3323600,
+  "validation_or_test_used_for_fitting": false,
+  "labels_used_as_model_inputs": false,
+  "label_counts_for_audit_only": {
+    "-": 3061147,
+    "KERNDTLB": 152723,
+    "KERNSTOR": 63488,
+    "KERNTERM": 16100,
+    "APPSEV": 7814,
+    "KERNMNTF": 7126,
+    "APPREAD": 5983,
+    "KERNRTSP": 3373,
+    "APPUNAV": 2048,
+    "KERNMICRO": 1486,
+    "KERNMNT": 720,
+    "APPBUSY": 512,
+    "APPCHILD": 288,
+    "APPALLOC": 144,
+    "KERNMC": 129,
+    "LINKIAP": 114,
+    "KERNSOCK": 111,
+    "APPRES": 109,
+    "KERNPOW": 96,
+    "LINKDISC": 24,
+    "MASABNORM": 18,
+    "LINKPAP": 10,
+    "KERNPAN": 10,
+    "MASNORM": 9,
+    "KERNNOETH": 7,
+    "KERNCON": 6,
+    "APPTORUS": 2,
+    "KERNPROG": 1,
+    "MONPOW": 1,
+    "MONNULL": 1
+  },
+  "empty_message_records": 3693,
+  "unique_training_templates": 615,
+  "model_state_file": "artifacts\\drain3_train_state_0_7.bin",
+  "model_state_size_bytes": 30160,
+  "top_templates": [
+    {
+      "event_id": 3,
+      "training_count": 1706751,
+      "template": "RAS KERNEL INFO generating <*>"
+    },
+    {
+      "event_id": 11,
+      "training_count": 295764,
+      "template": "RAS KERNEL INFO <*> double-hummer alignment exceptions"
+    },
+    {
+      "event_id": 310,
+      "training_count": 184248,
+      "template": "RAS KERNEL INFO <*> floating point alignment exceptions"
+    },
+    {
+      "event_id": 18,
+      "training_count": 152723,
+      "template": "RAS KERNEL FATAL data TLB error interrupt"
+    },
+    {
+      "event_id": 601,
+      "training_count": 105082,
+      "template": "RAS KERNEL INFO iar <*> dear <*>"
+    },
+    {
+      "event_id": 6,
+      "training_count": 76158,
+      "template": "RAS KERNEL INFO CE sym <*> at <*> mask <*>"
+    },
+    {
+      "event_id": 1,
+      "training_count": 66726,
+      "template": "RAS KERNEL INFO instruction cache parity error corrected"
+    },
+    {
+      "event_id": 190,
+      "training_count": 63490,
+      "template": "RAS KERNEL <*> data storage interrupt"
+    },
+    {
+      "event_id": 19,
+      "training_count": 47366,
+      "template": "RAS KERNEL FATAL instruction address: <*>"
+    },
+    {
+      "event_id": 193,
+      "training_count": 40972,
+      "template": "RAS KERNEL FATAL program interrupt: <*> <*>"
+    },
+    {
+      "event_id": 575,
+      "training_count": 26088,
+      "template": "RAS KERNEL INFO ciod: generated <*> core files for program <*>"
+    },
+    {
+      "event_id": 395,
+      "training_count": 21000,
+      "template": "RAS APP FATAL ciod: Error loading <*> invalid or missing program image, Exec format error"
+    },
+    {
+      "event_id": 16,
+      "training_count": 19968,
+      "template": "RAS APP FATAL ciod: LOGIN <*> failed: No such file or directory"
+    },
+    {
+      "event_id": 196,
+      "training_count": 19616,
+      "template": "RAS KERNEL <*> data store interrupt caused by <*>"
+    },
+    {
+      "event_id": 526,
+      "training_count": 19320,
+      "template": "RAS MMCS ERROR idoproxydb hit ASSERT condition: ASSERT expression=0 Source file=idotransportmgr.cpp Source line=1043 Function=int IdoTransportMgr::SendPacket(IdoUdpMgr*, BglCtlPavTrace*)"
+    },
+    {
+      "event_id": 191,
+      "training_count": 18000,
+      "template": "RAS KERNEL <*> exception syndrome register: <*>"
+    },
+    {
+      "event_id": 192,
+      "training_count": 18000,
+      "template": "RAS KERNEL <*> machine check: i-fetch......................0"
+    },
+    {
+      "event_id": 305,
+      "training_count": 16809,
+      "template": "RAS KERNEL INFO program interrupt: <*> <*>"
+    },
+    {
+      "event_id": 4,
+      "training_count": 15098,
+      "template": "RAS KERNEL INFO <*> ddr errors(s) detected and corrected on rank 0, symbol <*> bit <*>"
+    },
+    {
+      "event_id": 140,
+      "training_count": 14818,
+      "template": "NULL DISCOVERY <*> Node card VPD check: <*> node in processor card slot <*> do not match. VPD ecid <*> found <*>"
+    },
+    {
+      "event_id": 58,
+      "training_count": 14483,
+      "template": "RAS KERNEL FATAL data address: <*>"
+    },
+    {
+      "event_id": 137,
+      "training_count": 13257,
+      "template": "NULL DISCOVERY WARNING Node card is not fully functional"
+    },
+    {
+      "event_id": 138,
+      "training_count": 13203,
+      "template": "NULL DISCOVERY SEVERE Can not get assembly information for node card"
+    },
+    {
+      "event_id": 139,
+      "training_count": 13049,
+      "template": "NULL DISCOVERY ERROR Node card status: no ALERTs are active. Clock Mode is Low. Clock Select is Midplane. Phy JTAG Reset is asserted. ASIC JTAG Reset is asserted. Temperature Mask is not active. No temperature error. Temperature Limit Error Latch is clear. PGOOD IS NOT ASSERTED. PGOOD ERROR LATCH IS ACTIVE. MPGOOD IS NOT OK. MPGOOD ERROR LATCH IS ACTIVE. The 2.5 volt rail is OK. The 1.5 volt rail is OK."
+    },
+    {
+      "event_id": 31,
+      "training_count": 12723,
+      "template": "RAS KERNEL FATAL <*> input interrupt <*>"
+    },
+    {
+      "event_id": 7,
+      "training_count": 12700,
+      "template": "RAS KERNEL INFO total of <*> ddr error(s) detected and corrected"
+    },
+    {
+      "event_id": 34,
+      "training_count": 12686,
+      "template": "RAS KERNEL FATAL floating pt ex mode <*> <*>"
+    },
+    {
+      "event_id": 576,
+      "training_count": 11349,
+      "template": "RAS KERNEL FATAL rts: kernel terminated for reason <*>"
+    },
+    {
+      "event_id": 10,
+      "training_count": 11264,
+      "template": "RAS APP FATAL ciod: Error loading <*> invalid or missing program image, No such file or directory"
+    },
+    {
+      "event_id": 194,
+      "training_count": 9808,
+      "template": "RAS KERNEL <*> floating point operation....................0"
+    }
+  ]
+}

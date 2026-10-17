@@ -8,6 +8,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 ARTIFACTS_DIR = ROOT_DIR / "artifacts"
 REPORTS_DIR = ROOT_DIR / "reports"
 DATA_DIR = ROOT_DIR / "data"
+RAW_LOG_PATH = DATA_DIR / "raw" / "BGL.log"
 
 # Standard frozen model / inference assets
 DRAIN_STATE_PATH = ARTIFACTS_DIR / "drain3_train_state_0_7.bin"

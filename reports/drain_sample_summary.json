@@ -1,0 +1,114 @@
+{
+  "dataset": "LogHub BGL",
+  "sample_type": "First contiguous records from original dataset",
+  "sample_limit": 20000,
+  "processed_lines": 20000,
+  "unique_templates": 18,
+  "empty_message_records": 0,
+  "label_counts": {
+    "-": 17919,
+    "APPREAD": 2040,
+    "KERNDTLB": 41
+  },
+  "parse_status_counts": {
+    "standard": 20000
+  },
+  "template_change_counts": {
+    "cluster_created": 18,
+    "none": 19969,
+    "cluster_template_changed": 13
+  },
+  "top_templates": [
+    {
+      "event_id": 3,
+      "count": 6780,
+      "template": "RAS KERNEL INFO generating <*>"
+    },
+    {
+      "event_id": 1,
+      "count": 4867,
+      "template": "RAS KERNEL INFO instruction cache parity error corrected"
+    },
+    {
+      "event_id": 11,
+      "count": 4737,
+      "template": "RAS KERNEL INFO <*> double-hummer alignment exceptions"
+    },
+    {
+      "event_id": 17,
+      "count": 2040,
+      "template": "RAS APP FATAL ciod: failed to read message prefix on control stream (CioStream socket to <*>"
+    },
+    {
+      "event_id": 6,
+      "count": 1038,
+      "template": "RAS KERNEL INFO CE sym <*> at <*> mask <*>"
+    },
+    {
+      "event_id": 10,
+      "count": 168,
+      "template": "RAS APP FATAL ciod: Error loading <*> invalid or missing program image, No such file or directory"
+    },
+    {
+      "event_id": 4,
+      "count": 132,
+      "template": "RAS KERNEL INFO <*> ddr errors(s) detected and corrected on rank 0, symbol <*> bit <*>"
+    },
+    {
+      "event_id": 7,
+      "count": 108,
+      "template": "RAS KERNEL INFO total of <*> ddr error(s) detected and corrected"
+    },
+    {
+      "event_id": 5,
+      "count": 41,
+      "template": "RAS KERNEL INFO <*> L3 <*> error(s) (dcr <*> detected and corrected"
+    },
+    {
+      "event_id": 18,
+      "count": 41,
+      "template": "RAS KERNEL FATAL data TLB error interrupt"
+    },
+    {
+      "event_id": 2,
+      "count": 21,
+      "template": "RAS LINKCARD INFO MidplaneSwitchController performing bit sparing on <*> bit 3"
+    },
+    {
+      "event_id": 8,
+      "count": 11,
+      "template": "RAS KERNEL INFO ddr: activating redundant bit steering: rank=0 <*>"
+    },
+    {
+      "event_id": 16,
+      "count": 8,
+      "template": "RAS APP FATAL ciod: LOGIN <*> failed: No such file or directory"
+    },
+    {
+      "event_id": 9,
+      "count": 3,
+      "template": "RAS KERNEL INFO ddr: excessive soft failures, consider replacing the card"
+    },
+    {
+      "event_id": 12,
+      "count": 2,
+      "template": "RAS KERNEL INFO 1 tree receiver 2 in re-synch state event(s) (dcr 0x019a) detected"
+    },
+    {
+      "event_id": 13,
+      "count": 1,
+      "template": "RAS MMCS INFO idoproxydb has been started: $Name: DRV142_2005 $ Input parameters: -enableflush -loguserinfo db.properties BlueGene1"
+    },
+    {
+      "event_id": 14,
+      "count": 1,
+      "template": "RAS MMCS INFO ciodb has been restarted."
+    },
+    {
+      "event_id": 15,
+      "count": 1,
+      "template": "RAS MMCS INFO mmcs_db_server has been started: ./mmcs_db_server --useDatabase BGL --dbproperties serverdb.properties --iolog /bgl/BlueLight/logs/BGL --reconnect-blocks all"
+    }
+  ],
+  "output_file": "data\\processed\\bgl_parsed_sample.jsonl"
+}

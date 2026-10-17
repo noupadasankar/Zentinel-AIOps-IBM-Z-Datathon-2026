@@ -1,0 +1,45 @@
+{
+  "model": "IsolationForest",
+  "random_state": 42,
+  "n_estimators": 200,
+  "max_samples": "auto",
+  "feature_count": 647,
+  "training_windows_total": 33236,
+  "normal_training_windows_used": 29866,
+  "anomalous_training_windows_excluded": 3370,
+  "validation_metrics_at_selected_threshold": {
+    "threshold": -0.07732971606857109,
+    "windows_evaluated": 7122,
+    "actual_anomalous_windows": 631,
+    "predicted_anomalous_windows": 483,
+    "true_positives": 162,
+    "false_positives": 321,
+    "true_negatives": 6170,
+    "false_negatives": 469,
+    "precision": 0.33540372670807456,
+    "recall": 0.25673534072900156,
+    "f1": 0.29084380610412924,
+    "false_positive_rate": 0.04945308889231243,
+    "false_positive_windows_per_1000_normal_windows": 49.45308889231243,
+    "average_precision_pr_auc": 0.17172790109175162,
+    "roc_auc": 0.6276304555301611,
+    "score_min": -0.19125525545642752,
+    "score_median": -0.15788995312834453,
+    "score_max": 0.08560061092709803
+  },
+  "threshold_selection": {
+    "model": "IsolationForest",
+    "threshold": -0.07732971606857109,
+    "score_convention": "-model.decision_function(X); higher is more anomalous",
+    "selection_method": "Maximum validation F1; ties prefer higher precision, then higher threshold",
+    "validation_only": true,
+    "test_used_for_threshold_selection": false,
+    "feature_manifest": "reports\\window_feature_columns.json"
+  },
+  "test_split_evaluated": false,
+  "outputs": {
+    "model": "artifacts\\isolation_forest_baseline.joblib",
+    "threshold": "artifacts\\isolation_forest_threshold.json",
+    "validation_scores": "data\\processed\\isolation_forest_validation_scores.parquet"
+  }
+}

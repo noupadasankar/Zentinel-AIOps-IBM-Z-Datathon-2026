@@ -1,0 +1,18 @@
+{
+  "purpose": "Quantify scoring coverage and unknown-event prevalence for the exploratory test period.",
+  "test_windows": 7122,
+  "scorable_windows": 3147,
+  "unscorable_windows": 3975,
+  "scorable_coverage": 0.44187026116259476,
+  "unscorable_rate": 0.5581297388374052,
+  "scorable_anomalous_windows": 371,
+  "scorable_normal_windows": 2776,
+  "unscorable_anomalous_windows": 431,
+  "unscorable_normal_windows": 3544,
+  "mean_unknown_rate_all_test_windows": 0.6074760077203212,
+  "median_unknown_rate_all_test_windows": 1.0,
+  "mean_unknown_rate_scorable_windows": 0.11521131236097873,
+  "mean_unknown_rate_unscorable_windows": 0.9972010382350005,
+  "interpretation": "Unscorable windows require a separate novelty/drift review. Do not classify them as normal merely because the LSTM cannot produce a valid known-run score.",
+  "caveat": "Test data was previously inspected during drift diagnostics; this is exploratory analysis, not a pristine blind test."
+}

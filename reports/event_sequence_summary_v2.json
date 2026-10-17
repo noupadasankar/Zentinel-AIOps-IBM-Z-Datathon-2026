@@ -1,0 +1,44 @@
+{
+  "dataset": "LogHub BGL",
+  "records": 4747963,
+  "windows": 47480,
+  "window_size": 100,
+  "known_training_templates": 614,
+  "vocabulary_size": 616,
+  "padding_token": 0,
+  "unknown_token": 1,
+  "labels_used_as_sequence_inputs": false,
+  "labels_used_only_as_window_targets": true,
+  "final_sequence_length": 63,
+  "split_statistics": {
+    "train": {
+      "windows": 33236,
+      "records": 3323600,
+      "normal_windows": 29866,
+      "anomalous_windows": 3370,
+      "unknown_records": 0,
+      "unknown_record_percentage": 0.0,
+      "windows_with_unknown_events": 0
+    },
+    "validation": {
+      "windows": 7122,
+      "records": 712200,
+      "normal_windows": 6491,
+      "anomalous_windows": 631,
+      "unknown_records": 22136,
+      "unknown_record_percentage": 3.1081,
+      "windows_with_unknown_events": 430
+    },
+    "test": {
+      "windows": 7122,
+      "records": 712163,
+      "normal_windows": 6320,
+      "anomalous_windows": 802,
+      "unknown_records": 432608,
+      "unknown_record_percentage": 60.7456,
+      "windows_with_unknown_events": 4813
+    }
+  },
+  "sequence_file": "data\\processed\\bgl_event_sequences_v2.npz",
+  "vocabulary_file": "artifacts\\event_token_vocabulary_v2.json"
+}

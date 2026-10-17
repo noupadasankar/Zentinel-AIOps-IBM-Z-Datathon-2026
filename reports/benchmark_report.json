@@ -1,0 +1,228 @@
+{
+  "benchmark_type": "bgl_test_period_live_ingestion",
+  "timestamp": "2026-10-17T13:48:49Z",
+  "test_dataset_provenance": {
+    "source_file": "data/raw/BGL.log",
+    "start_line": 4035801,
+    "lines_buffered": 150000,
+    "period": "exploratory temporal test period"
+  },
+  "system": {
+    "os": "Windows-10-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "cpu_count_logical": 12,
+    "cpu_count_physical": 8,
+    "cpu_freq_mhz_max": 2000.0,
+    "total_memory_gb": 15.72,
+    "versions": {
+      "python": "3.11.9",
+      "fastapi": "0.143.3",
+      "sqlite": "3.45.1",
+      "torch": "2.14.1+cpu",
+      "onnx": "1.23.2",
+      "onnxruntime": "1.31.0"
+    }
+  },
+  "results": {
+    "sequential": {
+      "trials_count": 3,
+      "events_per_second_mean": 101.13,
+      "events_per_second_std": 1.55,
+      "latency_ms_p50_mean": 2.21,
+      "latency_ms_p95_mean": 6.028,
+      "latency_ms_p99_mean": 21.503,
+      "latency_ms_mean": 3.157,
+      "cpu_percent_mean": 181.43,
+      "memory_rss_mb_peak_mean": 290.78,
+      "individual_trials": [
+        {
+          "concurrency": 1,
+          "duration_seconds": 60.0,
+          "total_events": 6199,
+          "events_per_second": 103.32,
+          "latency_ms": {
+            "mean": 3.157,
+            "p50": 2.161,
+            "p95": 6.055,
+            "p99": 22.171,
+            "max": 104.771
+          },
+          "completed_windows": 62,
+          "window_decisions": {
+            "NO_ANOMALY_DETECTED": 55,
+            "NOVELTY_DRIFT_REVIEW": 7
+          },
+          "status_counts": {
+            "matched": 5973,
+            "unknown_template": 226
+          },
+          "resources": {
+            "cpu_percent_mean": 182.76,
+            "cpu_percent_max": 406.3,
+            "memory_rss_mb_start": 276.07,
+            "memory_rss_mb_peak": 286.05,
+            "memory_rss_mb_end": 285.79
+          }
+        },
+        {
+          "concurrency": 1,
+          "duration_seconds": 60.001,
+          "total_events": 6004,
+          "events_per_second": 100.07,
+          "latency_ms": {
+            "mean": 3.158,
+            "p50": 2.207,
+            "p95": 6.118,
+            "p99": 18.901,
+            "max": 81.584
+          },
+          "completed_windows": 60,
+          "window_decisions": {
+            "NO_ANOMALY_DETECTED": 52,
+            "NOVELTY_DRIFT_REVIEW": 8
+          },
+          "status_counts": {
+            "matched": 5757,
+            "unknown_template": 247
+          },
+          "resources": {
+            "cpu_percent_mean": 181.75,
+            "cpu_percent_max": 293.8,
+            "memory_rss_mb_start": 286.65,
+            "memory_rss_mb_peak": 289.75,
+            "memory_rss_mb_end": 289.75
+          }
+        },
+        {
+          "concurrency": 1,
+          "duration_seconds": 60.001,
+          "total_events": 6000,
+          "events_per_second": 100.0,
+          "latency_ms": {
+            "mean": 3.156,
+            "p50": 2.261,
+            "p95": 5.912,
+            "p99": 23.436,
+            "max": 73.559
+          },
+          "completed_windows": 60,
+          "window_decisions": {
+            "NO_ANOMALY_DETECTED": 53,
+            "NOVELTY_DRIFT_REVIEW": 7
+          },
+          "status_counts": {
+            "matched": 5715,
+            "unknown_template": 285
+          },
+          "resources": {
+            "cpu_percent_mean": 179.79,
+            "cpu_percent_max": 300.0,
+            "memory_rss_mb_start": 290.05,
+            "memory_rss_mb_peak": 296.55,
+            "memory_rss_mb_end": 296.55
+          }
+        }
+      ]
+    },
+    "concurrent_8": {
+      "trials_count": 3,
+      "events_per_second_mean": 100.0,
+      "events_per_second_std": 0.02,
+      "latency_ms_p50_mean": 24.108,
+      "latency_ms_p95_mean": 69.555,
+      "latency_ms_p99_mean": 106.923,
+      "latency_ms_mean": 31.56,
+      "cpu_percent_mean": 196.11,
+      "memory_rss_mb_peak_mean": 328.63,
+      "individual_trials": [
+        {
+          "concurrency": 8,
+          "duration_seconds": 60.024,
+          "total_events": 6001,
+          "events_per_second": 99.98,
+          "latency_ms": {
+            "mean": 30.036,
+            "p50": 22.403,
+            "p95": 68.85,
+            "p99": 96.9,
+            "max": 157.104
+          },
+          "completed_windows": 60,
+          "window_decisions": {
+            "NO_ANOMALY_DETECTED": 53,
+            "NOVELTY_DRIFT_REVIEW": 7
+          },
+          "status_counts": {
+            "matched": 5756,
+            "unknown_template": 245
+          },
+          "resources": {
+            "cpu_percent_mean": 196.6,
+            "cpu_percent_max": 325.0,
+            "memory_rss_mb_start": 297.25,
+            "memory_rss_mb_peak": 324.2,
+            "memory_rss_mb_end": 324.2
+          }
+        },
+        {
+          "concurrency": 8,
+          "duration_seconds": 60.014,
+          "total_events": 6002,
+          "events_per_second": 100.01,
+          "latency_ms": {
+            "mean": 31.56,
+            "p50": 23.175,
+            "p95": 69.43,
+            "p99": 100.326,
+            "max": 182.217
+          },
+          "completed_windows": 60,
+          "window_decisions": {
+            "NO_ANOMALY_DETECTED": 53,
+            "NOVELTY_DRIFT_REVIEW": 7
+          },
+          "status_counts": {
+            "matched": 5775,
+            "unknown_template": 227
+          },
+          "resources": {
+            "cpu_percent_mean": 193.96,
+            "cpu_percent_max": 343.8,
+            "memory_rss_mb_start": 324.2,
+            "memory_rss_mb_peak": 329.45,
+            "memory_rss_mb_end": 329.45
+          }
+        },
+        {
+          "concurrency": 8,
+          "duration_seconds": 60.018,
+          "total_events": 6003,
+          "events_per_second": 100.02,
+          "latency_ms": {
+            "mean": 33.084,
+            "p50": 26.747,
+            "p95": 70.385,
+            "p99": 123.543,
+            "max": 203.123
+          },
+          "completed_windows": 60,
+          "window_decisions": {
+            "NO_ANOMALY_DETECTED": 54,
+            "NOVELTY_DRIFT_REVIEW": 6
+          },
+          "status_counts": {
+            "matched": 5762,
+            "unknown_template": 241
+          },
+          "resources": {
+            "cpu_percent_mean": 197.77,
+            "cpu_percent_max": 412.5,
+            "memory_rss_mb_start": 329.44,
+            "memory_rss_mb_peak": 332.25,
+            "memory_rss_mb_end": 332.23
+          }
+        }
+      ]
+    }
+  }
+}

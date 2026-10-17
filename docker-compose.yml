@@ -1,0 +1,66 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: zentinel-aiops:latest
+    container_name: zentinel-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - PYTHONPATH=/app/src
+      - WEB_CONCURRENCY=1
+      - ZENTINEL_API_KEY_SHA256=${ZENTINEL_API_KEY_SHA256:-}
+      - ZENTINEL_DB_PATH=/app/data/processed/zentinel_live.sqlite3
+    volumes:
+      - ./artifacts:/app/artifacts:ro
+      - ./reports:/app/reports:ro
+      - zentinel_data:/app/data/processed
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: zentinel-aiops:latest
+    container_name: zentinel-dashboard
+    restart: unless-stopped
+    command: ["streamlit", "run", "dashboard/app.py", "--server.port", "8501", "--server.address", "0.0.0.0", "--server.headless", "true"]
+    ports:
+      - "127.0.0.1:8501:8501"
+    environment:
+      - PYTHONPATH=/app/src
+      - API_BASE_URL=http://api:8000
+    volumes:
+      - ./reports:/app/reports:ro
+      - ./data/processed:/app/data/processed:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
+  watcher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: zentinel-aiops:latest
+    container_name: zentinel-watcher
+    restart: unless-stopped
+    command: ["python", "-m", "zentinel.ingestion.watcher", "/app/data/raw/sample_replay.log", "http://api:8000/api/v1/live/ingest"]
+    environment:
+      - PYTHONPATH=/app/src
+    volumes:
+      - ./data/raw:/app/data/raw:ro
+      - zentinel_data:/app/data/processed
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  zentinel_data:
+    name: zentinel_live_data

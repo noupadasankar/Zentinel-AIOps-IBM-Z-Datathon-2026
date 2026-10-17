@@ -127,3 +127,40 @@ This document records architectural, ML, and engineering decisions made during t
   4. Cached API calls with short TTLs (`st.cache_data(ttl=5)`) to keep telemetry fluid and prevent network/database saturation.
 - **Consequences:** Immediate deployability in a single container or Python process, zero frontend build toolchain required, high performance.
 
+---
+
+## ADR-012: ONNX Model Export (Opset 17) and Dynamic Dimensions
+- **Status:** Accepted
+- **Context:** Low-latency deployment and portability across diverse target architectures (x86_64, ARM64, s390x) require an open runtime representation decoupled from PyTorch internals.
+- **Decision:**
+  1. Exported the trained `LSTMNextEvent` model to ONNX using operator set 17.
+  2. Declared dynamic dimensions on batch size and sequence length (`dynamic_axes={'tokens': {0: 'batch_size', 1: 'seq_len'}, 'logits': {0: 'batch_size', 1: 'seq_len'}}`).
+  3. Validated numerical parity over 1,000 real runs extracted from the test dataset, verifying that the maximum absolute logit difference ($4.77 \times 10^{-6}$) is within floating-point precision bounds and decision agreement is 100.0%.
+- **Consequences:** Enables zero-PyTorch deployments, accelerated runtime execution via ONNX Runtime, and cross-platform hardware portability.
+
+---
+
+## ADR-013: Turnkey Containerization, Non-Root Isolation, and Single-Worker Constraint
+- **Status:** Accepted
+- **Context:** Production deployments require predictable, reproducible environments without privilege escalation risks or race conditions across multiple Uvicorn workers.
+- **Decision:**
+  1. Built a multi-service `docker-compose.yml` environment containing API, Dashboard, and Watcher services.
+  2. Mounted model artifacts as read-only volumes (`:ro`) to guarantee Non-Negotiable Rule 2.
+  3. Enforced a non-root Linux user (`zentinel`, UID 1000) inside containers.
+  4. Explicitly bound published ports to `127.0.0.1` to prevent accidental public internet exposure.
+  5. Enforced `WEB_CONCURRENCY=1` in application lifespan, preventing SQLite state divergence across multiple worker processes.
+- **Consequences:** Safe, turnkey deployment runnable within 2 minutes via `docker compose up`.
+
+---
+
+## ADR-014: Live Ingestion Benchmarking Methodology on Test Period
+- **Status:** Accepted
+- **Context:** Throughput and latency claims must be measured on real test data, under sustained load, and across multiple concurrent client threads.
+- **Decision:**
+  1. Benchmarked live ingestion against real test-period lines (line 4,035,801 onwards) using 60-second sustained trials repeated 3 times.
+  2. Evaluated both sequential (1 client) and 8-way concurrent worker pools.
+  3. Integrated continuous process CPU and RSS memory sampling via `psutil`.
+  4. Recorded comprehensive system hardware metadata (CPU model, physical/logical core counts, total RAM, software versions) in committed reports.
+- **Consequences:** Full reproducibility and strict adherence to Non-Negotiable Rule 1.
+
+

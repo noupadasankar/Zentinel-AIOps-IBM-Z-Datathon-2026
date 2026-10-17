@@ -1,0 +1,357 @@
+{
+  "dataset": "LogHub BGL",
+  "sample": "First 100,000 training-period records",
+  "labels_used_for_tuning": false,
+  "threshold_results": [
+    {
+      "threshold": 0.4,
+      "records_processed": 100000,
+      "template_count": 25,
+      "largest_template_count": 82472,
+      "largest_template_percentage": 82.47,
+      "weighted_average_wildcards_per_record": 2.717,
+      "top_templates": [
+        {
+          "event_id": 3,
+          "count": 82472,
+          "template": "RAS KERNEL <*> <*> <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 1,
+          "count": 4867,
+          "template": "RAS KERNEL INFO instruction cache parity error corrected",
+          "wildcard_count": 0
+        },
+        {
+          "event_id": 11,
+          "count": 4737,
+          "template": "RAS KERNEL INFO <*> double-hummer alignment exceptions",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 17,
+          "count": 2040,
+          "template": "RAS APP FATAL ciod: failed to read message prefix on control stream (CioStream socket to <*>",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 18,
+          "count": 1846,
+          "template": "RAS KERNEL FATAL <*> <*> <*> <*>",
+          "wildcard_count": 4
+        },
+        {
+          "event_id": 19,
+          "count": 1550,
+          "template": "RAS KERNEL FATAL <*> <*> <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 6,
+          "count": 1202,
+          "template": "RAS KERNEL INFO CE sym <*> at <*> mask <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 16,
+          "count": 200,
+          "template": "RAS APP FATAL ciod: LOGIN <*> failed: No such file or directory",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 4,
+          "count": 194,
+          "template": "RAS KERNEL INFO <*> ddr errors(s) detected and corrected on rank 0, symbol <*> bit <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 22,
+          "count": 182,
+          "template": "RAS KERNEL FATAL floating pt ex mode <*> enable......0",
+          "wildcard_count": 1
+        }
+      ]
+    },
+    {
+      "threshold": 0.5,
+      "records_processed": 100000,
+      "template_count": 46,
+      "largest_template_count": 82471,
+      "largest_template_percentage": 82.47,
+      "weighted_average_wildcards_per_record": 1.034,
+      "top_templates": [
+        {
+          "event_id": 3,
+          "count": 82471,
+          "template": "RAS KERNEL INFO generating <*>",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 1,
+          "count": 4867,
+          "template": "RAS KERNEL INFO instruction cache parity error corrected",
+          "wildcard_count": 0
+        },
+        {
+          "event_id": 11,
+          "count": 4737,
+          "template": "RAS KERNEL INFO <*> double-hummer alignment exceptions",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 17,
+          "count": 2040,
+          "template": "RAS APP FATAL ciod: failed to read message prefix on control stream (CioStream socket to <*>",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 19,
+          "count": 1550,
+          "template": "RAS KERNEL FATAL <*> <*> <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 6,
+          "count": 1202,
+          "template": "RAS KERNEL INFO CE sym <*> at <*> mask <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 18,
+          "count": 479,
+          "template": "RAS KERNEL FATAL data <*> <*> <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 16,
+          "count": 200,
+          "template": "RAS APP FATAL ciod: LOGIN <*> failed: No such file or directory",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 4,
+          "count": 194,
+          "template": "RAS KERNEL INFO <*> ddr errors(s) detected and corrected on rank 0, symbol <*> bit <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 24,
+          "count": 182,
+          "template": "RAS KERNEL FATAL <*> <*> register: <*>",
+          "wildcard_count": 3
+        }
+      ]
+    },
+    {
+      "threshold": 0.6,
+      "records_processed": 100000,
+      "template_count": 62,
+      "largest_template_count": 82471,
+      "largest_template_percentage": 82.47,
+      "weighted_average_wildcards_per_record": 0.986,
+      "top_templates": [
+        {
+          "event_id": 3,
+          "count": 82471,
+          "template": "RAS KERNEL INFO generating <*>",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 1,
+          "count": 4867,
+          "template": "RAS KERNEL INFO instruction cache parity error corrected",
+          "wildcard_count": 0
+        },
+        {
+          "event_id": 11,
+          "count": 4737,
+          "template": "RAS KERNEL INFO <*> double-hummer alignment exceptions",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 17,
+          "count": 2040,
+          "template": "RAS APP FATAL ciod: failed to read message prefix on control stream (CioStream socket to <*>",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 6,
+          "count": 1202,
+          "template": "RAS KERNEL INFO CE sym <*> at <*> mask <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 18,
+          "count": 477,
+          "template": "RAS KERNEL FATAL data TLB error interrupt",
+          "wildcard_count": 0
+        },
+        {
+          "event_id": 16,
+          "count": 200,
+          "template": "RAS APP FATAL ciod: LOGIN <*> failed: No such file or directory",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 4,
+          "count": 194,
+          "template": "RAS KERNEL INFO <*> ddr errors(s) detected and corrected on rank 0, symbol <*> bit <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 19,
+          "count": 184,
+          "template": "RAS KERNEL FATAL instruction <*> <*>",
+          "wildcard_count": 2
+        },
+        {
+          "event_id": 29,
+          "count": 182,
+          "template": "RAS KERNEL FATAL <*> state <*>",
+          "wildcard_count": 2
+        }
+      ]
+    },
+    {
+      "threshold": 0.7,
+      "records_processed": 100000,
+      "template_count": 68,
+      "largest_template_count": 82471,
+      "largest_template_percentage": 82.47,
+      "weighted_average_wildcards_per_record": 0.971,
+      "top_templates": [
+        {
+          "event_id": 3,
+          "count": 82471,
+          "template": "RAS KERNEL INFO generating <*>",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 1,
+          "count": 4867,
+          "template": "RAS KERNEL INFO instruction cache parity error corrected",
+          "wildcard_count": 0
+        },
+        {
+          "event_id": 11,
+          "count": 4737,
+          "template": "RAS KERNEL INFO <*> double-hummer alignment exceptions",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 17,
+          "count": 2040,
+          "template": "RAS APP FATAL ciod: failed to read message prefix on control stream (CioStream socket to <*>",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 6,
+          "count": 1202,
+          "template": "RAS KERNEL INFO CE sym <*> at <*> mask <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 18,
+          "count": 477,
+          "template": "RAS KERNEL FATAL data TLB error interrupt",
+          "wildcard_count": 0
+        },
+        {
+          "event_id": 16,
+          "count": 200,
+          "template": "RAS APP FATAL ciod: LOGIN <*> failed: No such file or directory",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 4,
+          "count": 194,
+          "template": "RAS KERNEL INFO <*> ddr errors(s) detected and corrected on rank 0, symbol <*> bit <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 31,
+          "count": 182,
+          "template": "RAS KERNEL FATAL <*> input interrupt <*>",
+          "wildcard_count": 2
+        },
+        {
+          "event_id": 34,
+          "count": 182,
+          "template": "RAS KERNEL FATAL floating pt ex mode <*> enable......0",
+          "wildcard_count": 1
+        }
+      ]
+    },
+    {
+      "threshold": 0.8,
+      "records_processed": 100000,
+      "template_count": 94,
+      "largest_template_count": 82471,
+      "largest_template_percentage": 82.47,
+      "weighted_average_wildcards_per_record": 0.947,
+      "top_templates": [
+        {
+          "event_id": 3,
+          "count": 82471,
+          "template": "RAS KERNEL INFO generating <*>",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 1,
+          "count": 4867,
+          "template": "RAS KERNEL INFO instruction cache parity error corrected",
+          "wildcard_count": 0
+        },
+        {
+          "event_id": 15,
+          "count": 4737,
+          "template": "RAS KERNEL INFO <*> double-hummer alignment exceptions",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 27,
+          "count": 2040,
+          "template": "RAS APP FATAL ciod: failed to read message prefix on control stream (CioStream socket to <*>",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 11,
+          "count": 493,
+          "template": "RAS KERNEL INFO CE sym 2, at <*> mask <*>",
+          "wildcard_count": 2
+        },
+        {
+          "event_id": 30,
+          "count": 477,
+          "template": "RAS KERNEL FATAL data TLB error interrupt",
+          "wildcard_count": 0
+        },
+        {
+          "event_id": 26,
+          "count": 200,
+          "template": "RAS APP FATAL ciod: LOGIN <*> failed: No such file or directory",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 4,
+          "count": 194,
+          "template": "RAS KERNEL INFO <*> ddr errors(s) detected and corrected on rank 0, symbol <*> bit <*>",
+          "wildcard_count": 3
+        },
+        {
+          "event_id": 49,
+          "count": 182,
+          "template": "RAS KERNEL FATAL floating pt ex mode <*> enable......0",
+          "wildcard_count": 1
+        },
+        {
+          "event_id": 61,
+          "count": 182,
+          "template": "RAS KERNEL FATAL icache prefetch <*>",
+          "wildcard_count": 1
+        }
+      ]
+    }
+  ]
+}

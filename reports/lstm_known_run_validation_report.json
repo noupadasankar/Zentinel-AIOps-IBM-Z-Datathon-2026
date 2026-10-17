@@ -1,0 +1,48 @@
+{
+  "dataset": "LogHub BGL",
+  "model": "LSTM next-event predictor",
+  "split_evaluated": "validation",
+  "validation_windows_total": 7122,
+  "scorable_windows": 6927,
+  "unscorable_windows": 195,
+  "scorable_window_percentage": 97.262,
+  "unscorable_anomalous_windows": 11,
+  "unscorable_normal_windows": 184,
+  "total_anomalous_windows": 631,
+  "total_normal_windows": 6491,
+  "metrics_computed_only_on_scorable_windows": {
+    "threshold": 3.479122797648112,
+    "scored_windows": 6927,
+    "actual_anomalous_windows": 620,
+    "predicted_anomalous_windows": 493,
+    "true_positives": 472,
+    "false_positives": 21,
+    "true_negatives": 6286,
+    "false_negatives": 148,
+    "precision": 0.9574036511156186,
+    "recall": 0.7612903225806451,
+    "f1": 0.8481581311769991,
+    "false_positive_rate": 0.003329633740288568,
+    "false_positives_per_1000_normal_windows": 3.329633740288568,
+    "pr_auc_average_precision": 0.9278558944138373,
+    "roc_auc": 0.9868776116654817,
+    "score_min": 0.00902396681332829,
+    "score_median": 0.047997662515351265,
+    "score_max": 11.93426328716856
+  },
+  "threshold_selection": {
+    "model": "LSTMNextEventKnownRuns",
+    "threshold": 3.479122797648112,
+    "scoring_method": "Average next-event cross-entropy across contiguous runs of known training-vocabulary events only",
+    "unknown_token_scored": false,
+    "transitions_touching_unknown_events_scored": false,
+    "unscorable_window_policy": "Mark unscorable and route to separate novelty/drift monitoring; do not classify as normal",
+    "selected_using_validation_only": true,
+    "test_used_for_threshold_selection": false
+  },
+  "test_data_used": false,
+  "outputs": {
+    "scores": "data\\processed\\lstm_known_run_validation_scores.parquet",
+    "threshold": "artifacts\\lstm_known_run_threshold.json"
+  }
+}
