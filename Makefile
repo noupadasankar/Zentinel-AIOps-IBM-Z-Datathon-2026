@@ -1,4 +1,4 @@
-.PHONY: help serve install test lint train export-onnx benchmark evaluate demo reproduce run-api run-dashboard run-single clean
+.PHONY: help serve install test lint train export-onnx benchmark evaluate demo reproduce run-api run-dashboard run-single package verify-zip clean
 
 PYTHON ?= python
 
@@ -16,6 +16,8 @@ help:
 	@echo "  make run-api        Start live FastAPI ingestion server (single worker)"
 	@echo "  make run-dashboard  Start Streamlit operational dashboard"
 	@echo "  make reproduce      Full end-to-end audit (lint, test, onnx parity, evaluation)"
+	@echo "  make package        Rebuild the distribution ZIP from the explicit include-list"
+	@echo "  make verify-zip     Post-build verification of the distribution ZIP (CRC, paths, SHA re-check)"
 	@echo "  make clean          Clean temporary caches and artifacts"
 
 install:
@@ -66,6 +68,12 @@ run-dashboard:
 
 reproduce: lint test export-onnx evaluate
 	@echo "All reproduction checks passed successfully."
+
+package:
+	$(PYTHON) scripts/build_distribution_zip.py
+
+verify-zip:
+	$(PYTHON) scripts/verify_distribution_zip.py
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true

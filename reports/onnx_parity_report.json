@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "timestamp": "2026-10-17T13:38:50Z",
+  "timestamp": "2026-10-17T21:17:59Z",
   "onnx_model_path": "artifacts/bgl_lstm_next_event.onnx",
   "opset_version": 17,
   "runs_parity": {
@@ -20,21 +20,21 @@
   },
   "cpu_latency_benchmark": {
     "pytorch_cpu_ms": {
-      "mean": 0.5009,
-      "p50": 0.442,
-      "p95": 0.8153,
-      "p99": 1.0392
+      "mean": 1.9286,
+      "p50": 1.7381,
+      "p95": 3.0496,
+      "p99": 4.1587
     },
     "onnxruntime_cpu_ms": {
-      "mean": 0.645,
-      "p50": 0.6487,
-      "p95": 0.8732,
-      "p99": 1.135
+      "mean": 2.6354,
+      "p50": 2.3838,
+      "p95": 5.1149,
+      "p99": 5.7026
     },
-    "speedup_factor": 0.78
+    "speedup_factor": 0.73
   },
   "environment": {
-    "os": "Windows-10-10.0.26200-SP0",
+    "os": "Windows-10-10.0.26300-SP0",
     "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
     "python_version": "3.11.9",
     "torch_version": "2.14.1+cpu",

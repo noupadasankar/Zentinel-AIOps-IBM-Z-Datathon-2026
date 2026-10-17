@@ -2,7 +2,7 @@
 
 Real-time operational-log anomaly detection and incident-investigation platform. Ingests raw log lines, parses them against a **frozen** template state, builds temporal windows, scores them with a PyTorch LSTM next-event model and an Isolation Forest, applies a deterministic three-way decision policy, groups alert windows into evidence-backed incidents, and exposes everything through a FastAPI backend and a Streamlit operations dashboard.
 
-- **Status:** complete, 78/78 tests passing, lint clean, acceptance-verified package
+- **Status:** complete, 97/97 tests passing, lint clean, acceptance-verified package
 - **Target platform:** IBM Z / LinuxONE (portable by design; **not yet validated on s390x** — no on-device claims made)
 - **Final artifact:** `Zentinel-AIOps-IBM-Z-Datathon-2026.zip` — SHA-256 in [`reports/ZIP_VERIFICATION.md`](reports/ZIP_VERIFICATION.md)
 
@@ -24,7 +24,7 @@ raw log line ──► POST /api/v1/live/ingest ──► parse (frozen Drain3, 
 | config + artifact integrity | `src/zentinel/config.py` | paths from env, `verify_manifest()` SHA-256 check at startup |
 | ingestion | `src/zentinel/ingestion/` | idempotency (payload-mismatch → 409), Retry-After backoff, truncation/rotation detection, dead-letter, retention |
 | parsing | `src/zentinel/parsing/drain_parser.py` | `parse_bgl_line`, frozen `TemplateMiner.match(..., never-refit guard)`, UNK mapping |
-| features | `src/zentinel/features/` | window identity, template counts, entropy, unknown-rate |
+| feature building | `scripts/build_window_features.py`, `scripts/build_event_sequences_v2.py` | window identity, template counts, entropy, unknown-rate; token sequences |
 | models | `src/zentinel/models/` | `InferenceEngine` (IF + LSTM + thresholds), `score_known_runs` (UNK/PAD break runs), ONNX opset-17 export |
 | alerts | `src/zentinel/alerts/` | three-way policy, hysteresis, cooldown, dedupe, severity, incident lifecycle, measured evidence |
 | API | `src/zentinel/api/` | FastAPI routes, schemas, auth, rate limiting, single-worker state discipline |
@@ -95,9 +95,11 @@ Every artifact is hashed in `artifacts/manifest.json`; the API refuses to start 
 | `GET /api/v1/live/status` | counters |
 | `GET /api/v1/live/windows` | paginated scored windows |
 | `GET /api/v1/alerts` · `/{id}` | incident list/detail |
-| `POST /api/v1/alerts/{id}/ack` · `/close` | operator actions (audit-logged) |
+| `POST /api/v1/alerts/{id}/ack` · `/close` | operator actions (audit-logged; ACK/CLOSE states survive incident updates) |
 | `GET /api/v1/review` (`format=csv`) | novelty-review queue + export |
 | `GET /api/v1/drift` · `/models` · `/metrics` | drift data, model registry, real measured counters |
+| `GET /api/v1/admin/ping` | admin-grade key probe (no side effects) |
+| `POST /api/v1/admin/retention` · `/checkpoint` · `/backup` | admin/DB ops |
 
 Interactive OpenAPI: `http://127.0.0.1:8000/docs` — all schemas, limits, error envelopes, request IDs, auth requirements live there. Security: sha256-key auth (`ZENTINEL_API_KEY_SHA256`), 100 rps default limiter with `Retry-After`, strict CORS, bounded payloads, non-root container runtime user.
 
@@ -118,7 +120,7 @@ Dark navy theme; cyan accents; amber = review, red = alert. Sidebar groups:
 - **API Keys & Security** — masked key administration.
 - **Settings & Database** — admin/DB ops with feedback.
 
-Sidebar: connection badge (`API Connected (Live)` / `Offline Demo Mode`), auto-refresh (5 s), **Stream Replay** control (file 100–5,000 lines → real `/ingest/batch`). Every page has loading/empty/error states; demo fixtures are labelled and used only when the API is down.
+Sidebar: connection badge (`API Connected (Live)` / `Offline Demo Mode`), working auto-refresh toggle (5 s polling of overview + health banner), **Stream Replay** control (file 100–5,000 lines → real `/ingest/batch`). Every page has loading/empty/error states; demo fixtures are labelled and used only when the API is down.
 
 ---
 
@@ -175,10 +177,10 @@ jupyter nbconvert --to notebook --execute notebooks/05_lstm_next_event_model.ipy
 
 | Gate | Result |
 |---|---|
-| pytest (parser, drain matcher, scorer, policy, store, API, watcher, ONNX, dashboard feeds) | **78 passed** |
+| pytest (parser, drain matcher, scorer, policy, store, API, watcher, ONNX, dashboard feeds, unified single-port server, dashboard AppTest page renders, alert-status preservation, Retry-After header, admin ping) | **97 passed** (executed 2026-10-18, 03:35) |
 | ruff | clean |
-| pip-audit 2.10.1 | clean after pytest 9.1.1 upgrade (PYSEC-2026-1845 fixed) |
-| local secret scan (109 files) | 0 findings |
+| pip-audit 2.10.1 | clean after pytest 9.1.1 upgrade (PYSEC-2026-1845 fixed); CI step now fails on findings (no `|| true`) |
+| local secret scan (`scripts/secret_scan.py`, 100 text files incl. untracked) | 0 findings |
 | artifact manifest verification | clean in repo and inside the ZIP |
 | CI workflow (`.github/workflows/ci.yml`) | valid config (2 jobs) — not executed in-session (no runner) |
 | Docker | daemon unavailable on this host — verified via the native server path (NB 11) |
@@ -207,6 +209,8 @@ make run-api          # uvicorn (single worker enforced)
 make run-dashboard    # streamlit :8501
 make demo             # offline dashboard demo (labelled fixtures)
 make reproduce        # lint + test + ONNX parity + evaluation
+make package          # rebuild the distribution ZIP from the explicit include-list
+make verify-zip       # post-build verification of the distribution ZIP (CRC, paths, SHA re-check)
 ```
 
 Single-port unified mode (one process, recommended):
@@ -215,9 +219,15 @@ Single-port unified mode (one process, recommended):
 python -m zentinel.api.unified --port 8000    # or: make serve
 ```
 
+Windows (no `make` needed): double-click **`start_zentinel.bat`** — starts the same
+single-port server and opens the dashboard in your browser. The launcher fails fast
+with a clear message if port 8000 is already in use (e.g. a second `run-api`
+instance); stop the other server or pass `--port 8001`. One-click test run:
+**`run_tests.bat`**.
+
 - API at `http://127.0.0.1:8000/` (interactive OpenAPI at `/docs`)
 - Dashboard at `http://127.0.0.1:8000/dashboard` (proxied + websocket-forwarded to a managed internal Streamlit child that never leaves localhost)
-- Verified end-to-end: `/health` 200, `/ready` 200, `/dashboard/_stcore/health` 200, dashboard static assets and the Streamlit websocket pipe all served from the single port; covered by `tests/test_unified_server.py` (79/79 suite).
+- Verified end-to-end: `/health` 200, `/ready` 200, `/dashboard/_stcore/health` 200, dashboard static assets and the Streamlit websocket pipe all served from the single port; covered by `tests/test_unified_server.py` (97/97 suite).
 
 Classic two-process mode (unchanged, still supported):
 
@@ -234,7 +244,7 @@ Backups: stop the worker or use SQLite `VACUUM INTO 'backup.sqlite3'` while WAL 
 
 ## 12. Package
 
-`Zentinel-AIOps-IBM-Z-Datathon-2026.zip` — 19.5 MB, built with an explicit include-list (application, notebooks, small data, frozen artifacts, reports, Docker/CI/Makefile, sample fixture). Excluded by construction: raw 743 MB log, DBs, caches, venvs, `.env`, egg-info. Post-build verification (CRC, required paths, forbidden-name scan, artifact SHA re-check, 13/13 notebooks executed): [`reports/ZIP_VERIFICATION.md`](reports/ZIP_VERIFICATION.md) — kept outside the archive because a file cannot contain its own archive's digest. Acceptance report: [`reports/FINAL_COMPLETION_REPORT.md`](reports/FINAL_COMPLETION_REPORT.md).
+`Zentinel-AIOps-IBM-Z-Datathon-2026.zip` — 19.5 MB, built from an explicit include-list (application, notebooks, small data, frozen artifacts, reports, Docker/CI/Makefile, sample fixture) via the in-repo reproducible builder `make package` (`scripts/build_distribution_zip.py`). Excluded by construction: raw 743 MB log, DBs, caches, venvs, `.env`, egg-info. Post-build verification (`make verify-zip`, `scripts/verify_distribution_zip.py`: CRC, required paths, forbidden-name scan, artifact SHA re-check, 13/13 notebooks executed): [`reports/ZIP_VERIFICATION.md`](reports/ZIP_VERIFICATION.md) — kept outside the archive because a file cannot contain its own archive's digest. Acceptance report: [`reports/FINAL_COMPLETION_REPORT.md`](reports/FINAL_COMPLETION_REPORT.md).
 
 ## 13. Known limitations
 

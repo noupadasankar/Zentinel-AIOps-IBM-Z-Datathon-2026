@@ -33,7 +33,7 @@ jobs:
 
       - name: Audit Dependencies for CVEs
         run: |
-          pip-audit -r requirements.lock --ignore-vuln CVE-2024-34064 || true
+          pip-audit -r requirements.lock --ignore-vuln CVE-2024-34064
 
       - name: Scan Secrets with Gitleaks
         uses: gitleaks/gitleaks-action@v2

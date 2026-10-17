@@ -15,7 +15,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
-DOCS = ROOT / "docs"
 TESTS = ROOT / "tests"
 
 
@@ -58,9 +57,10 @@ def main() -> int:
     }
 
     key_paths = [
-        "README.md", "CHANGELOG.md", "requirements.txt", "requirements.lock",
+        "README.md", "requirements.txt", "requirements.lock",
         "pyproject.toml", "pytest.ini", "Dockerfile", "docker-compose.yml",
-        "Makefile", ".env.example",
+        "Makefile", ".env.example", ".streamlit/config.toml",
+        "start_zentinel.bat", "run_tests.bat",
     ]
     audit["repo_files"] = {
         rel: {"exists": (ROOT / rel).is_file(), "bytes": (ROOT / rel).stat().st_size if (ROOT / rel).is_file() else None}
@@ -68,7 +68,7 @@ def main() -> int:
     }
 
     dirs = {}
-    for d in ["src/zentinel", "scripts", "tests", "dashboard", "notebooks", "reports", "docs", "artifacts", "data"]:
+    for d in ["src/zentinel", "scripts", "tests", "dashboard", "notebooks", "reports", "artifacts", "data"]:
         p = ROOT / d
         if p.is_dir():
             dirs[d] = {
@@ -92,7 +92,6 @@ def main() -> int:
     audit["test_files"] = sorted(p.name for p in TESTS.glob("test_*.py"))
 
     audit["reports"] = sorted(p.name for p in REPORTS.glob("*.json"))
-    audit["docs"] = sorted(p.name for p in DOCS.glob("*.md"))
 
     artifacts = {}
     for p in sorted((ROOT / "artifacts").iterdir()):

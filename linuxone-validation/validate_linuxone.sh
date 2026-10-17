@@ -2,8 +2,11 @@
 set -u
 set -o pipefail
 
-EXPECTED_COMMIT="186cfa2"
-EXPECTED_ZIP_SHA256="954d6233fdad3a7a6f1e6418ff2bf5d69fea88a60276b6e3000bda2b3ac268a2"
+EXPECTED_COMMIT="13313e9"
+# Digest of the transferred ZIP (from reports/ZIP_VERIFICATION.md after `make package`).
+# Optional: set EXPECTED_ZIP_SHA256=<sha256> on the target to have the script enforce it;
+# the measured digest is always recorded to 02-zip-sha256.txt.
+EXPECTED_ZIP_SHA256="${EXPECTED_ZIP_SHA256:-}"
 
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)}"
 ZENTINEL_ZIP="${ZENTINEL_ZIP:-$HOME/Zentinel-AIOps-IBM-Z-Datathon-2026.zip}"
@@ -44,6 +47,15 @@ if [ ! -d "${REPO_DIR}" ] || [ ! -f "${REPO_DIR}/artifacts/manifest.json" ]; the
     mkdir -p "${HOME}"
     cd "${HOME}"
     sha256sum "${ZENTINEL_ZIP}" | tee "${EVID}/02-zip-sha256.txt"
+    MEASURED_ZIP_SHA="$(sha256sum "${ZENTINEL_ZIP}" | cut -d' ' -f1)"
+    if [ -z "${EXPECTED_ZIP_SHA256}" ]; then
+      note "EXPECTED_ZIP_SHA256 not set; measured digest recorded (compare against reports/ZIP_VERIFICATION.md)"
+    elif [ "${MEASURED_ZIP_SHA}" = "${EXPECTED_ZIP_SHA256}" ]; then
+      echo "zip sha256 matches EXPECTED_ZIP_SHA256" | tee -a "${EVID}/02-zip-sha256.txt"
+    else
+      echo "zip sha256 MISMATCH: measured ${MEASURED_ZIP_SHA}, expected ${EXPECTED_ZIP_SHA256}" | tee -a "${EVID}/02-zip-sha256.txt"
+      fail "transferred ZIP digest differs from EXPECTED_ZIP_SHA256"
+    fi
     unzip -tq "${ZENTINEL_ZIP}" 2>&1 | tail -3 | tee -a "${EVID}/02-zip-sha256.txt"
     unzip -oq "${ZENTINEL_ZIP}" -d "${HOME}/Zentinel-AIOps"
     REPO_DIR="${HOME}/Zentinel-AIOps"
@@ -353,11 +365,11 @@ print("open alerts after fixture replay:", alerts.get("count"))
 
 lifecycle = "NOT_EXERCISED_NO_ALERT_IN_FIXTURE"
 if alerts.get("count", 0) > 0 and items:
-    aid = items[0].get("incident_id") or items[0].get("id")
+    aid = items[0].get("alert_id")
     code_a, ack = req("POST", f"/api/v1/alerts/{aid}/ack", {"actor": "linuxone-validation", "comment": "linuxone evidence capture"})
     code_c, close = req("POST", f"/api/v1/alerts/{aid}/close", {"actor": "linuxone-validation", "reason": "linuxone validation lifecycle", "comment": "checked on target"})
     code_d, detail = req("GET", f"/api/v1/alerts/{aid}")
-    print(f"ack={code_a} close={code_c} detail.state={detail.get('state')}")
+    print(f"ack={code_a} close={code_c} detail.status={detail.get('status')}")
     lifecycle = f"ack={code_a} close={code_c}"
 print("incident lifecycle:", lifecycle)
 

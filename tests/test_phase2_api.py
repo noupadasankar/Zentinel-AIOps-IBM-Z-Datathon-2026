@@ -110,6 +110,55 @@ def test_alerts_crud_and_actions(setup_phase2_env):
         assert close_data["closed_at"] is not None
 
 
+def test_acknowledged_status_survives_incident_update(setup_phase2_env):
+    store = setup_phase2_env
+    incident = {
+        "incident_id": "INC-0007",
+        "status": "OPEN",
+        "severity": "HIGH",
+        "score": 6.8,
+        "threshold": 3.4791,
+        "first_window_id": 1,
+        "last_window_id": 3,
+        "first_line_number": 1,
+        "last_line_number": 300,
+        "window_count": 3,
+        "summary": "HIGH Severity Anomaly: 3 windows",
+        "evidence": {},
+    }
+    store.save_or_update_alert(incident)
+
+    with TestClient(app) as client:
+        alert_id = client.get("/api/v1/alerts", headers={"X-API-Key": READ_KEY}).json()["items"][0]["alert_id"]
+
+        r_ack = client.post(
+            f"/api/v1/alerts/{alert_id}/ack",
+            json={"actor": "sre-alice", "comment": "Investigating"},
+            headers={"X-API-Key": ADMIN_KEY},
+        )
+        assert r_ack.status_code == 200
+        assert r_ack.json()["status"] == "ACKNOWLEDGED"
+
+        # Automatic incident update (anomaly window extended the incident).
+        updated = dict(incident)
+        updated["window_count"] = 4
+        updated["last_window_id"] = 4
+        updated["last_line_number"] = 400
+        store.save_or_update_alert(updated)
+
+        r_detail = client.get(f"/api/v1/alerts/{alert_id}", headers={"X-API-Key": READ_KEY})
+        detail = r_detail.json()
+        assert detail["status"] == "ACKNOWLEDGED"
+        assert detail["window_count"] == 4
+
+        # A genuine closure from the incident policy still applies.
+        closed = dict(updated)
+        closed["status"] = "CLOSED"
+        store.save_or_update_alert(closed)
+        r_closed = client.get(f"/api/v1/alerts/{alert_id}", headers={"X-API-Key": READ_KEY})
+        assert r_closed.json()["status"] == "CLOSED"
+
+
 def test_batch_ingest_endpoint():
     with TestClient(app) as client:
         lines = [SAMPLE_BGL_LINE] * 105

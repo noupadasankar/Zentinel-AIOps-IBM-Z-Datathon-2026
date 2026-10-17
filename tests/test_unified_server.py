@@ -20,6 +20,33 @@ ROOT = Path(__file__).resolve().parents[1]
 SAMPLE = ROOT / "data" / "raw" / "sample_replay.log"
 
 
+def test_assert_port_free_fails_fast_and_succeeds_when_free():
+    """Busy port -> SystemExit(1) with message; free port -> silent pass.
+
+    Regression for the zombie-parent bug: without this guard a busy port left
+    uvicorn retrying forever while a Streamlit child stayed alive.
+    """
+    from zentinel.api.unified import _assert_port_free
+
+    blocker = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        blocker.bind(("127.0.0.1", 0))
+        blocker.listen(1)
+        busy_port = blocker.getsockname()[1]
+        with pytest.raises(SystemExit) as excinfo:
+            _assert_port_free("127.0.0.1", busy_port)
+        assert excinfo.value.code == 1
+
+        blocker.close()
+        blocker2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        blocker2.bind(("127.0.0.1", 0))
+        free_port = blocker2.getsockname()[1]
+        blocker2.close()
+        _assert_port_free("127.0.0.1", free_port)
+    finally:
+        blocker.close()
+
+
 def _free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
         probe.bind(("127.0.0.1", 0))

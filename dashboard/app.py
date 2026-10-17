@@ -3,7 +3,7 @@
 Enterprise observability layout: dark theme, grouped navigation, live incident banner,
 KPI cards, dual-axis LSTM score / unknown-rate timeline, decision mix, drift panels,
 incident forensics with operator actions, review queue with CSV export, and a
-sample replay streamer that exercises the live ingestion pipeline end to end.
+sample-attribution audit trail for every window.
 
 Data policy (Non-Negotiable Rule 6):
 - Live mode: every widget renders data fetched from the Zentinel API or committed reports.
@@ -16,6 +16,7 @@ from __future__ import annotations
 import html
 import json
 import os
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -27,125 +28,214 @@ import plotly.graph_objects as go
 import streamlit as st
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+DASHBOARD_DIR = str(Path(__file__).resolve().parent)
+if DASHBOARD_DIR not in sys.path:
+    sys.path.insert(0, DASHBOARD_DIR)
+
+from navigation import (  # noqa: E402
+    NAV_GROUPS,
+    canonical_page,
+)
+from navigation import PAGES as NAV_PAGES  # noqa: E402
+
 REPORTS_DIR = ROOT_DIR / "reports"
-DATA_DIR = ROOT_DIR / "data"
-SAMPLE_REPLAY_PATH = DATA_DIR / "raw/sample_replay.log"
-INCOMING_LOG_PATH = DATA_DIR / "ingest/incoming.log"
 
 REFRESH_SECONDS = 5
 CHART_WINDOW_LIMIT = 200
 
 st.set_page_config(
     page_title="Zentinel AIOps",
-    page_icon="🛡️",
+    page_icon=":material/monitor_heart:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 DARK_THEME_CSS = """
 <style>
-/* Main Dark Palette */
-.stApp {
-    background-color: #0B0F19;
-    color: #E2E8F0;
-}
-header[data-testid="stHeader"] {
-    background-color: #0B0F19;
-}
-section[data-testid="stSidebar"] {
-    background-color: #080C14;
-    border-right: 1px solid #1E293B;
+:root {
+    --bg: #0B0F19;
+    --bg-side: #080C14;
+    --card: #0F172A;
+    --card-2: #111827;
+    --line: #1E293B;
+    --line-soft: #16223B;
+    --text: #E2E8F0;
+    --text-dim: #94A3B8;
+    --text-faint: #64748B;
+    --accent: #22D3EE;
+    --good: #10B981;
+    --warn: #F59E0B;
+    --bad: #EF4444;
+    --mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
 }
 
-/* Card Tiles */
+@keyframes zenPulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+    70% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+@keyframes zenPulseWarn {
+    0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55); }
+    70% { box-shadow: 0 0 0 7px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+.stApp {
+    background:
+        radial-gradient(1100px 500px at 85% -10%, rgba(34, 211, 238, 0.055), transparent 60%),
+        radial-gradient(900px 480px at -10% 0%, rgba(139, 92, 246, 0.05), transparent 60%),
+        var(--bg);
+    color: var(--text);
+}
+header[data-testid="stHeader"] {
+    background: transparent;
+}
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, var(--bg-side) 0%, #0A101E 100%);
+    border-right: 1px solid var(--line);
+}
+
+div[data-testid="stDataFrame"] {
+    border-radius: 10px;
+    border: 1px solid var(--line);
+}
+[data-testid="stExpander"] {
+    border: 1px solid var(--line) !important;
+    border-radius: 10px !important;
+    background-color: var(--card);
+}
+section[data-testid="stSidebar"] div[data-testid="stExpander"] {
+    background-color: var(--bg-side);
+}
+[data-testid="stMetricValue"] {
+    font-feature-settings: "tnum";
+}
+
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: #223049; border-radius: 8px; }
+*::-webkit-scrollbar-thumb:hover { background: #2C3E5C; }
+
 .zen-card {
-    background-color: #111827;
-    border: 1px solid #1F2937;
-    border-radius: 8px;
-    padding: 16px 20px;
+    position: relative;
+    background: linear-gradient(180deg, #101930 0%, var(--card) 65%);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 15px 19px;
     margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.18s ease, transform 0.18s ease;
+}
+.zen-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent) 0%, rgba(34,211,238,0) 55%);
+    opacity: 0.75;
 }
 .zen-card:hover {
-    border-color: #374151;
+    border-color: #2C3E5C;
+    transform: translateY(-1px);
 }
+
 
 /* Incident Top Banner */
 .zen-banner-incident {
-    background: linear-gradient(90deg, rgba(220, 38, 38, 0.25) 0%, rgba(17, 24, 39, 0.8) 100%);
+    background: linear-gradient(100deg, rgba(220, 38, 38, 0.28) 0%, rgba(17, 24, 39, 0.75) 100%);
     border-left: 4px solid #EF4444;
-    border-radius: 6px;
-    padding: 12px 18px;
-    margin-bottom: 20px;
+    border-radius: 10px;
+    padding: 13px 18px;
+    margin-bottom: 18px;
     display: flex;
     align-items: center;
     color: #F87171;
     font-weight: 600;
 }
 .zen-banner-clear {
-    background: linear-gradient(90deg, rgba(16, 185, 129, 0.15) 0%, rgba(17, 24, 39, 0.8) 100%);
+    background: linear-gradient(100deg, rgba(16, 185, 129, 0.16) 0%, rgba(17, 24, 39, 0.75) 100%);
     border-left: 4px solid #10B981;
-    border-radius: 6px;
-    padding: 12px 18px;
-    margin-bottom: 20px;
+    border-radius: 10px;
+    padding: 13px 18px;
+    margin-bottom: 18px;
     color: #34D399;
     font-weight: 600;
 }
 .zen-banner-drift {
-    background: linear-gradient(90deg, rgba(245, 158, 11, 0.2) 0%, rgba(17, 24, 39, 0.8) 100%);
+    background: linear-gradient(100deg, rgba(245, 158, 11, 0.22) 0%, rgba(17, 24, 39, 0.75) 100%);
     border-left: 4px solid #F59E0B;
-    border-radius: 6px;
-    padding: 12px 18px;
-    margin-bottom: 20px;
+    border-radius: 10px;
+    padding: 13px 18px;
+    margin-bottom: 18px;
     color: #FBBF24;
     font-weight: 600;
 }
 .zen-banner-offline {
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(17, 24, 39, 0.8) 100%);
-    border-left: 4px solid #3B82F6;
-    border-radius: 6px;
-    padding: 12px 18px;
-    margin-bottom: 20px;
-    color: #93C5FD;
+    background: linear-gradient(100deg, rgba(56, 189, 248, 0.16) 0%, rgba(17, 24, 39, 0.75) 100%);
+    border-left: 4px solid #38BDF8;
+    border-radius: 10px;
+    padding: 13px 18px;
+    margin-bottom: 18px;
+    color: #7DD3FC;
     font-weight: 600;
 }
+.zen-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    min-width: 30px;
+    border-radius: 9px;
+    margin-right: 12px;
+    font-size: 0.95rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    flex: 0 0 auto;
+}
+.zen-chip.red { color: #FCA5A5; background: rgba(239, 68, 68, 0.14); border-color: rgba(239, 68, 68, 0.3); }
+.zen-chip.green { color: #6EE7B7; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3); }
+.zen-chip.amber { color: #FCD34D; background: rgba(245, 158, 11, 0.13); border-color: rgba(245, 158, 11, 0.3); }
+.zen-chip.cyan { color: #67E8F9; background: rgba(34, 211, 238, 0.12); border-color: rgba(34, 211, 238, 0.3); }
 
 /* KPI Value & Trend */
 .kpi-title {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    color: #94A3B8;
+    color: var(--text-dim);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 4px;
+    letter-spacing: 0.07em;
+    margin-bottom: 5px;
 }
 .kpi-value {
-    font-size: 1.85rem;
-    font-weight: 700;
+    font-size: 1.9rem;
+    font-weight: 800;
     color: #F8FAFC;
-    line-height: 1.1;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    font-feature-settings: "tnum";
 }
 .kpi-trend-good {
-    color: #10B981;
+    color: var(--good);
     font-size: 0.8rem;
     font-weight: 600;
     margin-left: 6px;
 }
 .kpi-trend-bad {
-    color: #EF4444;
+    color: var(--bad);
     font-size: 0.8rem;
     font-weight: 600;
     margin-left: 6px;
 }
 .kpi-sub {
     font-size: 0.75rem;
-    color: #64748B;
-    margin-top: 4px;
+    color: var(--text-faint);
+    margin-top: 5px;
 }
 .demo-tag {
     display: inline-block;
-    background-color: rgba(59, 130, 246, 0.2);
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    color: #93C5FD;
+    background-color: rgba(56, 189, 248, 0.2);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: #7DD3FC;
     border-radius: 4px;
     padding: 1px 7px;
     font-size: 0.7rem;
@@ -154,13 +244,14 @@ section[data-testid="stSidebar"] {
     margin-bottom: 6px;
 }
 
+
 /* Health Cards */
 .health-tile {
-    background-color: #111827;
-    border: 1px solid #1E293B;
-    border-radius: 6px;
-    padding: 14px 16px;
-    margin-bottom: 10px;
+    background-color: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 12px 15px;
+    margin-bottom: 9px;
 }
 .badge-red {
     background-color: rgba(239, 68, 68, 0.2);
@@ -192,17 +283,17 @@ section[data-testid="stSidebar"] {
 
 /* Pattern list items */
 .pattern-row {
-    background-color: #0F172A;
-    border: 1px solid #1E293B;
-    border-radius: 4px;
+    background-color: #0D1526;
+    border: 1px solid var(--line-soft);
+    border-radius: 7px;
     padding: 8px 12px;
     margin-bottom: 6px;
-    font-family: monospace;
+    font-family: var(--mono);
     font-size: 0.8rem;
-    color: #94A3B8;
+    color: var(--text-dim);
 }
 .pattern-count {
-    color: #60A5FA;
+    color: var(--accent);
     font-weight: 700;
     margin-right: 10px;
 }
@@ -210,13 +301,73 @@ section[data-testid="stSidebar"] {
 /* Activity row */
 .activity-row {
     padding: 8px 0;
-    border-bottom: 1px solid #1E293B;
+    border-bottom: 1px dashed var(--line);
     font-size: 0.85rem;
 }
-/* Compact dataframes for dark theme */
-div[data-testid="stDataFrame"] {
-    border-radius: 6px;
+
+/* Sidebar brand + nav */
+.zen-logo {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 18px;
 }
+.zen-logo-chip {
+    height: 40px;
+    width: 40px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.15rem;
+    color: #06B6D4;
+    background: linear-gradient(145deg, #123B4C 0%, #0E2136 100%);
+    border: 1px solid rgba(34, 211, 238, 0.4);
+    box-shadow: 0 0 14px rgba(34, 211, 238, 0.16);
+    flex: 0 0 auto;
+}
+.zen-nav-group {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin: 15px 0 4px 2px;
+}
+.zen-conn-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 11px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-dim);
+}
+.zen-dot {
+    height: 9px;
+    width: 9px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+}
+.zen-dot.live { background: var(--good); animation: zenPulse 2s infinite; }
+.zen-dot.offline { background: var(--warn); animation: zenPulseWarn 2s infinite; }
+
+section[data-testid="stSidebar"] div[data-testid="stRadio"] label {
+    border-radius: 8px;
+    padding: 2px 8px;
+    transition: background-color 0.14s ease;
+}
+section[data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {
+    background: rgba(34, 211, 238, 0.07);
+}
+div[data-testid="stStatusWidget"] {
+    border-color: var(--line);
+}
+
 </style>
 """
 st.markdown(DARK_THEME_CSS, unsafe_allow_html=True)
@@ -271,6 +422,26 @@ def api_post(
             resp = client.post(
                 f"{url.rstrip('/')}{endpoint}",
                 json=payload,
+                headers=headers,
+            )
+        try:
+            body: dict[str, Any] | str = resp.json()
+        except ValueError:
+            body = resp.text
+        return resp.status_code, body
+    except (httpx.HTTPError, OSError) as exc:
+        return 0, f"Connection failed: {exc}"
+
+
+def api_probe(endpoint: str, timeout: float = 6.0) -> tuple[int, dict[str, Any] | str]:
+    """Uncached GET against the live API returning (status_code, body)."""
+    url = st.session_state["zen_api_url"]
+    api_key = st.session_state["zen_api_key"]
+    headers = {"X-API-Key": api_key} if api_key else {}
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            resp = client.get(
+                f"{url.rstrip('/')}{endpoint}",
                 headers=headers,
             )
         try:
@@ -399,64 +570,14 @@ def demo_patterns() -> list[dict[str, Any]]:
     ]
 
 
-def stream_replay(max_lines: int, replay_path: Path | None = None) -> tuple[int, int, int, list[str]]:
-    """
-    POST sample log lines to the live ingestion API through the batch endpoint.
-    Returns (sent, rejected, windows, errors).
-    """
-    replay_path = (
-        replay_path
-        if replay_path is not None
-        else (SAMPLE_REPLAY_PATH if SAMPLE_REPLAY_PATH.exists() else INCOMING_LOG_PATH)
-    )
-    errors: list[str] = []
-    if not replay_path.exists():
-        return 0, 0, 0, [f"Replay file not found: {replay_path}"]
-
-    raw_lines = [
-        line.strip() for line in replay_path.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip()
-    ][:max_lines]
-
-    url = st.session_state["zen_api_url"]
-    api_key = st.session_state["zen_api_key"]
-    headers = {"X-API-Key": api_key} if api_key else {}
-
-    sent = rejected = windows = 0
-    chunk_size = 400
-    with httpx.Client(timeout=180.0) as client:
-        for start in range(0, len(raw_lines), chunk_size):
-            payload_lines = [line for line in raw_lines[start : start + chunk_size] if line]
-            try:
-                resp = client.post(
-                    f"{url.rstrip('/')}/api/v1/live/ingest/batch",
-                    json={"lines": payload_lines, "source_id": "dashboard_replay"},
-                    headers=headers,
-                )
-            except (httpx.HTTPError, OSError) as exc:
-                errors.append(f"Batch failed: {exc}")
-                break
-            if resp.status_code == 200:
-                body = resp.json()
-                sent += int(body.get("ingested_count", 0))
-                rejected += int(body.get("rejected_count", 0))
-                windows += int(body.get("completed_windows", 0))
-            elif resp.status_code in (401, 403):
-                errors.append(f"HTTP {resp.status_code}: ingestion key required (X-API-Key).")
-                break
-            else:
-                errors.append(f"HTTP {resp.status_code}: {resp.text[:200]}")
-                break
-    return sent, rejected, windows, errors
-
-
 def render_sidebar():
     st.sidebar.markdown(
         """
-        <div style="display: flex; align-items: center; margin-bottom: 20px;">
-            <span style="font-size: 1.6rem; margin-right: 10px;">🛡️</span>
+        <div class="zen-logo">
+            <div class="zen-logo-chip">Z</div>
             <div>
-                <div style="font-size: 1.25rem; font-weight: 800; color: #F8FAFC; letter-spacing: -0.02em;">ZENTINEL</div>
-                <div style="font-size: 0.7rem; color: #64748B; font-weight: 600; text-transform: uppercase;">AIOps Log Defense</div>
+                <div style="font-size: 1.22rem; font-weight: 800; color: #F8FAFC; letter-spacing: -0.02em;">Zentinel</div>
+                <div style="font-size: 0.68rem; color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em;">AIops log defense</div>
             </div>
         </div>
         """,
@@ -469,8 +590,8 @@ def render_sidebar():
     )
 
     c_conn, c_refresh = st.sidebar.columns(2)
-    connect_clicked = c_conn.button("Connect", key="zen_connect", use_container_width=True)
-    if c_refresh.button("Refresh", key="zen_refresh", use_container_width=True):
+    connect_clicked = c_conn.button("Connect", key="zen_connect", width="stretch")
+    if c_refresh.button("Refresh", key="zen_refresh", width="stretch"):
         st.rerun()
     if connect_clicked:
         api_get.clear()
@@ -484,43 +605,15 @@ def render_sidebar():
         summary = load_summary() or {}
         open_alerts_count = int(summary.get("kpis", {}).get("open_alerts", 0))
 
-    st.sidebar.markdown(
-        "<div style='font-size: 0.7rem; font-weight: 700; color: #64748B; margin-bottom: 6px;'>HOME</div>",
-        unsafe_allow_html=True,
-    )
-    page_home = ["Overview"]
+    for group_name, options in NAV_GROUPS.items():
+        st.sidebar.markdown(f"<div class='zen-nav-group'>{group_name}</div>", unsafe_allow_html=True)
+        if group_name == "Investigate" and open_alerts_count > 0:
+            st.sidebar.markdown(
+                f"<div style='margin: 0 2px 4px 2px;'><span class='badge-red'>{open_alerts_count} open</span></div>",
+                unsafe_allow_html=True,
+            )
 
-    st.sidebar.markdown(
-        "<div style='font-size: 0.7rem; font-weight: 700; color: #64748B; margin: 14px 0 6px 0;'>INVESTIGATE</div>",
-        unsafe_allow_html=True,
-    )
-    page_investigate = [
-        f"Incidents ({open_alerts_count})" if open_alerts_count > 0 else "Incidents",
-        "Review Queue",
-        "Windows Browser",
-    ]
-
-    st.sidebar.markdown(
-        "<div style='font-size: 0.7rem; font-weight: 700; color: #64748B; margin: 14px 0 6px 0;'>OBSERVE</div>",
-        unsafe_allow_html=True,
-    )
-    page_observe = [
-        "Stream & Composition",
-        "Drift Diagnostics",
-        "Model Evaluation",
-    ]
-
-    st.sidebar.markdown(
-        "<div style='font-size: 0.7rem; font-weight: 700; color: #64748B; margin: 14px 0 6px 0;'>CONFIGURE</div>",
-        unsafe_allow_html=True,
-    )
-    page_configure = [
-        "Thresholds & Models",
-        "API Keys & Security",
-        "Settings & Database",
-    ]
-
-    all_pages = page_home + page_investigate + page_observe + page_configure
+    all_pages = list(NAV_PAGES)
     st.sidebar.radio(
         "Navigate",
         all_pages,
@@ -532,51 +625,21 @@ def render_sidebar():
 
     if live:
         st.sidebar.markdown(
-            "<div><span style='color: #10B981;'>●</span> <span style='font-size: 0.8rem; font-weight: 600; color: #94A3B8;'>API Connected (Live)</span></div>",
+            "<div class='zen-conn-pill'><span class='zen-dot live'></span><span>API connected (live)</span></div>",
             unsafe_allow_html=True,
         )
     else:
         st.sidebar.markdown(
-            "<div><span style='color: #F59E0B;'>●</span> <span style='font-size: 0.8rem; font-weight: 600; color: #94A3B8;'>Offline Demo Mode</span></div>",
+            "<div class='zen-conn-pill'><span class='zen-dot offline'></span><span>Offline demo mode</span></div>",
             unsafe_allow_html=True,
         )
 
     st.sidebar.toggle("Auto-refresh (5s)", key="zen_auto", help="Poll the live API while this page is open.")
-    _render_replay_control(live)
 
     st.sidebar.caption("Zentinel v0.4.0 • BGL Chronological Run")
 
 
-def _render_replay_control(live: bool):
-    """Stream sample log lines through the live ingestion pipeline."""
-    replay_options = [path.name for path in (SAMPLE_REPLAY_PATH, INCOMING_LOG_PATH) if path.exists()]
-    if not replay_options:
-        return
-
-    with st.sidebar.expander("▶ Stream Replay", expanded=False):
-        if not live:
-            st.caption("Requires a live API connection.")
-            return
-        file_choice = st.selectbox("Replay file", replay_options, key="zen_replay_file")
-        n_lines = st.slider("Lines to stream", 100, 5000, 1000, step=100, key="zen_replay_lines")
-        if st.button("⚡ Stream Now into API", use_container_width=True, key="zen_replay_btn"):
-            path = SAMPLE_REPLAY_PATH if file_choice == SAMPLE_REPLAY_PATH.name else INCOMING_LOG_PATH
-            status_box = st.status("Streaming lines into /ingest/batch ...", expanded=True)
-            with status_box:
-                _sent, _rejected, _windows, errors = stream_replay(n_lines, replay_path=path)
-                if errors:
-                    st.error(" / ".join(errors))
-                else:
-                    st.write(f"Ingested {_sent:,} lines • rejected {_rejected} • windows completed {_windows}")
-            status_box.update(
-                label="Stream complete ✓" if not errors else "Stream stopped ✗",
-                state="complete" if not errors else "error",
-            )
-            api_get.clear()
-            st.rerun()
-
-
-@st.fragment(run_every=REFRESH_SECONDS)
+@st.fragment(run_every=REFRESH_SECONDS if st.session_state.get("zen_auto", True) else None)
 def render_top_banner():
     live = is_live()
     summary = load_summary()
@@ -585,9 +648,9 @@ def render_top_banner():
         st.markdown(
             """
             <div class="zen-banner-offline">
-                <span style="font-size: 1.2rem; margin-right: 12px;">🔌</span>
+                <span class="zen-chip cyan">⏻</span>
                 <div>
-                    <span style="text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; background: rgba(59, 130, 246, 0.3); padding: 2px 6px; border-radius: 4px; margin-right: 8px;">OFFLINE</span>
+                    <span style="text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; background: rgba(56, 189, 248, 0.3); padding: 2px 7px; border-radius: 4px; margin-right: 8px;">OFFLINE</span>
                     <span>Live API unreachable — showing clearly-labelled demo data. Enter the API URL &amp; key in the sidebar and hit Connect.</span>
                 </div>
             </div>
@@ -606,9 +669,9 @@ def render_top_banner():
         st.markdown(
             f"""
             <div class="zen-banner-incident">
-                <span style="font-size: 1.2rem; margin-right: 12px;">⚡</span>
+                <span class="zen-chip red">⚡</span>
                 <div>
-                    <span style="text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; background: rgba(239, 68, 68, 0.3); padding: 2px 6px; border-radius: 4px; margin-right: 8px;">{active_inc.get("severity", "HIGH")} INCIDENT</span>
+                    <span style="text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; background: rgba(239, 68, 68, 0.3); padding: 2px 7px; border-radius: 4px; margin-right: 8px;">{active_inc.get("severity", "HIGH")} INCIDENT</span>
                     <span>{active_inc.get("incident_id")}: {incident_summary} (Peak Score: {active_inc.get("score", 0):.2f})</span>
                 </div>
             </div>
@@ -622,9 +685,9 @@ def render_top_banner():
         st.markdown(
             f"""
             <div class="zen-banner-drift">
-                <span style="font-size: 1.2rem; margin-right: 12px;">⚠️</span>
+                <span class="zen-chip amber">⚠</span>
                 <div>
-                    <span style="text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; background: rgba(245, 158, 11, 0.3); padding: 2px 6px; border-radius: 4px; margin-right: 8px;">DEGRADED DRIFT</span>
+                    <span style="text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; background: rgba(245, 158, 11, 0.3); padding: 2px 7px; border-radius: 4px; margin-right: 8px;">DEGRADED DRIFT</span>
                     <span>Unknown event rate elevated at {current_unknown * 100:.1f}% (above 2.0% validation threshold)</span>
                 </div>
             </div>
@@ -636,10 +699,10 @@ def render_top_banner():
     st.markdown(
         """
         <div class="zen-banner-clear">
-            <span style="font-size: 1.2rem; margin-right: 12px;">✓</span>
+            <span class="zen-chip green">✓</span>
             <div>
-                <span style="text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; background: rgba(16, 185, 129, 0.3); padding: 2px 6px; border-radius: 4px; margin-right: 8px;">SYSTEM HEALTHY</span>
-                <span>All log streams nominal — No active incidents firing</span>
+                <span style="text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; background: rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 4px; margin-right: 8px;">SYSTEM HEALTHY</span>
+                <span>All log streams nominal — no active incidents firing</span>
             </div>
         </div>
         """,
@@ -649,12 +712,26 @@ def render_top_banner():
 
 PLOT_LAYOUT = {
     "template": "plotly_dark",
-    "plot_bgcolor": "#0B0F19",
-    "paper_bgcolor": "#111827",
-    "margin": {"l": 40, "r": 20, "t": 30, "b": 40},
-    "legend": {"orientation": "h", "y": 1.15, "x": 0.0},
-    "xaxis": {"showgrid": True, "gridcolor": "#1E293B", "zeroline": False},
-    "yaxis": {"showgrid": True, "gridcolor": "#1E293B", "zeroline": False},
+    "plot_bgcolor": "rgba(0,0,0,0)",
+    "paper_bgcolor": "rgba(0,0,0,0)",
+    "margin": {"l": 44, "r": 16, "t": 34, "b": 34},
+    "legend": {"orientation": "h", "y": 1.16, "x": 0.0, "bgcolor": "rgba(0,0,0,0)"},
+    "xaxis": {
+        "showgrid": True,
+        "gridcolor": "rgba(30, 41, 59, 0.55)",
+        "zeroline": False,
+        "linecolor": "#1E293B",
+        "tickfont": {"size": 10.5},
+    },
+    "yaxis": {
+        "showgrid": True,
+        "gridcolor": "rgba(30, 41, 59, 0.55)",
+        "zeroline": False,
+        "linecolor": "#1E293B",
+        "tickfont": {"size": 10.5},
+    },
+    "hovermode": "x unified",
+    "hoverlabel": {"bgcolor": "#111A2E", "bordercolor": "#2C3E5C", "font": {"size": 11.5}},
 }
 
 
@@ -668,6 +745,7 @@ def build_score_chart(items: list[dict[str, Any]], thresholds: dict[str, float],
     df["label"] = [f"W-{w}" for w in df["window_id"]]
     df["score"] = pd.to_numeric(df.get("lstm_anomaly_score"), errors="coerce").fillna(0.0)
     df["unknown_rate"] = pd.to_numeric(df.get("unknown_event_rate"), errors="coerce").fillna(0.0)
+    df["decision_hint"] = df["decision"].astype(str) if "decision" in df.columns else ""
 
     fig = go.Figure()
     fig.add_trace(
@@ -675,8 +753,14 @@ def build_score_chart(items: list[dict[str, Any]], thresholds: dict[str, float],
             x=df["label"],
             y=df["score"],
             mode="lines",
-            name="LSTM Anomaly Score",
-            line={"color": "#3B82F6", "width": 2.5},
+            name="LSTM anomaly score",
+            line={"color": "#38BDF8", "width": 2.4},
+            fill="tozeroy",
+            fillcolor="rgba(56, 189, 248, 0.10)",
+            customdata=[[str(d), float(r)] for d, r in zip(df["decision_hint"], df["unknown_rate"])],
+            hovertemplate=(
+                "%{x}<br>Score %{y:.3f}<br>Unknown %{customdata[1]:.2%}<br>%{customdata[0]}<extra></extra>"
+            ),
         )
     )
     alerts = df[df["decision"] == "ANOMALY_ALERT"]
@@ -687,7 +771,8 @@ def build_score_chart(items: list[dict[str, Any]], thresholds: dict[str, float],
                 y=alerts["score"],
                 mode="markers",
                 name="ANOMALY_ALERT",
-                marker={"color": "#EF4444", "size": 7, "symbol": "square"},
+                marker={"color": "#EF4444", "size": 8, "symbol": "square", "line": {"width": 1, "color": "#FCA5A5"}},
+                hovertemplate="%{x}<br>Alert %{y:.3f}<extra>ANOMALY_ALERT</extra>",
             )
         )
     reviews = df[df["decision"] == "NOVELTY_DRIFT_REVIEW"]
@@ -698,7 +783,8 @@ def build_score_chart(items: list[dict[str, Any]], thresholds: dict[str, float],
                 y=reviews["score"],
                 mode="markers",
                 name="NOVELTY_DRIFT_REVIEW",
-                marker={"color": "#F59E0B", "size": 6, "symbol": "diamond"},
+                marker={"color": "#F59E0B", "size": 7, "symbol": "diamond", "line": {"width": 1, "color": "#FCD34D"}},
+                hovertemplate="%{x}<br>Review %{y:.3f}<extra>NOVELTY_DRIFT_REVIEW</extra>",
             )
         )
 
@@ -742,7 +828,7 @@ def build_score_chart(items: list[dict[str, Any]], thresholds: dict[str, float],
         height=330,
         yaxis2={"overlaying": "y", "side": "right", "showgrid": False, "range": [0, 1]},
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def build_decision_mix(decision_counts: dict[str, int]):
@@ -763,10 +849,10 @@ def build_decision_mix(decision_counts: dict[str, int]):
         )
     )
     fig.update_layout(**PLOT_LAYOUT, height=280, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
-@st.fragment(run_every=REFRESH_SECONDS)
+@st.fragment(run_every=REFRESH_SECONDS if st.session_state.get("zen_auto", True) else None)
 def render_overview():
     live = is_live()
     summary = load_summary() or demo_summary()
@@ -783,13 +869,20 @@ def render_overview():
     col_head, col_time = st.columns([7, 3])
     with col_head:
         st.markdown(
-            "<h2 style='margin:0; font-weight:800; color:#F8FAFC;'>System Overview</h2>", unsafe_allow_html=True
+            "<h2 style='margin:0; font-weight:800; color:#F8FAFC;'>System overview</h2>", unsafe_allow_html=True
         )
         st.caption("Real-time telemetry, LSTM known-run loss tracking, and template drift")
     with col_time:
         source_label = "LIVE API DATA" if not demo else "DEMO DATA"
+        last_synced = datetime.now(UTC).strftime("%H:%M:%S UTC")
+        auto_label = f"auto-refresh {REFRESH_SECONDS}s" if st.session_state.get("zen_auto", True) else "auto-refresh off"
         st.markdown(
-            f"<div style='text-align:right; padding-top:14px;'><span class='badge-{'green' if not demo else 'yellow'}'>{source_label}</span></div>",
+            f"""
+            <div style='text-align:right; padding-top:8px;'>
+                <div><span class='badge-{'green' if not demo else 'yellow'}'>{source_label}</span></div>
+                <div style='font-size: 0.7rem; color: #64748B; margin-top: 4px;'>Last synced {last_synced} · {auto_label}</div>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
@@ -1025,11 +1118,26 @@ def render_recent_activity(summary: dict[str, Any], live: bool, demo: bool):
 
 
 def render_incidents_page():
-    st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>Incident Management</h2>", unsafe_allow_html=True)
+    live_preview = is_live()
+    open_total = 0
+    if live_preview:
+        summary = load_summary() or {}
+        open_total = int(summary.get("kpis", {}).get("open_alerts", 0))
+
+    col_title, col_count = st.columns([7, 3])
+    with col_title:
+        st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>Incident management</h2>", unsafe_allow_html=True)
+    with col_count:
+        if live_preview:
+            badge_cls = "badge-red" if open_total > 0 else "badge-green"
+            st.markdown(
+                f"<div style='text-align:right; padding-top:10px;'><span class='{badge_cls}'>{open_total} OPEN</span></div>",
+                unsafe_allow_html=True,
+            )
     st.caption("Forensic incident evidence, hysteresis grouping, and operator actions")
 
-    live = is_live()
-    status_filter = st.selectbox("Status Filter", ["ALL", "OPEN", "ACKNOWLEDGED", "CLOSED"], key="zen_inc_status")
+    live = live_preview
+    status_filter = st.selectbox("Status filter", ["ALL", "OPEN", "ACKNOWLEDGED", "CLOSED"], key="zen_inc_status")
     alerts_list = load_alerts(status=status_filter, limit=100) if live else []
 
     if not alerts_list and live:
@@ -1116,19 +1224,20 @@ def render_incidents_page():
                 st.markdown("##### Operator Actions")
                 c_ack, c_close, c_fp = st.columns(3)
                 with c_ack:
-                    if st.button("✋ Acknowledge", key=f"ack_{alert_id}", use_container_width=True):
+                    if st.button("Acknowledge", icon=":material/check_circle:", key=f"ack_{alert_id}", width="stretch"):
                         status_code, body = api_post(
                             f"/api/v1/alerts/{alert_id}/ack",
                             {"actor": "dashboard-operator", "comment": "Acknowledged from dashboard"},
                         )
                         if status_code == 200:
                             st.success("Incident acknowledged.")
+                            st.toast("Incident acknowledged.", icon=":material/check_circle:")
                             api_get.clear()
                             st.rerun()
                         else:
                             st.error(f"Ack failed (HTTP {status_code}): {body}")
                 with c_close:
-                    if st.button("✅ Close (Resolved)", key=f"close_{alert_id}", use_container_width=True):
+                    if st.button("Close incident", icon=":material/task_alt:", key=f"close_{alert_id}", width="stretch"):
                         status_code, body = api_post(
                             f"/api/v1/alerts/{alert_id}/close",
                             {"actor": "dashboard-operator", "reason": "RESOLVED", "comment": ""},
@@ -1140,13 +1249,14 @@ def render_incidents_page():
                         else:
                             st.error(f"Close failed (HTTP {status_code}): {body}")
                 with c_fp:
-                    if st.button("🚫 Mark False Positive", key=f"fp_{alert_id}", use_container_width=True):
+                    if st.button("Mark false positive", icon=":material/flag:", key=f"fp_{alert_id}", width="stretch"):
                         status_code, body = api_post(
                             f"/api/v1/alerts/{alert_id}/close",
                             {"actor": "dashboard-operator", "reason": "FALSE_POSITIVE", "comment": ""},
                         )
                         if status_code == 200:
                             st.info("Marked as false positive.")
+                            st.toast("Marked as false positive.", icon=":material/flag:")
                             api_get.clear()
                             st.rerun()
                         else:
@@ -1154,7 +1264,7 @@ def render_incidents_page():
 
 
 def render_review_queue_page():
-    st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>Novelty & Drift Review Queue</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>Novelty & drift review queue</h2>", unsafe_allow_html=True)
     st.caption("Unmatched templates and drift-routed windows requiring human triage before retraining")
 
     live = is_live()
@@ -1188,7 +1298,7 @@ def render_review_queue_page():
         present = [c for c in preferred if c in df_rev.columns]
         if present:
             df_rev = df_rev[present]
-        st.dataframe(df_rev, use_container_width=True, height=420)
+        st.dataframe(df_rev, height=420)
 
     committed = load_committed_reports()
     if "three_way" in committed:
@@ -1207,7 +1317,7 @@ def render_review_queue_page():
 
 
 def render_windows_browser_page():
-    st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>Windows Browser</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>Windows browser</h2>", unsafe_allow_html=True)
     st.caption("Inspect 100-line streaming inference windows and three-way decisions")
 
     live = is_live()
@@ -1239,7 +1349,7 @@ def render_windows_browser_page():
                 "persisted_at",
             ]
             w_df = w_df[keep + [c for c in w_df.columns if c not in keep]] if keep else w_df
-            st.dataframe(w_df, use_container_width=True, height=460)
+            st.dataframe(w_df, height=460)
         else:
             st.info("No windows match this filter yet. Ingest log lines to populate.")
     else:
@@ -1248,7 +1358,7 @@ def render_windows_browser_page():
 
 
 def render_stream_page():
-    st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>Stream & Composition</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>Stream & composition</h2>", unsafe_allow_html=True)
     st.caption("Ingestion throughput derived from persisted window completion timestamps")
 
     live = is_live()
@@ -1289,7 +1399,7 @@ def render_stream_page():
         title=None,
         yaxis_title="windows / min",
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     recent_mix = summary.get("decisions", {}).get("all_time", {}) or {}
     st.markdown(
@@ -1303,7 +1413,7 @@ def render_stream_page():
 
 def render_drift_page():
     st.markdown(
-        "<h2 style='font-weight:800; color:#F8FAFC;'>Template & Novelty Drift Diagnostics</h2>", unsafe_allow_html=True
+        "<h2 style='font-weight:800; color:#F8FAFC;'>Template & novelty drift diagnostics</h2>", unsafe_allow_html=True
     )
     st.caption("Monitoring distribution shift between training vocabulary and incoming log templates")
 
@@ -1351,7 +1461,7 @@ def render_drift_page():
 
 def render_model_evaluation_page():
     st.markdown(
-        "<h2 style='font-weight:800; color:#F8FAFC;'>Model Evaluation & Benchmark Provenance</h2>",
+        "<h2 style='font-weight:800; color:#F8FAFC;'>Model evaluation & benchmark provenance</h2>",
         unsafe_allow_html=True,
     )
     st.markdown(
@@ -1410,12 +1520,12 @@ def render_model_evaluation_page():
         for col in ("coverage", "review_rate", "precision", "recall", "f1"):
             if col in disp_df.columns:
                 disp_df[col] = disp_df[col].map(lambda x: f"{x:.1%}")
-        st.dataframe(disp_df, use_container_width=True)
+        st.dataframe(disp_df)
 
     st.markdown("### Block-Bootstrap 95% Confidence Intervals (500 resamples)")
     if "block_bootstrap_95_percent_ci" in wf:
         ci_df = pd.DataFrame(wf["block_bootstrap_95_percent_ci"]).T
-        st.dataframe(ci_df, use_container_width=True)
+        st.dataframe(ci_df)
 
     st.markdown("### Comparison: Baseline vs Three-Way Decision Policy")
     comp_data = [
@@ -1449,7 +1559,7 @@ def render_model_evaluation_page():
 
 def render_thresholds_page():
     st.markdown(
-        "<h2 style='font-weight:800; color:#F8FAFC;'>Thresholds, Models & Sensitivity</h2>", unsafe_allow_html=True
+        "<h2 style='font-weight:800; color:#F8FAFC;'>Thresholds, models & sensitivity</h2>", unsafe_allow_html=True
     )
     st.caption("Operational thresholds derived strictly from validation distributions")
 
@@ -1485,13 +1595,13 @@ def render_thresholds_page():
         df_models = pd.DataFrame(models)
         if "metrics_json" in df_models.columns:
             df_models = df_models.drop(columns=["metrics_json"])
-        st.dataframe(df_models, use_container_width=True)
+        st.dataframe(df_models)
     else:
         st.caption("Model registry unavailable (offline).")
 
 
 def render_security_page():
-    st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>API Keys & Security</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>API keys & security</h2>", unsafe_allow_html=True)
     st.caption("Role-based key validation, rate limiting, and posture checks")
 
     live = is_live()
@@ -1503,7 +1613,7 @@ def render_security_page():
     st.write(f"- Live API reachable: {'Yes' if live else 'No'}")
 
     if live and key_entered:
-        status_code, _ = api_post("/api/v1/admin/checkpoint", payload=None)
+        status_code, _ = api_probe("/api/v1/admin/ping")
         if status_code == 200:
             st.markdown("<span class='badge-green'>Admin-grade key active</span>", unsafe_allow_html=True)
         else:
@@ -1539,7 +1649,7 @@ def render_security_page():
 
 def render_settings_page():
     st.markdown(
-        "<h2 style='font-weight:800; color:#F8FAFC;'>System Settings & Database Administration</h2>",
+        "<h2 style='font-weight:800; color:#F8FAFC;'>System settings & database administration</h2>",
         unsafe_allow_html=True,
     )
     st.caption("Single-worker enforcement, retention jobs, and online SQLite backup")
@@ -1562,21 +1672,22 @@ def render_settings_page():
     st.markdown("### Operational Controls")
     c_m1, c_m2, c_m3 = st.columns(3)
     with c_m1:
-        if st.button("🗑️ Trigger Retention (7d idem / 30d events)", use_container_width=True):
+        if st.button("Run retention cleanup", icon=":material/delete_sweep:", width="stretch"):
             if live:
                 status_code, body = api_post("/api/v1/admin/retention", payload=None)
                 _show_admin_result("Retention", status_code, body)
             else:
                 st.info("Demo mode: retention simulated.")
+        st.caption("Drops idempotency keys older than 7d and events older than 30d.")
     with c_m2:
-        if st.button("💾 Checkpoint SQLite WAL", use_container_width=True):
+        if st.button("Checkpoint SQLite WAL", icon=":material/save:", width="stretch"):
             if live:
                 status_code, body = api_post("/api/v1/admin/checkpoint", payload=None)
                 _show_admin_result("WAL checkpoint", status_code, body)
             else:
                 st.info("Demo mode: WAL checkpoint simulated.")
     with c_m3:
-        if st.button("📦 Backup Database", use_container_width=True):
+        if st.button("Backup Database", icon=":material/database:", width="stretch"):
             if live:
                 status_code, body = api_post(
                     "/api/v1/admin/backup?target_path=data/processed/zentinel_backup.sqlite3",
@@ -1614,26 +1725,27 @@ render_sidebar()
 render_top_banner()
 
 selected_page = st.session_state.get("zen_nav", "Overview")
+selected_canonical = canonical_page(selected_page)
 
-if selected_page == "Overview":
+if selected_canonical == "Overview":
     render_overview()
-elif selected_page == "Incidents":
+elif selected_canonical == "Incidents":
     render_incidents_page()
-elif selected_page == "Review Queue":
+elif selected_canonical == "Review Queue":
     render_review_queue_page()
-elif selected_page == "Windows Browser":
+elif selected_canonical == "Windows Browser":
     render_windows_browser_page()
-elif selected_page == "Stream & Composition":
+elif selected_canonical == "Stream & Composition":
     render_stream_page()
-elif selected_page == "Drift Diagnostics":
+elif selected_canonical == "Drift Diagnostics":
     render_drift_page()
-elif selected_page == "Model Evaluation":
+elif selected_canonical == "Model Evaluation":
     render_model_evaluation_page()
-elif selected_page == "Thresholds & Models":
+elif selected_canonical == "Thresholds & Models":
     render_thresholds_page()
-elif selected_page == "API Keys & Security":
+elif selected_canonical == "API Keys & Security":
     render_security_page()
-elif selected_page == "Settings & Database":
+elif selected_canonical == "Settings & Database":
     render_settings_page()
 else:
     st.markdown("Unknown page.")

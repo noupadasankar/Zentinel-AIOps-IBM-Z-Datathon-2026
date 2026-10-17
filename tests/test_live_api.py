@@ -232,19 +232,57 @@ def test_hundredth_line_completes_window():
 
 def test_rate_limiting_enforced():
     with TestClient(app) as client:
+        saved_rps = SECURITY.rate_limiter.rps
+        saved_burst = SECURITY.rate_limiter.burst
         SECURITY.rate_limiter.rps = 1.0
         SECURITY.rate_limiter.burst = 2
         SECURITY.rate_limiter.reset()
+        try:
+            r1 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
+            assert r1.status_code == 200
+            r2 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
+            assert r2.status_code == 200
 
-        r1 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
-        assert r1.status_code == 200
-        r2 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
-        assert r2.status_code == 200
+            r3 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
+            assert r3.status_code == 429
+            data = r3.json()
+            assert "Rate limit exceeded" in data["detail"]
+        finally:
+            SECURITY.rate_limiter.rps = saved_rps
+            SECURITY.rate_limiter.burst = saved_burst
+            SECURITY.rate_limiter.reset()
 
-        r3 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
-        assert r3.status_code == 429
-        data = r3.json()
-        assert "Rate limit exceeded" in data["detail"]
+
+def test_rate_limit_429_includes_retry_after_header():
+    with TestClient(app) as client:
+        saved_rps = SECURITY.rate_limiter.rps
+        saved_burst = SECURITY.rate_limiter.burst
+        SECURITY.rate_limiter.rps = 1.0
+        SECURITY.rate_limiter.burst = 1
+        SECURITY.rate_limiter.reset()
+        try:
+            r1 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
+            assert r1.status_code == 200
+
+            r2 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
+            assert r2.status_code == 429
+            assert r2.headers.get("Retry-After") == "1"
+        finally:
+            SECURITY.rate_limiter.rps = saved_rps
+            SECURITY.rate_limiter.burst = saved_burst
+            SECURITY.rate_limiter.reset()
+
+
+def test_admin_ping_requires_admin_role():
+    with TestClient(app) as client:
+        denied = client.get("/api/v1/admin/ping", headers={"X-API-Key": READ_KEY})
+        assert denied.status_code == 403
+
+        ok = client.get("/api/v1/admin/ping", headers={"X-API-Key": ADMIN_KEY})
+        assert ok.status_code == 200
+        body = ok.json()
+        assert body["status"] == "ok"
+        assert body["role"] == "admin"
 
 
 def test_uniform_error_json_structure():

@@ -218,12 +218,21 @@ class LiveStateStore:
 
         with self._lock, self._connection:
             existing = self._connection.execute(
-                "SELECT alert_id FROM alerts WHERE incident_id = ?",
+                "SELECT alert_id, status, closed_at FROM alerts WHERE incident_id = ?",
                 (incident_dict["incident_id"],),
             ).fetchone()
 
             if existing:
                 alert_id = int(existing["alert_id"])
+                # Operator-managed states (ACKNOWLEDGED/CLOSED) are never
+                # silently downgraded back to OPEN by automatic incident updates.
+                incoming_status = str(incident_dict["status"]).upper()
+                current_status = str(existing["status"]).upper()
+                status = incoming_status
+                closed_at = incident_dict.get("closed_at")
+                if incoming_status == "OPEN" and current_status in ("ACKNOWLEDGED", "CLOSED"):
+                    status = current_status
+                    closed_at = existing["closed_at"]
                 self._connection.execute(
                     """
                         UPDATE alerts
@@ -241,7 +250,7 @@ class LiveStateStore:
                         WHERE alert_id = ?
                     """,
                     (
-                        incident_dict["status"],
+                        status,
                         incident_dict["severity"],
                         float(incident_dict["score"]),
                         float(incident_dict["threshold"]),
@@ -251,7 +260,7 @@ class LiveStateStore:
                         incident_dict["summary"],
                         evidence_str,
                         incident_dict.get("updated_at") or datetime.now(UTC).isoformat(),
-                        incident_dict.get("closed_at"),
+                        closed_at,
                         alert_id,
                     ),
                 )

@@ -1,0 +1,41 @@
+[theme]
+base = "dark"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
+primaryColor = "#22D3EE"
+backgroundColor = "#0B0F19"
+secondaryBackgroundColor = "#0F172A"
+textColor = "#E2E8F0"
+linkColor = "#38BDF8"
+codeBackgroundColor = "#111827"
+borderColor = "#1E293B"
+baseRadius = "0.6rem"
+buttonRadius = "0.5rem"
+showWidgetBorder = true
+showSidebarBorder = true
+linkUnderline = false
+headingFontSizes = ["2.0rem", "1.45rem", "1.15rem", "0.95rem", "0.85rem", "0.75rem"]
+headingFontWeights = [800, 700, 700, 600, 600, 600]
+metricValueFontSize = "1.9rem"
+metricValueFontWeight = 700
+dataframeBorderColor = "#1E293B"
+dataframeHeaderBackgroundColor = "#111A2E"
+dataframeHeaderTextColor = "#94A3B8"
+dataframeCellPadding = "0.4em 0.6em"
+chartCategoricalColors = ["#38BDF8", "#22D3EE", "#A78BFA", "#F59E0B", "#EF4444", "#10B981", "#8B949E"]
+chartSequentialColors = ["#0B1B33", "#12294A", "#1B3D6D", "#24559B", "#2E6FCB", "#4B8DF1", "#74ABFA", "#9DC7FC", "#C4E0FE", "#E3F1FF"]
+chartDivergingColors = ["#7F1D1D", "#B91C1C", "#DC2626", "#F87171", "#FCA5A5", "#67E8F9", "#22D3EE", "#0EA5E9", "#0284C7", "#075985"]
+paddingTop = "0.8rem"
+paddingBottom = "1.5rem"
+
+[theme.sidebar]
+backgroundColor = "#080C14"
+secondaryBackgroundColor = "#0E1526"
+textColor = "#CBD5E1"
+primaryColor = "#22D3EE"
+linkColor = "#38BDF8"
+codeBackgroundColor = "#0E1526"
+borderColor = "#1E293B"
+showWidgetBorder = true
+paddingTop = "0.9rem"
+paddingBottom = "1.0rem"

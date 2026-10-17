@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-10-17T16:30:48.896261+00:00",
+  "generated_at": "2026-10-17T22:05:31.695684+00:00",
   "generator": "scripts/generate_project_audit.py",
   "git": {
-    "head": "7017d100e68df918f98a485e87aa88fece041b3b",
-    "head_subject": "refactor: harden ingestion, add dashboard feeds, decision-column migration, watcher CLI",
+    "head": "13313e911198a1ef3f3cbb3ec73966807eb71833",
+    "head_subject": "single-port unified server: make serve runs API + dashboard in one process; 79 tests passing; ZIP rebuilt (182 files) and verified",
     "branch": "main",
     "dirty_at_generation": true
   },
@@ -14,15 +14,11 @@
   "repo_files": {
     "README.md": {
       "exists": true,
-      "bytes": 9638
-    },
-    "CHANGELOG.md": {
-      "exists": true,
-      "bytes": 8242
+      "bytes": 17084
     },
     "requirements.txt": {
       "exists": true,
-      "bytes": 350
+      "bytes": 371
     },
     "requirements.lock": {
       "exists": true,
@@ -30,7 +26,7 @@
     },
     "pyproject.toml": {
       "exists": true,
-      "bytes": 414
+      "bytes": 828
     },
     "pytest.ini": {
       "exists": true,
@@ -38,52 +34,64 @@
     },
     "Dockerfile": {
       "exists": true,
-      "bytes": 1469
+      "bytes": 1082
     },
     "docker-compose.yml": {
       "exists": true,
-      "bytes": 2012
+      "bytes": 2090
     },
     "Makefile": {
       "exists": true,
-      "bytes": 1876
+      "bytes": 3200
     },
     ".env.example": {
       "exists": true,
       "bytes": 1403
+    },
+    ".streamlit/config.toml": {
+      "exists": true,
+      "bytes": 1588
+    },
+    "start_zentinel.bat": {
+      "exists": true,
+      "bytes": 1328
+    },
+    "run_tests.bat": {
+      "exists": true,
+      "bytes": 464
     }
   },
   "directories": {
     "src/zentinel": {
-      "files": 27,
+      "files": 20,
       "exists": true
     },
     "scripts": {
-      "files": 45,
+      "files": 39,
       "exists": true
     },
     "tests": {
-      "files": 13,
+      "files": 15,
       "exists": true
     },
     "dashboard": {
       "files": 3,
       "exists": true
     },
-    "reports": {
-      "files": 28,
+    "notebooks": {
+      "files": 15,
       "exists": true
     },
-    "docs": {
-      "files": 10,
+    "reports": {
+      "files": 47,
       "exists": true
     },
     "artifacts": {
-      "files": 13,
+      "files": 14,
       "exists": true
     },
     "data": {
-      "files": 22,
+      "files": 32,
       "exists": true
     }
   },
@@ -96,12 +104,9 @@
     "src/zentinel/api/live_api.py",
     "src/zentinel/api/live_store.py",
     "src/zentinel/api/migrations.py",
-    "src/zentinel/api/replay_api.py",
     "src/zentinel/api/security.py",
+    "src/zentinel/api/unified.py",
     "src/zentinel/config.py",
-    "src/zentinel/features/__init__.py",
-    "src/zentinel/features/sequences.py",
-    "src/zentinel/features/windows.py",
     "src/zentinel/ingestion/__init__.py",
     "src/zentinel/ingestion/replay.py",
     "src/zentinel/ingestion/watcher.py",
@@ -116,6 +121,7 @@
     "scripts/analyze_model_drift.py",
     "scripts/benchmark.py",
     "scripts/benchmark_live_ingestion.py",
+    "scripts/build_distribution_zip.py",
     "scripts/build_event_sequences.py",
     "scripts/build_event_sequences_v2.py",
     "scripts/build_three_way_decisions.py",
@@ -142,12 +148,14 @@
     "scripts/replay_bgl_slice.py",
     "scripts/report_test_coverage_drift.py",
     "scripts/score_lstm_known_runs.py",
+    "scripts/secret_scan.py",
     "scripts/smoke_test.py",
     "scripts/train_drain_final.py",
     "scripts/train_drain_train_split.py",
     "scripts/train_isolation_forest.py",
     "scripts/train_lstm_predictor.py",
     "scripts/validate_parsed_dataset.py",
+    "scripts/verify_distribution_zip.py",
     "scripts/verify_live_database.py"
   ],
   "test_files": [
@@ -155,6 +163,7 @@
     "test_alerts_policy.py",
     "test_bgl_parser.py",
     "test_dashboard_feeds.py",
+    "test_dashboard_pages.py",
     "test_decide_window.py",
     "test_drain_matcher.py",
     "test_integrity_and_lifespan.py",
@@ -163,6 +172,7 @@
     "test_live_store.py",
     "test_onnx_parity.py",
     "test_phase2_api.py",
+    "test_unified_server.py",
     "test_watcher.py"
   ],
   "reports": [
@@ -170,6 +180,7 @@
     "bgl_inspection.json",
     "bgl_parsing_summary.json",
     "chronological_split_report.json",
+    "dependency_audit.json",
     "drain3_train_summary.json",
     "drain3_train_summary_0_7.json",
     "drain_sample_summary.json",
@@ -178,14 +189,30 @@
     "event_sequence_summary_v2.json",
     "frozen_template_match_report.json",
     "isolation_forest_validation_report.json",
+    "linuxone_onnx_parity_smoke.json",
     "live_ingestion_benchmark.json",
     "lstm_known_run_test_report.json",
     "lstm_known_run_validation_report.json",
     "lstm_three_way_test_decision_report.json",
     "lstm_validation_report.json",
     "model_drift_analysis.json",
+    "nb00_run_manifest.json",
+    "nb01_data_quality_report.json",
+    "nb02_template_state_report.json",
+    "nb03_split_manifest.json",
+    "nb04_isolation_forest_report.json",
+    "nb05_lstm_checks.json",
+    "nb06_autoencoder_experiment.json",
+    "nb07_model_comparison_expanded.json",
+    "nb08_explainability_report.json",
+    "nb09_drift_report.json",
+    "nb10_onnx_parity_local.json",
+    "nb11_replay_benchmark.json",
+    "nb12_final_summary.json",
     "onnx_parity_report.json",
     "parsed_integrity_report.json",
+    "project_audit.json",
+    "secret_scan.json",
     "temporal_order_report.json",
     "temporal_walk_forward_evaluation.json",
     "test_coverage_drift_report.json",
@@ -193,18 +220,6 @@
     "unknown_event_diagnostics.json",
     "window_feature_columns.json",
     "window_feature_summary.json"
-  ],
-  "docs": [
-    "API.md",
-    "ARCHITECTURE.md",
-    "DATA_CARD.md",
-    "DECISIONS.md",
-    "DEMO_SCRIPT.md",
-    "EVALUATION.md",
-    "MODEL_CARD.md",
-    "OPERATIONS.md",
-    "SECURITY.md",
-    "SLIDES.md"
   ],
   "artifacts": {
     ".gitkeep": {
@@ -243,6 +258,10 @@
       "bytes": 391,
       "sha256": "48842555e40c554a751046675a393295beaa56b476e0c05c40c55ce0e3e6fc6c"
     },
+    "lstm_autoencoder_exp.pt": {
+      "bytes": 177247,
+      "sha256": "a550c3ca4e4a06549c5c3d81a9e19598ac7f3f68f87273b7a79fdd5ba5e1bc7f"
+    },
     "lstm_known_run_threshold.json": {
       "bytes": 501,
       "sha256": "85ecbf8e7df75e74b5746d1753b5a70df9a90357fe7e0336529bf7901e04c7b8"
@@ -269,6 +288,9 @@
     ".gitkeep": {
       "bytes": 0
     },
+    "alert_evidence.csv": {
+      "bytes": 16480
+    },
     "bgl_event_sequences.npz": {
       "bytes": 558868
     },
@@ -286,6 +308,9 @@
     },
     "bgl_window_features.parquet": {
       "bytes": 6864889
+    },
+    "drift_report.csv": {
+      "bytes": 82458
     },
     "isolation_forest_validation_scores.parquet": {
       "bytes": 131447
@@ -305,11 +330,26 @@
     "lstm_validation_scores.parquet": {
       "bytes": 133526
     },
+    "metrics_summary.csv": {
+      "bytes": 367
+    },
+    "nb11_scratch_live.sqlite3": {
+      "bytes": 651264
+    },
+    "retraining_review_queue.csv": {
+      "bytes": 14332
+    },
+    "templates.csv": {
+      "bytes": 51971
+    },
     "test_model_comparison.parquet": {
       "bytes": 135876
     },
+    "zentinel_backup.sqlite3": {
+      "bytes": 7041024
+    },
     "zentinel_live.sqlite3": {
-      "bytes": 6889472
+      "bytes": 7041024
     }
   },
   "data_raw": {
@@ -326,5 +366,19 @@
       "bytes": 67500
     }
   },
-  "notebooks": []
+  "notebooks": [
+    "00_environment_and_data_contracts.ipynb",
+    "01_data_exploration.ipynb",
+    "02_log_parsing_and_templates.ipynb",
+    "03_temporal_feature_engineering.ipynb",
+    "04_isolation_forest_baseline.ipynb",
+    "05_lstm_next_event_model.ipynb",
+    "06_lstm_autoencoder_experiment.ipynb",
+    "07_model_evaluation_and_comparison.ipynb",
+    "08_explainability_and_alerts.ipynb",
+    "09_drift_and_calibration.ipynb",
+    "10_onnx_export_and_parity.ipynb",
+    "11_streaming_replay_benchmarks.ipynb",
+    "12_final_results_and_figures.ipynb"
+  ]
 }

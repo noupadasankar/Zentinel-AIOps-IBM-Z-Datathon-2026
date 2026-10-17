@@ -191,6 +191,52 @@ def test_retention_purge(tmp_path):
         store.close()
 
 
+def make_incident(incident_id="INC-0001", status="OPEN", window_count=1):
+    return {
+        "incident_id": incident_id,
+        "status": status,
+        "severity": "HIGH",
+        "score": 4.2,
+        "threshold": 3.4791,
+        "first_window_id": 1,
+        "last_window_id": 1,
+        "first_line_number": 1,
+        "last_line_number": 100,
+        "window_count": window_count,
+        "summary": "HIGH Severity Anomaly",
+        "evidence": {},
+    }
+
+
+def test_operator_managed_alert_status_not_downgraded(tmp_path):
+    store = LiveStateStore(tmp_path / "alert_status.sqlite3")
+
+    try:
+        created = store.save_or_update_alert(make_incident())
+        alert_id = created["alert_id"]
+
+        store.add_alert_action(alert_id=alert_id, action_type="ACKNOWLEDGE", actor="operator")
+        assert store.get_alert(alert_id)["status"] == "ACKNOWLEDGED"
+
+        extended = make_incident(window_count=2)
+        extended["last_window_id"] = 2
+        result = store.save_or_update_alert(extended)
+        assert result["status"] == "ACKNOWLEDGED"
+        assert result["window_count"] == 2
+
+        store.add_alert_action(alert_id=alert_id, action_type="RESOLVED", actor="operator")
+        closed_at = store.get_alert(alert_id)["closed_at"]
+        assert closed_at is not None
+
+        reopened = make_incident(window_count=3)
+        reopened["last_window_id"] = 3
+        result = store.save_or_update_alert(reopened)
+        assert result["status"] == "CLOSED"
+        assert result["closed_at"] == closed_at
+    finally:
+        store.close()
+
+
 def test_wal_checkpoint_and_backup(tmp_path):
     database_path = tmp_path / "source.sqlite3"
     backup_path = tmp_path / "backup.sqlite3"

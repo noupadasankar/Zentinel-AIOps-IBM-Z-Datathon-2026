@@ -301,6 +301,23 @@ def build_unified_app() -> UnifiedServer:
     return UnifiedServer()
 
 
+def _assert_port_free(host: str, port: int) -> None:
+    """Fail fast with a readable message when the requested port is already in use.
+
+    Without this, uvicorn retries the bind forever and leaves a zombie parent
+    plus a running Streamlit child while every client probes the *other*
+    server that owns the port.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as test_socket:
+        try:
+            test_socket.bind((host, port))
+        except OSError as exc:
+            print(f"ERROR: port {host}:{port} is already in use ({exc}).")
+            print("Stop the other server first, or run Zentinel on a free port:")
+            print(f"  python -m zentinel.api.unified --port {find_free_port(port + 1)}")
+            raise SystemExit(1) from exc
+
+
 def main() -> None:
     import argparse
     import json
@@ -312,6 +329,7 @@ def main() -> None:
     args = parser.parse_args()
     os.environ["ZENTINEL_HOST"] = args.host
     os.environ["ZENTINEL_PORT"] = str(args.port)
+    _assert_port_free(args.host, args.port)
     server = build_unified_app()
     if args.port_file:
         Path(args.port_file).write_text(

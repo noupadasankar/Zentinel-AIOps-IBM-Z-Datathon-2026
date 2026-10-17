@@ -131,4 +131,5 @@ class SecurityManager:
             raise HTTPException(
                 status_code=429,
                 detail="Rate limit exceeded: Too many requests",
+                headers={"Retry-After": "1"},
             )

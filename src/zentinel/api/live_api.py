@@ -144,6 +144,8 @@ async def add_request_id_middleware(request: Request, call_next):
 @app.exception_handler(StarletteHTTPException)
 async def starlette_http_exception_handler(request: Request, exc: StarletteHTTPException):
     req_id = getattr(request.state, "request_id", uuid.uuid4().hex)
+    headers = dict(exc.headers or {})
+    headers["X-Request-ID"] = req_id
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -154,13 +156,15 @@ async def starlette_http_exception_handler(request: Request, exc: StarletteHTTPE
             "detail": exc.detail,
             "request_id": req_id,
         },
-        headers={"X-Request-ID": req_id},
+        headers=headers,
     )
 
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     req_id = getattr(request.state, "request_id", uuid.uuid4().hex)
+    headers = dict(exc.headers or {})
+    headers["X-Request-ID"] = req_id
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -171,7 +175,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "detail": exc.detail,
             "request_id": req_id,
         },
-        headers={"X-Request-ID": req_id},
+        headers=headers,
     )
 
 
@@ -276,7 +280,7 @@ class BatchIngestResponse(BaseModel):
     ingested_count: int = Field(description="Number of valid lines successfully processed")
     rejected_count: int = Field(description="Number of invalid lines rejected")
     completed_windows: int = Field(description="Number of 100-line windows completed")
-    alerts_generated: int = Field(description="Number of new or updated incidents")
+    alerts_generated: int = Field(description="Number of windows that opened or updated an incident")
     decisions: list[dict[str, Any]] = Field(description="Window decision results completed in this batch")
 
 
@@ -492,7 +496,7 @@ def ingest_batch(
     ingested_count = 0
     rejected_count = 0
     decisions = []
-    alerts_count = 0
+    incidents_touched = 0
 
     for raw in request.lines:
         line_clean = raw.strip()
@@ -508,8 +512,8 @@ def ingest_batch(
             if resp.get("window_completed") and resp.get("window_decision"):
                 w = resp["window_decision"]
                 decisions.append(w)
-                if w.get("decision") == "ANOMALY_ALERT":
-                    alerts_count += 1
+                if w.get("incident_id"):
+                    incidents_touched += 1
         except HTTPException as exc:
             if exc.status_code == 422:
                 rejected_count += 1
@@ -520,7 +524,7 @@ def ingest_batch(
         ingested_count=ingested_count,
         rejected_count=rejected_count,
         completed_windows=len(decisions),
-        alerts_generated=alerts_count,
+        alerts_generated=incidents_touched,
         decisions=decisions,
     )
 
@@ -855,6 +859,16 @@ def prometheus_metrics():
         content="\n".join(lines) + "\n",
         media_type="text/plain; version=0.0.4; charset=utf-8",
     )
+
+
+@app.get("/api/v1/admin/ping", tags=["Administration"])
+def admin_ping(role: str = Depends(require_admin)):
+    """Admin-grade probe used by operators/dashboard to validate key privileges."""
+    return {
+        "status": "ok",
+        "role": role,
+        "auth_enabled": SECURITY.auth_enabled,
+    }
 
 
 @app.post("/api/v1/admin/retention", tags=["Administration"])
