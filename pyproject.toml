@@ -1,0 +1,20 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [
+    ".git",
+    ".venv",
+    "scripts/archive",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "RUF"]
+ignore = ["E501", "B008", "RUF012", "B007", "RUF001", "B905"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["BLE001", "B023", "F841", "RUF046", "E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"

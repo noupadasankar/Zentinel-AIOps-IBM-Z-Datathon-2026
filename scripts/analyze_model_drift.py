@@ -1,11 +1,10 @@
 
 """Analyze model scores against unknown-event rates and temporal drift."""
 
-from pathlib import Path
 import json
+from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import pyarrow.parquet as pq
 from scipy.stats import spearmanr
 from sklearn.metrics import (
@@ -14,7 +13,6 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
 )
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -64,7 +62,7 @@ def get_metrics(frame, score_column, prediction_column):
     scores = frame[score_column].to_numpy(dtype=np.float64)
 
     result = {
-        "windows": int(len(frame)),
+        "windows": len(frame),
         "unknown_windows": int((frame["unknown_event_rate"] > 0).sum()),
         "unknown_window_percentage": float(
             100 * (frame["unknown_event_rate"] > 0).mean()

@@ -1,13 +1,12 @@
 
 """Build integer event sequences for LSTM anomaly detection."""
 
-from pathlib import Path
 import json
 import os
+from pathlib import Path
 
 import numpy as np
 import pyarrow.parquet as pq
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -285,7 +284,7 @@ def main() -> None:
         records = record_counts[name]
 
         split_summary[name] = {
-            "windows": int(len(indices)),
+            "windows": len(indices),
             "records": int(records),
             "anomalous_windows": int(targets[indices].sum()),
             "normal_windows": int(len(indices) - targets[indices].sum()),
@@ -294,9 +293,7 @@ def main() -> None:
                 unknown_counts[name] * 100 / records,
                 4,
             ) if records else 0.0,
-            "windows_with_unknown_events": int(
-                len(unknown_windows[name])
-            ),
+            "windows_with_unknown_events": len(unknown_windows[name]),
         }
 
     report = {

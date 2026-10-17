@@ -1,10 +1,9 @@
 ﻿
-from collections import Counter
-from datetime import datetime, timezone
-from pathlib import Path
 import json
 import sys
-
+from collections import Counter
+from datetime import UTC, datetime
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LOG_PATH = ROOT / "data" / "raw" / "BGL.log"
@@ -185,10 +184,10 @@ def main() -> None:
             "min_unix": min_timestamp,
             "max_unix": max_timestamp,
             "min_utc": datetime.fromtimestamp(
-                min_timestamp, timezone.utc
+                min_timestamp, UTC
             ).isoformat(),
             "max_utc": datetime.fromtimestamp(
-                max_timestamp, timezone.utc
+                max_timestamp, UTC
             ).isoformat(),
         }
 

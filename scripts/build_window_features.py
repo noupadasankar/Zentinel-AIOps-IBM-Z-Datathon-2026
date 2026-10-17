@@ -1,15 +1,14 @@
 
 """Create fixed-size numerical log-window features without label leakage."""
 
-from collections import Counter, defaultdict
-from pathlib import Path
 import json
 import os
 import re
+from collections import Counter, defaultdict
+from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -163,7 +162,8 @@ def main():
         + category_columns
     )
 
-    feature_columns = count_features + [
+    feature_columns = [
+        *count_features,
         "unknown_event_rate",
         "window_duration_seconds",
         "logs_per_second",

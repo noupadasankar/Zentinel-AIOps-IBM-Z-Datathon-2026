@@ -1,10 +1,10 @@
 
 """Train the selected Drain3 configuration on training data only."""
 
-from collections import Counter
-from pathlib import Path
 import json
 import sys
+from collections import Counter
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -12,8 +12,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from drain3 import TemplateMiner
 from drain3.file_persistence import FilePersistence
 from drain3.template_miner_config import TemplateMinerConfig
-from zentinel.parsing.drain_parser import parse_bgl_line
 
+from zentinel.parsing.drain_parser import parse_bgl_line
 
 INPUT_PATH = ROOT / "data" / "raw" / "BGL.log"
 SPLIT_PATH = ROOT / "reports" / "chronological_split_report.json"

@@ -1,13 +1,12 @@
 
 """Build event sequences with separate PAD and UNK tokens."""
 
-from pathlib import Path
 import json
 import os
+from pathlib import Path
 
 import numpy as np
 import pyarrow.parquet as pq
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -252,7 +251,7 @@ def main():
         anomalous_windows = int(targets[indices].sum())
 
         split_summary[split] = {
-            "windows": int(len(indices)),
+            "windows": len(indices),
             "records": split_records,
             "normal_windows": int(len(indices) - anomalous_windows),
             "anomalous_windows": anomalous_windows,

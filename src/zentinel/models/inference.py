@@ -234,7 +234,7 @@ class InferenceEngine:
 
             return float(loss_sum.item()), len(run) - 1
 
-        for token in tokens + [UNKNOWN_TOKEN]:
+        for token in [*tokens, UNKNOWN_TOKEN]:
             if token >= 2:
                 current_run.append(token)
             else:

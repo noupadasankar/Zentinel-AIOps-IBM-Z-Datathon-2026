@@ -1,12 +1,11 @@
 
 """Verify source-order timestamps before chronological model evaluation."""
 
-from pathlib import Path
 import json
 import re
+from pathlib import Path
 
 import pyarrow.parquet as pq
-
 
 ROOT = Path(__file__).resolve().parents[1]
 INPUT_PATH = ROOT / "data" / "processed" / "bgl_parsed.parquet"

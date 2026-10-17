@@ -1,12 +1,11 @@
 
 """Validate full BGL Parquet output against the original log file."""
 
+import json
 from collections import Counter
 from pathlib import Path
-import json
 
 import pyarrow.parquet as pq
-
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_PATH = ROOT / "data" / "raw" / "BGL.log"

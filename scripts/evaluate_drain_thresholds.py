@@ -1,17 +1,17 @@
 
 """Compare Drain3 thresholds using training data only."""
 
-from pathlib import Path
 import json
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from drain3 import TemplateMiner
 from drain3.template_miner_config import TemplateMinerConfig
-from zentinel.parsing.drain_parser import parse_bgl_line
 
+from zentinel.parsing.drain_parser import parse_bgl_line
 
 INPUT_PATH = ROOT / "data" / "raw" / "BGL.log"
 REPORT_PATH = ROOT / "reports" / "drain_threshold_experiment.json"

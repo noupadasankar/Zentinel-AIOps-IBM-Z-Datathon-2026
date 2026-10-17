@@ -5,17 +5,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.utils.rnn import pad_sequence
 from sklearn.metrics import (
+    average_precision_score,
+    confusion_matrix,
+    f1_score,
     precision_score,
     recall_score,
-    f1_score,
-    average_precision_score,
     roc_auc_score,
-    confusion_matrix,
 )
+from torch import nn
+from torch.nn.utils.rnn import pad_sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 SEQUENCE_PATH = ROOT / "data/processed/bgl_event_sequences_v2.npz"
@@ -371,8 +371,8 @@ def main():
         ),
         "threshold_source": "Validation-selected threshold; fixed for test",
         "threshold": float(threshold),
-        "total_test_windows": int(len(test_indices)),
-        "scorable_windows": int(len(result)),
+        "total_test_windows": len(test_indices),
+        "scorable_windows": len(result),
         "unscorable_windows": int(len(test_indices) - len(result)),
         "scorable_coverage": float(len(result) / len(test_indices)),
         "unscorable_anomalous_windows": int(

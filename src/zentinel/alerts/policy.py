@@ -177,7 +177,7 @@ class IncidentPolicy:
 
         if self.current_incident is not None and self.current_incident.status != "CLOSED":
             # Check hysteresis threshold: score strictly below 0.7 * threshold
-            if score is not None and score < self.hysteresis_threshold or decision == "NO_ANOMALY_DETECTED" and score is None:
+            if (score is not None and score < self.hysteresis_threshold) or (decision == "NO_ANOMALY_DETECTED" and score is None):
                 self.current_incident.consecutive_normal_count += 1
             else:
                 # Score still in indeterminate band between 0.7*threshold and threshold,

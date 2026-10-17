@@ -1,6 +1,6 @@
-﻿from collections import Counter
+﻿import re
+from collections import Counter
 from pathlib import Path
-import re
 
 ROOT = Path(__file__).resolve().parents[1]
 LOG_PATH = ROOT / "data" / "raw" / "BGL.log"

@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 
 import numpy as np
@@ -55,7 +55,7 @@ DECISIONS = pd.read_parquet(DATA_PATH)
 with REPORT_PATH.open("r", encoding="utf-8") as file:
     EVALUATION_REPORT = json.load(file)
 
-required_columns = set(PUBLIC_COLUMNS + ["target_anomaly"])
+required_columns = set([*PUBLIC_COLUMNS, "target_anomaly"])
 missing_columns = required_columns - set(DECISIONS.columns)
 
 if missing_columns:

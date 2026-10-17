@@ -1,18 +1,14 @@
 
 """Train an LSTM next-event predictor for BGL log anomalies."""
 
-from pathlib import Path
 import json
 import random
+from pathlib import Path
 
-import joblib
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import torch
-from torch import nn
-from torch.utils.data import DataLoader, TensorDataset
-
 from sklearn.metrics import (
     average_precision_score,
     confusion_matrix,
@@ -22,7 +18,8 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-
+from torch import nn
+from torch.utils.data import DataLoader, TensorDataset
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -176,7 +173,7 @@ def evaluate_scores(
 
     return {
         "threshold": float(threshold),
-        "windows_evaluated": int(len(y_true)),
+        "windows_evaluated": len(y_true),
         "actual_anomalous_windows": int(y_true.sum()),
         "predicted_anomalous_windows": int(predictions.sum()),
         "true_positives": int(tp),

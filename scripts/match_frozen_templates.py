@@ -1,18 +1,16 @@
 
 """Match all BGL logs against frozen training-only Drain3 templates."""
 
-from collections import Counter
-from pathlib import Path
 import json
 import os
+from collections import Counter
+from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
-
 from drain3 import TemplateMiner
 from drain3.file_persistence import FilePersistence
 from drain3.template_miner_config import TemplateMinerConfig
-
 
 ROOT = Path(__file__).resolve().parents[1]
 

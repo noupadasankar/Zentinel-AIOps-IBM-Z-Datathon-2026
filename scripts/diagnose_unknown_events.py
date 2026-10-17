@@ -1,12 +1,11 @@
 
 """Investigate unknown Drain3 matches by time, label, and log type."""
 
+import json
 from collections import Counter, defaultdict, deque
 from pathlib import Path
-import json
 
 import pyarrow.parquet as pq
-
 
 ROOT = Path(__file__).resolve().parents[1]
 INPUT_PATH = ROOT / "data" / "processed" / "bgl_frozen_events.parquet"

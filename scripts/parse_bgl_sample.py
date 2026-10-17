@@ -1,18 +1,18 @@
 
 """Parse a small BGL sample and mine event templates with Drain3."""
 
-from collections import Counter
-from pathlib import Path
 import json
 import sys
+from collections import Counter
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from drain3 import TemplateMiner
 from drain3.template_miner_config import TemplateMinerConfig
-from zentinel.parsing.drain_parser import parse_bgl_line
 
+from zentinel.parsing.drain_parser import parse_bgl_line
 
 INPUT_PATH = ROOT / "data" / "raw" / "BGL.log"
 OUTPUT_PATH = ROOT / "data" / "processed" / "bgl_parsed_sample.jsonl"

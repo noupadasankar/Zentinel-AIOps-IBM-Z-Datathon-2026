@@ -1,15 +1,13 @@
 
 """Train and validate the Isolation Forest anomaly detection baseline."""
 
-from pathlib import Path
 import json
+from pathlib import Path
 
 import joblib
 import numpy as np
-import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-
 from sklearn.ensemble import IsolationForest
 from sklearn.metrics import (
     average_precision_score,
@@ -20,7 +18,6 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -64,7 +61,7 @@ def evaluate_scores(y_true, scores, threshold):
 
     return {
         "threshold": float(threshold),
-        "windows_evaluated": int(len(y_true)),
+        "windows_evaluated": len(y_true),
         "actual_anomalous_windows": int(y_true.sum()),
         "predicted_anomalous_windows": int(predictions.sum()),
         "true_positives": int(tp),

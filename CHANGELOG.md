@@ -5,7 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - Phase 2: Structure, Features, and Incident Policies
+## [0.3.0] - Phase 3: Streamlit Operations Dashboard and Visualizations
+
+### Added
+- **Dark-Theme Operations Dashboard (`dashboard/app.py` & `dashboard/live_app.py`)**:
+  - Implemented command center layout matching operational design specification.
+  - Left navigation grouped into `HOME` (Overview), `INVESTIGATE` (Incidents, Review Queue, Windows), `OBSERVE` (Sources/Components, Templates, Drift, Model Evaluation), and `CONFIGURE` (Thresholds, API Keys, Settings).
+  - Open incidents and review queue status badges in navigation.
+  - Real-time incident banner highlighting active severity with immediate ACK/CLOSE actions.
+  - 4 Executive KPI cards: Active Anomaly Windows, Open Incidents, Windows Scored/min, and Scorable Coverage % with unknown rate.
+  - Dual-axis Plotly telemetry chart tracking LSTM anomaly score vs validation threshold (3.4791) alongside novelty unknown rate (2.0% threshold).
+  - Source/component health distribution grid with alert ratios.
+  - Top surprising templates ranked by mean cross-entropy loss with trend arrows.
+  - Live activity feed showing incident lifecycle, drift surges, and model registry events.
+  - Interactive Incident Management page with forensic evidence drilldown, raw log inspection, and operator action dispatch.
+  - Retraining review queue with CSV export for active template curation.
+  - Model evaluation page presenting empirical comparison tables (LSTM vs IF vs Three-Way), confusion matrix, PR curves, and detection delay metrics.
+  - Offline demo mode providing zero-dependency demonstration using committed Parquet decisions.
+
+## [0.2.0] - Phase 2: Structure, Features, and Incident Policies
 
 ### Added
 - **Incident Management Policy (`src/zentinel/alerts/policy.py`)**:

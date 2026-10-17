@@ -5,14 +5,13 @@ Unknown-event novelty is measured separately. Sequences without a
 known-to-known transition are marked unscorable, not normal.
 """
 
-from pathlib import Path
 import json
+from pathlib import Path
 
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import torch
-from torch import nn
 from sklearn.metrics import (
     average_precision_score,
     confusion_matrix,
@@ -22,7 +21,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-
+from torch import nn
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -199,7 +198,7 @@ def evaluate_at_threshold(y_true, scores, threshold):
 
     return {
         "threshold": float(threshold),
-        "scored_windows": int(len(y_true)),
+        "scored_windows": len(y_true),
         "actual_anomalous_windows": int(y_true.sum()),
         "predicted_anomalous_windows": int(predictions.sum()),
         "true_positives": int(tp),
@@ -414,9 +413,9 @@ def main():
         "dataset": "LogHub BGL",
         "model": "LSTM next-event predictor",
         "split_evaluated": "validation",
-        "validation_windows_total": int(len(validation_indices)),
-        "scorable_windows": int(len(validation_scorable)),
-        "unscorable_windows": int(len(validation_unscorable)),
+        "validation_windows_total": len(validation_indices),
+        "scorable_windows": len(validation_scorable),
+        "unscorable_windows": len(validation_unscorable),
         "scorable_window_percentage": round(
             100 * len(validation_scorable) / len(validation_indices),
             4,

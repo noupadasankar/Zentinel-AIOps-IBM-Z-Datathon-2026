@@ -2,6 +2,7 @@
 """Compare training matches with unknown messages in the later test period."""
 
 from pathlib import Path
+
 import pyarrow.parquet as pq
 
 ROOT = Path(__file__).resolve().parents[1]

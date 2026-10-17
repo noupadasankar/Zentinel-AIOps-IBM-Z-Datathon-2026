@@ -51,8 +51,8 @@ def inspect_drain_api():
     print("\n================ DRAIN3 API ================")
 
     try:
-        from drain3.template_miner import TemplateMiner
         from drain3.file_persistence import FilePersistence
+        from drain3.template_miner import TemplateMiner
 
         for method in (
             TemplateMiner.__init__,

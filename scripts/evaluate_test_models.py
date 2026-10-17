@@ -1,18 +1,15 @@
 
 """Evaluate saved Isolation Forest and LSTM on the chronological test set."""
 
-from pathlib import Path
 import json
 import time
+from pathlib import Path
 
 import joblib
 import numpy as np
-import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import torch
-from torch import nn
-
 from sklearn.metrics import (
     average_precision_score,
     confusion_matrix,
@@ -21,7 +18,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-
+from torch import nn
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -155,7 +152,7 @@ def calculate_metrics(y_true, scores, threshold, elapsed_seconds):
 
     return {
         "threshold": float(threshold),
-        "windows_evaluated": int(len(y_true)),
+        "windows_evaluated": len(y_true),
         "actual_anomalous_windows": int(y_true.sum()),
         "predicted_anomalous_windows": int(predictions.sum()),
         "true_positives": int(tp),
@@ -374,7 +371,7 @@ def main():
         "test_labels_used_for_threshold_selection": False,
         "test_labels_used_for_exploratory_diagnostics": True,
         "thresholds_selected_on_validation_only": True,
-        "test_windows": int(len(y_test)),
+        "test_windows": len(y_test),
         "test_anomalous_windows": int(y_test.sum()),
         "isolation_forest": {
             "selected_validation_threshold": if_threshold,

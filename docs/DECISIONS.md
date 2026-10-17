@@ -114,3 +114,16 @@ This document records architectural, ML, and engineering decisions made during t
   3. Block-bootstrap resamplings (500 resamples, 50-window blocks) establish 95% confidence intervals while preserving autocorrelation.
   4. Detection delay / lead time is measured in seconds from episode onset to first alert.
 - **Consequences:** Transparent, defensible evaluation adhering strictly to Rule 5 and Rule 6.
+
+---
+
+## ADR-011: Streamlit Dashboard Design and Layout Fidelity
+- **Status:** Accepted
+- **Context:** The operations team requires an intuitive dark-themed command center matching an executive reference layout (sidebar grouping, alert banner, KPI cards, dual-axis telemetry charts, source health, template patterns, incident drill-down, review queue, and offline demo mode).
+- **Decision:**
+  1. Built the unified dashboard using Streamlit + Plotly with custom CSS styles achieving full visual fidelity without incurring React/Node frontend operational overhead.
+  2. Integrated offline demo replay capability reading from committed `reports/` and `data/processed/` Parquet datasets so the dashboard operates self-contained without a live API server if desired.
+  3. Strict XSS mitigation: all raw log lines and template texts are escaped (`html.escape` and pure Streamlit text/code components) rather than passed via raw unsafe HTML.
+  4. Cached API calls with short TTLs (`st.cache_data(ttl=5)`) to keep telemetry fluid and prevent network/database saturation.
+- **Consequences:** Immediate deployability in a single container or Python process, zero frontend build toolchain required, high performance.
+

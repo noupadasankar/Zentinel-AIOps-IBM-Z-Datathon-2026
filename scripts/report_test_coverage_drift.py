@@ -67,9 +67,9 @@ def main():
             "Quantify scoring coverage and unknown-event prevalence "
             "for the exploratory test period."
         ),
-        "test_windows": int(len(test_indices)),
-        "scorable_windows": int(len(scored_df)),
-        "unscorable_windows": int(len(unscorable_df)),
+        "test_windows": len(test_indices),
+        "scorable_windows": len(scored_df),
+        "unscorable_windows": len(unscorable_df),
         "scorable_coverage": float(len(scored_df) / len(test_indices)),
         "unscorable_rate": float(len(unscorable_df) / len(test_indices)),
         "scorable_anomalous_windows": scored_anomalous,
