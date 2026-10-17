@@ -200,7 +200,7 @@ Master-prompt capability → status with §26 vocabulary (planned features are n
 | Security controls incl. auth, rate limit, CORS, secrets policy (§15) | PASS | sha256-key auth; limiter; CORS; bounded payloads; non-root Dockerfile; local scan PASS; threat model in README.md |
 | Containers + quality-gate commands (§16) | BLOCKED | no daemon in-session (§J); commands `make install/lint/test/train/evaluate/demo/benchmark/reproduce` exist and the executed ones returned real exit codes; container build config present |
 | CI pipeline execution (§22) | BLOCKED | ci.yml valid (2 jobs); no remote/runner; local equivalents run instead (§I) |
-| LinuxONE validation (§17) | BLOCKED | no target hardware; portable-by-design documented; nothing claimed |
+| LinuxONE validation (§17) | BLOCKED | no target hardware; portable-by-design documented; nothing claimed. Prepared: target-side runbook automation `linuxone-validation/validate_linuxone.sh` (env/stop-guards, artifact manifest via `verify_manifest()`, pytest, API lifecycle with disposable DB, on-device ONNX parity smoke, benchmark gate, RESULTS.md + evidence tar) and git remote `origin` (github.com/noupadasankar/Zentinel-AIOps-IBM-Z-Datathon-2026) for clone-on-target |
 | Reproducible experiments incl. manifests (§19) | PASS | model manifest + SHA verification + promotion gates documented (`README.md`, `README.md`) |
 | Benchmark protocol (§20) | PASS | 60 s × 3 committed + NB 11 reproduction, medians, machine metadata |
 | Documentation suite (§21) | PASS | one consolidated, detailed `README.md` (all prior doc topics folded in: architecture, data/model cards, policies, API, dashboard, ops, security, LinuxONE protocol, scoring alignment, status); no planned-work-as-done claims |

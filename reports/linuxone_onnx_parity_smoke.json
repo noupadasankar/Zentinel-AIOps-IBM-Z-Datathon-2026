@@ -1,0 +1,13 @@
+{
+  "platform": "target",
+  "torch_version": "2.14.1+cpu",
+  "onnxruntime_version": "1.31.0",
+  "input_name": "tokens",
+  "output_name": "logits",
+  "windows": 32,
+  "max_abs_logit_diff": 4.291534423828125e-06,
+  "decision_agreement": "32/32",
+  "threshold_used_from_artifact": 3.479122797648112,
+  "protocol_note": "reduced smoke (32 windows); authoritative full parity report: reports/onnx_parity_report.json (x86 run, 918/918)",
+  "verdict": "PASS"
+}

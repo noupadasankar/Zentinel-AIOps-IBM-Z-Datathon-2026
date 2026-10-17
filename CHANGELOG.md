@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-18 — LinuxONE Validation Readiness
+
+### Added
+- **Target-side validation automation** (`linuxone-validation/validate_linuxone.sh`): executes the runbook steps 1–11 on an s390x host with hard stop-guards (non-s390x abort; missing/divergent artifacts abort), disposable SQLite DB for API lifecycle checks, real entry points only (`zentinel.config.verify_manifest()`, `scripts/benchmark.py` when `data/raw/BGL.log` is transferred, the shipped `sample_replay.log` replay otherwise), idempotency/409/422 checks, controlled-restart persistence check, on-device ONNX parity smoke (`tokens`→`logits`, results to `reports/linuxone_onnx_parity_smoke.json`), and `~/zentinel-validation` evidence packaging with RESULTS.md. No target results are claimed until the script is actually run on IBM Z/LinuxONE.
+- **Git remote**: `origin` = `https://github.com/noupadasankar/Zentinel-AIOps-IBM-Z-Datathon-2026.git` enabling clone-on-target (runbook Step 2).
+- X86-64 dry-run of all embedded validation logic: manifest verify PASS, engine threshold loaded from artifact (3.479122797648112), ONNX smoke 32/32 agreement / 4.29e-06 max logit diff (host sanity only, not a target result).
+
+### Changed
+- §17 evidence pointer updated in `reports/FINAL_COMPLETION_REPORT.md` (still BLOCKED-B: no target run executed).
+
 ## [1.1.0] - 2026-10-18 — Notebook Laboratory Complete
 
 ### Added
