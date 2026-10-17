@@ -11,6 +11,10 @@ services:
     environment:
       - PYTHONPATH=/app/src
       - WEB_CONCURRENCY=1
+      # Fail-closed default: production refuses to start without API keys.
+      # Keyless local demo: `ZENTINEL_ENV=development docker compose up`.
+      - ZENTINEL_ENV=${ZENTINEL_ENV:-production}
+      - ZENTINEL_REQUIRE_AUTH=${ZENTINEL_REQUIRE_AUTH:-}
       - ZENTINEL_API_KEY_SHA256=${ZENTINEL_API_KEY_SHA256:-}
       - ZENTINEL_DB_PATH=/app/data/processed/zentinel_live.sqlite3
     volumes:

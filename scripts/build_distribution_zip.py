@@ -1,9 +1,12 @@
 """Build the Zentinel AIOps distribution archive from an explicit include-list.
 
-Reproduces the packaging protocol documented in `reports/ZIP_VERIFICATION.md`:
-only whitelisted paths enter the archive, runtime state / caches / the raw
-dataset never do, and the post-build integrity data (file count, size,
-SHA-256, per-segment inventory) is printed as JSON for the verification report.
+Reproduces the packaging protocol documented in `reports/ZIP_VERIFICATION.md`
+(shipped inside the archive): only whitelisted paths enter the archive, runtime
+state / caches / the raw dataset never do, and the post-build integrity data
+(file count, size, SHA-256, per-segment inventory) is printed as JSON for the
+verification report. Building the default output also refreshes
+`SHA256SUMS.txt` at the repository root — the checksum companion that by
+necessity lives outside the archive (a file cannot contain its own digest).
 
 Usage:
     python scripts/build_distribution_zip.py [--output PATH] [--check-only]
@@ -83,14 +86,16 @@ EXCLUDED_NAMES = [
     ".ruff_cache",
     ".ipynb_checkpoints",
     ".git",
+    # Digest companion: lives outside the archive (circular-digest rule).
+    "SHA256SUMS.txt",
 ]
 
 # Suffix-based exclusions (build/test artifacts that must never ship).
 EXCLUDED_SUFFIXES = (".egg-info", ".dist-info")
 
-# Documented exclusion: this report documents the archive's own digest, so it
-# can never live inside the archive (circular-digest rule).
-REPORTS_EXCLUDE = {"ZIP_VERIFICATION.md"}
+# No report is excluded: `reports/ZIP_VERIFICATION.md` ships inside the archive
+# and points to `SHA256SUMS.txt` (repository root, outside the archive) for the
+# archive's own digest.
 
 
 def _iter_tree(relative_dir: str) -> list[str]:
@@ -127,8 +132,6 @@ def collect_members() -> list[tuple[Path, str]]:
         if not path.is_file():
             continue
         rel = path.relative_to(ROOT).as_posix()
-        if path.name in REPORTS_EXCLUDE:
-            continue
         if "__pycache__" in rel:
             continue
         members.append((path, rel))
@@ -190,6 +193,15 @@ def build(output: Path) -> dict:
     with output.open("rb") as handle:
         while chunk := handle.read(1024 * 1024):
             hasher.update(chunk)
+    digest = hasher.hexdigest()
+
+    # SHA256SUMS.txt is the release checksum companion; it stays OUTSIDE the
+    # archive (circular-digest rule) and is refreshed for the default output.
+    checksums_file = None
+    if output.resolve() == DEFAULT_OUTPUT.resolve():
+        checksums_path = ROOT / "SHA256SUMS.txt"
+        checksums_path.write_text(f"{digest}  {output.name}\n", encoding="utf-8")
+        checksums_file = str(checksums_path.relative_to(ROOT))
 
     size = output.stat().st_size
     file_count = len(members)
@@ -205,7 +217,8 @@ def build(output: Path) -> dict:
         "file_count": file_count,
         "size_bytes": size,
         "size_mb": round(size / 1_000_000, 2),
-        "sha256": hasher.hexdigest(),
+        "sha256": digest,
+        "checksums_file": checksums_file,
         "segments": {k: {"files": v["files"], "mb": round(v["bytes"] / 1_000_000, 1)} for k, v in sorted(segments.items())},
     }
 

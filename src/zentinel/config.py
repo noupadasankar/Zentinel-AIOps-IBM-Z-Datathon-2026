@@ -98,6 +98,15 @@ class ZentinelConfig:
         self.rate_limit_rps = float(os.getenv("ZENTINEL_RATE_LIMIT_RPS", "100.0"))
         self.rate_limit_burst = int(os.getenv("ZENTINEL_RATE_LIMIT_BURST", "200"))
 
+        self.env = os.getenv("ZENTINEL_ENV", "development").strip().lower() or "development"
+        require_auth_raw = os.getenv("ZENTINEL_REQUIRE_AUTH", "").strip().lower()
+        if require_auth_raw in {"1", "true", "yes", "on"}:
+            self.require_auth = True
+        elif require_auth_raw in {"0", "false", "no", "off"}:
+            self.require_auth = False
+        else:
+            self.require_auth = self.env == "production"
+
         self.idempotency_retention_days = int(os.getenv("ZENTINEL_IDEMPOTENCY_RETENTION_DAYS", "7"))
         self.event_retention_days = int(os.getenv("ZENTINEL_EVENT_RETENTION_DAYS", "30"))
 

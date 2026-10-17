@@ -2,8 +2,10 @@
 set -u
 set -o pipefail
 
-EXPECTED_COMMIT="13313e9"
-# Digest of the transferred ZIP (from reports/ZIP_VERIFICATION.md after `make package`).
+# Optional: export EXPECTED_COMMIT=<short-sha> on the target to enforce the source revision;
+# when unset, the measured commit is recorded only (release identity = the ZIP digest).
+EXPECTED_COMMIT="${EXPECTED_COMMIT:-}"
+# Digest of the transferred ZIP (recorded in SHA256SUMS.txt at the repository root after `make package`).
 # Optional: set EXPECTED_ZIP_SHA256=<sha256> on the target to have the script enforce it;
 # the measured digest is always recorded to 02-zip-sha256.txt.
 EXPECTED_ZIP_SHA256="${EXPECTED_ZIP_SHA256:-}"
@@ -49,7 +51,7 @@ if [ ! -d "${REPO_DIR}" ] || [ ! -f "${REPO_DIR}/artifacts/manifest.json" ]; the
     sha256sum "${ZENTINEL_ZIP}" | tee "${EVID}/02-zip-sha256.txt"
     MEASURED_ZIP_SHA="$(sha256sum "${ZENTINEL_ZIP}" | cut -d' ' -f1)"
     if [ -z "${EXPECTED_ZIP_SHA256}" ]; then
-      note "EXPECTED_ZIP_SHA256 not set; measured digest recorded (compare against reports/ZIP_VERIFICATION.md)"
+      note "EXPECTED_ZIP_SHA256 not set; measured digest recorded (compare against SHA256SUMS.txt at the repository root)"
     elif [ "${MEASURED_ZIP_SHA}" = "${EXPECTED_ZIP_SHA256}" ]; then
       echo "zip sha256 matches EXPECTED_ZIP_SHA256" | tee -a "${EVID}/02-zip-sha256.txt"
     else
@@ -91,8 +93,12 @@ note "architecture confirmed s390x"
 
 COMMIT="$(git -C "${REPO_DIR}" rev-parse --short HEAD 2>/dev/null || echo none)"
 TREE="$(git -C "${REPO_DIR}" status --short 2>/dev/null | head -20 || true)"
-COMMIT_NOTE="MATCHES_EXPECTED"
-if [ "${COMMIT}" != "${EXPECTED_COMMIT}" ]; then
+if [ -z "${EXPECTED_COMMIT}" ]; then
+  COMMIT_NOTE="RECORDED_ONLY"
+  note "EXPECTED_COMMIT not set; commit '${COMMIT}' recorded (export EXPECTED_COMMIT to enforce)"
+elif [ "${COMMIT}" = "${EXPECTED_COMMIT}" ]; then
+  COMMIT_NOTE="MATCHES_EXPECTED"
+else
   COMMIT_NOTE="DIFFERS_FROM_EXPECTED_${EXPECTED_COMMIT}_using_${COMMIT}"
   note "commit differs: expected ${EXPECTED_COMMIT}, found ${COMMIT} (recorded, not reset)"
 fi
@@ -101,7 +107,7 @@ echo "=== 02 source identity: commit=${COMMIT} ==="
 {
   echo "remote:   $(git -C "${REPO_DIR}" remote get-url origin 2>/dev/null || echo 'local-transfer (no origin)')"
   echo "head:     ${COMMIT}"
-  echo "expected: ${EXPECTED_COMMIT}"
+  echo "expected: ${EXPECTED_COMMIT:-<not set; measured commit recorded only>}"
   echo "note:     ${COMMIT_NOTE}"
   echo "tree:"
   echo "${TREE:-'clean'}"
@@ -448,7 +454,7 @@ cat > "${EVID}/RESULTS.md" <<EOF
 Generated on target: $(date -Is)
 
 ## Source
-- Expected baseline commit: ${EXPECTED_COMMIT}
+- Expected baseline commit: ${EXPECTED_COMMIT:-<not set>}
 - Actual commit: ${COMMIT}
 - Commit note: ${COMMIT_NOTE}
 - Working tree: $(git -C "${REPO_DIR}" status --short | wc -l) modified/untracked entries shown in 02-source.txt

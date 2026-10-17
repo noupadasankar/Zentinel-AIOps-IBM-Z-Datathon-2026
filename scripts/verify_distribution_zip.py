@@ -2,9 +2,10 @@
 
 Post-build integrity protocol (mirrors `reports/ZIP_VERIFICATION.md`):
 CRC check of every member, extraction to a clean directory, forbidden-name
-scan, required-path presence, notebook execution check, and a full SHA-256
-re-check of the bundled artifacts against the bundled `artifacts/manifest.json`
-plus a `zentinel.config.verify_manifest()` run from the extracted tree.
+scan, required-path presence, notebook execution check, a full SHA-256
+re-check of the bundled artifacts against the bundled `artifacts/manifest.json`,
+a `zentinel.config.verify_manifest()` run from the extracted tree, and a
+cross-check of the archive digest against the repository-root `SHA256SUMS.txt`.
 
 Usage:
     python scripts/verify_distribution_zip.py [ZIP_PATH] [EXTRACT_DIR]
@@ -24,7 +25,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 DEFAULT_ZIP = REPO / "Zentinel-AIOps-IBM-Z-Datathon-2026.zip"
 
-FORBIDDEN_NAMES = {"BGL.log", "BGL.tar.gz", ".env"}
+FORBIDDEN_NAMES = {"BGL.log", "BGL.tar.gz", ".env", "SHA256SUMS.txt"}
 FORBIDDEN_PARTS = {".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".ipynb_checkpoints", ".git"}
 FORBIDDEN_SUFFIXES = (".egg-info", ".dist-info")
 
@@ -40,6 +41,7 @@ REQUIRED_PATHS = [
     ".env.example",
     "artifacts/manifest.json",
     "reports/FINAL_COMPLETION_REPORT.md",
+    "reports/ZIP_VERIFICATION.md",
     "src/zentinel/api/live_api.py",
     "src/zentinel/api/unified.py",
     "linuxone-validation/validate_linuxone.sh",
@@ -62,7 +64,21 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: archive not found: {zip_path}")
         return 1
 
-    print("zip sha256:", hashlib.sha256(zip_path.read_bytes()).hexdigest())
+    zip_sha = hashlib.sha256(zip_path.read_bytes()).hexdigest()
+    print("zip sha256:", zip_sha)
+
+    checksums_path = REPO / "SHA256SUMS.txt"
+    checksums_ok = True
+    if checksums_path.is_file():
+        parts = checksums_path.read_text(encoding="utf-8").strip().split()
+        expected_sha = parts[0] if parts else ""
+        if expected_sha == zip_sha:
+            print("SHA256SUMS.txt cross-check: MATCH")
+        else:
+            checksums_ok = False
+            print(f"SHA256SUMS.txt cross-check: MISMATCH (file has {expected_sha})")
+    else:
+        print("SHA256SUMS.txt cross-check: skipped (no repository checksum companion)")
 
     if extract.exists():
         shutil.rmtree(extract)
@@ -131,6 +147,7 @@ def main(argv: list[str] | None = None) -> int:
         and not missing
         and not mismatched
         and not unexecuted
+        and checksums_ok
         and "MANIFEST_CHECK None" in proc.stdout
     )
     print("VERDICT:", "PASS" if ok else "FAIL")

@@ -2,9 +2,9 @@
 
 Real-time operational-log anomaly detection and incident-investigation platform. Ingests raw log lines, parses them against a **frozen** template state, builds temporal windows, scores them with a PyTorch LSTM next-event model and an Isolation Forest, applies a deterministic three-way decision policy, groups alert windows into evidence-backed incidents, and exposes everything through a FastAPI backend and a Streamlit operations dashboard.
 
-- **Status:** complete, 97/97 tests passing, lint clean, acceptance-verified package
+- **Status:** complete, 99/99 tests passing, lint clean, acceptance-verified package
 - **Target platform:** IBM Z / LinuxONE (portable by design; **not yet validated on s390x** — no on-device claims made)
-- **Final artifact:** `Zentinel-AIOps-IBM-Z-Datathon-2026.zip` — SHA-256 in [`reports/ZIP_VERIFICATION.md`](reports/ZIP_VERIFICATION.md)
+- **Final artifact:** `Zentinel-AIOps-IBM-Z-Datathon-2026.zip` — SHA-256 in [`SHA256SUMS.txt`](SHA256SUMS.txt) (checksum companion kept outside the archive); the verification record ships inside the ZIP: [`reports/ZIP_VERIFICATION.md`](reports/ZIP_VERIFICATION.md)
 
 ---
 
@@ -101,7 +101,7 @@ Every artifact is hashed in `artifacts/manifest.json`; the API refuses to start 
 | `GET /api/v1/admin/ping` | admin-grade key probe (no side effects) |
 | `POST /api/v1/admin/retention` · `/checkpoint` · `/backup` | admin/DB ops |
 
-Interactive OpenAPI: `http://127.0.0.1:8000/docs` — all schemas, limits, error envelopes, request IDs, auth requirements live there. Security: sha256-key auth (`ZENTINEL_API_KEY_SHA256`), 100 rps default limiter with `Retry-After`, strict CORS, bounded payloads, non-root container runtime user.
+Interactive OpenAPI: `http://127.0.0.1:8000/docs` — all schemas, limits, error envelopes, request IDs, auth requirements live there. Security: sha256-key auth (`ZENTINEL_API_KEY_SHA256`), 100 rps default limiter with `Retry-After`, strict CORS, bounded payloads, non-root container runtime user. **Fail-closed production default:** with `ZENTINEL_ENV=production` (as in `.env.example` and the reference compose stack) the API refuses to start unless API keys are configured; keyless open mode must be requested explicitly with `ZENTINEL_ENV=development` or `ZENTINEL_REQUIRE_AUTH=0` (regression-tested).
 
 ---
 
@@ -143,6 +143,10 @@ Incident replay across all 7,122 test decisions (NB 08): 53 incidents opened, 52
 
 Label discipline: test labels used for fitting/threshold selection = **never**; exploratory diagnostics = declared inside each affected report.
 
+Operating-point clarity: `reports/test_model_comparison.json` records the **raw fixed-threshold view** (LSTM: recall 0.955 / precision 0.165 / 3,880 FP / 36 FN at the validation-selected threshold) — exactly why production does not alert directly on that threshold. The report now carries an `interpretation` block: unknown-template drift (67.6 % of test windows contain unseen tokens; score↔unknown-rate Spearman ρ = 0.905) is what inflates LSTM scores there, while on the 2,309 unknown-free test windows the same threshold reaches P 0.8081 / R 0.8989 / F1 0.8511 / PR-AUC 0.9589 and the 55.8 % unscorable windows are routed to review rather than silently scored (`reports/model_drift_analysis.json`, `reports/test_coverage_drift_report.json`).
+
+ONNX (opset 17) is a **portability/parity** path, not a speed claim: the bundled x86 latency benchmark measured the ONNX Runtime path slower than PyTorch CPU (speedup factor 0.73, `reports/onnx_parity_report.json`), and no platform-specific performance claim is made for s390x.
+
 ---
 
 ## 8. Notebook laboratory (13/13 executed PASS)
@@ -177,11 +181,12 @@ jupyter nbconvert --to notebook --execute notebooks/05_lstm_next_event_model.ipy
 
 | Gate | Result |
 |---|---|
-| pytest (parser, drain matcher, scorer, policy, store, API, watcher, ONNX, dashboard feeds, unified single-port server, dashboard AppTest page renders, alert-status preservation, Retry-After header, admin ping) | **97 passed** (executed 2026-10-18, 03:35) |
+| pytest (parser, drain matcher, scorer, policy, store, API, watcher, ONNX, dashboard feeds, unified single-port server, dashboard AppTest page renders, alert-status preservation, Retry-After header, admin ping, fail-closed auth config matrix + keyless-start refusal) | **99 passed** (executed 2026-10-18, 04:16; 8 m 05 s) |
 | ruff | clean |
 | pip-audit 2.10.1 | clean after pytest 9.1.1 upgrade (PYSEC-2026-1845 fixed); CI step now fails on findings (no `|| true`) |
-| local secret scan (`scripts/secret_scan.py`, 100 text files incl. untracked) | 0 findings |
+| local secret scan (`scripts/secret_scan.py`, tracked + untracked text files) | 0 findings |
 | artifact manifest verification | clean in repo and inside the ZIP |
+| release checksum companion (`SHA256SUMS.txt`, cross-checked by `make verify-zip`) | MATCH |
 | CI workflow (`.github/workflows/ci.yml`) | valid config (2 jobs) — not executed in-session (no runner) |
 | Docker | daemon unavailable on this host — verified via the native server path (NB 11) |
 | LinuxONE validation | not performed — portable-by-design; target protocol documented below |
@@ -190,7 +195,7 @@ jupyter nbconvert --to notebook --execute notebooks/05_lstm_next_event_model.ipy
 
 ## 10. LinuxONE (s390x) status
 
-**Portable by design; not yet validated on s390x.** No host was available, so nothing is claimed. Executed-on-device evidence collection steps: record `uname -m`, install Python 3.11 + `requirements.lock` + `pip install -e . --no-deps`, verify `artifacts/manifest.json` SHA-256s, run the API, `GET /ready`, re-run notebooks 05/10 (self-checking parity), then run the 60 s × 3 benchmark protocol and archive the notebook outputs + telemetry with the run. No Telum/AI-accelerator path exists in the codebase and none is claimed.
+**Portable by design; not yet validated on s390x.** No host was available, so nothing is claimed. Executed-on-device evidence collection steps: record `uname -m`, install Python 3.11 + `requirements.lock` + `pip install -e . --no-deps`, verify `artifacts/manifest.json` SHA-256s, run the API, `GET /ready`, re-run notebooks 05/10 (self-checking parity), then run the 60 s × 3 benchmark protocol and archive the notebook outputs + telemetry with the run. No Telum/AI-accelerator path exists in the codebase and none is claimed. Release identity for transferred copies: the ZIP digest in `SHA256SUMS.txt` (outside the archive) with `reports/ZIP_VERIFICATION.md` shipped inside; the runbook enforces it via operator-supplied `EXPECTED_ZIP_SHA256` and records the commit for operator-supplied `EXPECTED_COMMIT` (record-only default — no stale pinned hash).
 
 ---
 
@@ -244,13 +249,14 @@ Backups: stop the worker or use SQLite `VACUUM INTO 'backup.sqlite3'` while WAL 
 
 ## 12. Package
 
-`Zentinel-AIOps-IBM-Z-Datathon-2026.zip` — 19.5 MB, built from an explicit include-list (application, notebooks, small data, frozen artifacts, reports, Docker/CI/Makefile, sample fixture) via the in-repo reproducible builder `make package` (`scripts/build_distribution_zip.py`). Excluded by construction: raw 743 MB log, DBs, caches, venvs, `.env`, egg-info. Post-build verification (`make verify-zip`, `scripts/verify_distribution_zip.py`: CRC, required paths, forbidden-name scan, artifact SHA re-check, 13/13 notebooks executed): [`reports/ZIP_VERIFICATION.md`](reports/ZIP_VERIFICATION.md) — kept outside the archive because a file cannot contain its own archive's digest. Acceptance report: [`reports/FINAL_COMPLETION_REPORT.md`](reports/FINAL_COMPLETION_REPORT.md).
+`Zentinel-AIOps-IBM-Z-Datathon-2026.zip` — 19.5 MB, built from an explicit include-list (application, notebooks, small data, frozen artifacts, reports **incl. `reports/ZIP_VERIFICATION.md`**, Docker/CI/Makefile, sample fixture) via the in-repo reproducible builder `make package` (`scripts/build_distribution_zip.py`). Excluded by construction: raw 743 MB log, DBs, caches, venvs, `.env`, egg-info — and the checksum companion `SHA256SUMS.txt`, which necessarily lives outside the archive (a file cannot contain its own archive's digest). After each default build, `make package` writes **`SHA256SUMS.txt`** (SHA-256 + filename at the repository root); `make verify-zip` (`scripts/verify_distribution_zip.py`) re-checks CRC, required paths (including `reports/ZIP_VERIFICATION.md` *inside* the archive), forbidden-name scan, bundled-artifact SHA re-check, 13/13 executed notebooks, and cross-checks the archive digest against `SHA256SUMS.txt` — verdict **PASS**. Acceptance report: [`reports/FINAL_COMPLETION_REPORT.md`](reports/FINAL_COMPLETION_REPORT.md).
 
 ## 13. Known limitations
 
-1. Aggregate automatic coverage on the current test slice is 33.2 % — unknown-template drift routes windows to review by design (fail-safe).
+1. Aggregate automatic coverage on the current test slice is 33.2 % — unknown-template drift routes windows to review by design (fail-safe): 55.8 % of test windows are unscorable by the known-run scorer and 67.6 % contain ≥1 unseen token (drift diagnostics: `reports/test_coverage_drift_report.json`, `reports/model_drift_analysis.json`).
 2. Exploratory test period was inspected during drift diagnostics (declared in every affected report).
 3. Autoencoder is smoke-scale experimental; full training procedure documented but not executed.
 4. Dashboard validation is test-driven at the data-service layer; GUI walkthrough is manual.
 5. Single-worker inference state (enforced); no LLM narrative layer (deterministic evidence only).
 6. LinuxONE/Docker/CI executions blocked by environment, not by code.
+7. ONNX (opset 17) is a parity/portability export (max logit diff 4.77e-06; 918/918 identical decisions), not a speedup: the bundled x86 latency benchmark measured ONNX Runtime at 0.73× PyTorch-CPU speed (i.e. slower).

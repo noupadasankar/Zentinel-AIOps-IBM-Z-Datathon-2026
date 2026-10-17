@@ -55,8 +55,9 @@ async def lifespan(app: FastAPI):
     """
     FastAPI lifespan context manager:
     1. Verifies single worker process (WEB_CONCURRENCY <= 1).
-    2. Verifies cryptographic SHA-256 integrity of all artifacts against manifest.json.
-    3. Initializes inference engine, model weights, and SQLite state store.
+    2. Enforces fail-closed authentication when production mode requires keys.
+    3. Verifies cryptographic SHA-256 integrity of all artifacts against manifest.json.
+    4. Initializes inference engine, model weights, and SQLite state store.
     """
     global STORE
 
@@ -65,6 +66,13 @@ async def lifespan(app: FastAPI):
         raise RuntimeError(
             f"WEB_CONCURRENCY is set to {web_concurrency}. Zentinel must run "
             "with a single worker (WEB_CONCURRENCY <= 1) to maintain window state consistency."
+        )
+
+    if CONFIG.require_auth and not SECURITY.auth_enabled:
+        raise RuntimeError(
+            "Refusing to start: authentication is required (ZENTINEL_ENV=production or "
+            "ZENTINEL_REQUIRE_AUTH=1) but no API keys are configured. Set ZENTINEL_API_KEY_SHA256 "
+            "(role:sha256,...) or run with ZENTINEL_ENV=development for keyless local development."
         )
 
     verify_manifest()

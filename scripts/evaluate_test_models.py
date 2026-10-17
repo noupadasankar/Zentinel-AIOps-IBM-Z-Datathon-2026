@@ -351,6 +351,37 @@ def main():
             "test_metrics": lstm_metrics,
         },
         "scored_test_windows_file": str(OUTPUT_PATH.relative_to(ROOT)),
+        "interpretation": {
+            "scope": (
+                "Raw fixed-threshold operating point per model on the held-out test period. "
+                "This is not the production alerting path."
+            ),
+            "low_precision_explanation": (
+                "The validation-selected threshold trades precision for recall on this drift-heavy period: "
+                "4,813 of 7,122 test windows (67.6%) contain unseen tokens (mean unknown rate 0.607) and the "
+                "LSTM known-run score tracks unknown-rate almost linearly (Spearman rho = 0.905 on test), "
+                "because unknown tokens break known-token runs; the score therefore fires on drift, not only "
+                "on ground-truth anomalies."
+            ),
+            "production_path": (
+                "Production routes unscorable/novel windows to NOVELTY_DRIFT_REVIEW (human review) instead of "
+                "alerting on them; only scorable known-run windows can raise ANOMALY_ALERT (with "
+                "hysteresis/cooldown/dedupe). See reports/lstm_three_way_test_decision_report.json "
+                "(104 alerts / 2,262 normal / 4,756 review of 7,122 windows) and "
+                "reports/temporal_walk_forward_evaluation.json (alert-level precision 0.8173, recall 0.8500, "
+                "F1 0.8333, 0.0130 false alerts/h)."
+            ),
+            "unknown_free_slice": (
+                "On the 2,309 test windows without unknown tokens the same LSTM threshold reaches "
+                "precision 0.8081 / recall 0.8989 / F1 0.8511 / PR-AUC 0.9589 "
+                "(reports/model_drift_analysis.json)."
+            ),
+            "onnx_note": (
+                "The bundled ONNX benchmark (reports/onnx_parity_report.json) measured ONNX Runtime slower "
+                "than PyTorch CPU (speedup factor ~0.73 at the last recorded build); ONNX is shipped for "
+                "portability/parity, not as a speedup."
+            ),
+        },
     }
 
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
