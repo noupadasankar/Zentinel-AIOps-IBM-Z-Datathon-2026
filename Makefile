@@ -1,4 +1,4 @@
-.PHONY: help install test lint train export-onnx benchmark evaluate demo reproduce run-api run-dashboard clean
+.PHONY: help serve install test lint train export-onnx benchmark evaluate demo reproduce run-api run-dashboard run-single clean
 
 PYTHON ?= python
 
@@ -12,6 +12,7 @@ help:
 	@echo "  make benchmark      Execute sequential and 8-way concurrent live ingestion benchmarks"
 	@echo "  make evaluate       Run 4-slice temporal walk-forward evaluation"
 	@echo "  make demo           Launch offline Streamlit demo dashboard"
+	@echo "  make serve         ONE port: API + dashboard together via a single uvicorn process"
 	@echo "  make run-api        Start live FastAPI ingestion server (single worker)"
 	@echo "  make run-dashboard  Start Streamlit operational dashboard"
 	@echo "  make reproduce      Full end-to-end audit (lint, test, onnx parity, evaluation)"
@@ -51,6 +52,11 @@ evaluate:
 
 demo:
 	$(PYTHON) -m streamlit run dashboard/app.py
+
+serve: run-single
+
+run-single:
+	$(PYTHON) -m zentinel.api.unified
 
 run-api:
 	$(PYTHON) -m uvicorn zentinel.api.live_api:app --host 127.0.0.1 --port 8000 --workers 1

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-10-18 — Single-Port Unified Server
+
+### Added
+- **One command, one port**: `make serve` / `python -m zentinel.api.unified --port 8000` runs the FastAPI backend + Streamlit dashboard in a single uvicorn process. `/dashboard` (plus websocket `/dashboard/_stcore/stream`) is HTTP/ws-proxied to a managed internal Streamlit child pinned to localhost with `baseUrlPath=/dashboard`; every other path dispatches in-process to the live API with its real startup/shutdown lifespan. Endpoints verified live: `/health`, `/ready`, `/docs`, `/api/v1/live/*`, `/dashboard/_stcore/health`, dashboard assets, websocket handshake; non-dashboard websocket paths rejected cleanly. New integration test `tests/test_unified_server.py` (suite now 79 passing).
+- `find_free_port` fallback for the internal child (default 8501, auto-bumped if occupied), `--port-file` hook for tooling, `-m zentinel.api.unified` CLI.
+
+### Changed
+- `linuxone-validation/validate_linuxone.sh` now exercises the single-port mode (steps 6/9 share one process; SSH tunnel is a single `8000` forward).
+- README single-port startup section; `make serve` added to the quick reference.
+
 ## [1.2.0] - 2026-10-18 — LinuxONE Validation Readiness
 
 ### Added

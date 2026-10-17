@@ -27,7 +27,7 @@ Zentinel AIOps is a real-time log anomaly-detection and incident-investigation p
 
 ## C. Repository changes
 
-Checkpoint-preserving history (see `git log`): `351fffa` (WIP preservation: readiness probe, Retry-After backoff, Dockerfile torch-cpu fix, baseline audit) → `ef8c211` (cleanup of obsolete patch scripts/backups; `make train` wiring; audit docs) → `e6e28db` (notebook laboratory: 13 executed notebooks, per-notebook reports, LinuxONE/scoring docs; ruff notebook exclusion) → `d433dd1`/`7db027c` (final ZIP builds + verification reports; NB 11 rate-limit attribution fix) → `bb0716b` (digest outside archive) → final acceptance commit (this report, dependency upgrade, scan reports, rebuilt ZIP) → final cleanup commit (all `docs/*.md` and `notebooks/README.md` consolidated into one detailed root `README.md`; 316 comments stripped from src/scripts/dashboard/tests and config files; full gates re-run: pytest 78/78, ruff clean, API + dashboard smoke green, secret scan PASS; rebuilt ZIP verified: 178 files, new digest in `reports/ZIP_VERIFICATION.md`). Obsolete patch artifacts (`scripts/archive/*`, `*.bak`) were removed only after their fixed functionality was migrated into `src/zentinel/ingestion/` and re-tested.
+Checkpoint-preserving history (see `git log`): `351fffa` (WIP preservation: readiness probe, Retry-After backoff, Dockerfile torch-cpu fix, baseline audit) → `ef8c211` (cleanup of obsolete patch scripts/backups; `make train` wiring; audit docs) → `e6e28db` (notebook laboratory: 13 executed notebooks, per-notebook reports, LinuxONE/scoring docs; ruff notebook exclusion) → `d433dd1`/`7db027c` (final ZIP builds + verification reports; NB 11 rate-limit attribution fix) → `bb0716b` (digest outside archive) → final acceptance commit (this report, dependency upgrade, scan reports, rebuilt ZIP) → final cleanup commit (all `docs/*.md` and `notebooks/README.md` consolidated into one detailed root `README.md`; 316 comments stripped from src/scripts/dashboard/tests and config files; full gates re-run: pytest 78/78, ruff clean, API + dashboard smoke green, secret scan PASS; rebuilt ZIP verified: 178 files, new digest in `reports/ZIP_VERIFICATION.md`) → single-port + validation-prep commit (`make serve` unified API+dashboard one-process mode with websocket proxy, `tests/test_unified_server.py` [79 passing], `linuxone-validation/validate_linuxone.sh` target automation, remote `origin` pushed; rebuilt ZIP verified again: 182 files, final digest in `reports/ZIP_VERIFICATION.md`). Obsolete patch artifacts (`scripts/archive/*`, `*.bak`) were removed only after their fixed functionality was migrated into `src/zentinel/ingestion/` and re-tested.
 
 ## D. Notebook inventory and execution status
 
@@ -87,7 +87,7 @@ Protocol qualifications: thresholds frozen on validation only; comparisons share
 
 ## H. Actual test results
 
-- `python -m pytest tests -q` → **78 passed**, 0 failed (final run: pytest **9.1.1**, Python 3.11.9, Windows x86-64).
+- `python -m pytest tests -q` → **79 passed** (78 baseline tests + 1 unified single-port server integration test added for `make serve`; 0 failed; final run: pytest **9.1.1**, Python 3.11.9, Windows x86-64).
 - Suite composition: `test_alerts_explanations.py`, `test_alerts_policy.py`, `test_bgl_parser.py`, `test_dashboard_feeds.py`, `test_decide_window.py`, `test_drain_matcher.py`, `test_integrity_and_lifespan.py`, `test_known_runs_scorer.py`, `test_live_api.py`, `test_live_store.py`, `test_onnx_parity.py`, `test_phase2_api.py`, `test_watcher.py` — unit + integration + API + dashboard-service categories; small deterministic fixtures; no full-dataset loads in CI tests; model artifacts exercised via the real frozen checkpoints with a smoke-scale path where needed (NB 06 fixture; `scripts/smoke_test.py`).
 - Regression coverage for ingestion §8 items: idempotency conflicts (409 on payload mismatch), retry/backoff, truncation/replacement, retention boundaries, store rollback (see `test_live_store.py`, `test_live_api.py`, `test_watcher.py`, `test_phase2_api.py`).
 
@@ -159,7 +159,7 @@ python -m venv .venv
 ## P. Exact test and reproduction commands (all executed here)
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests -q                    # 78 passed (this session)
+.\.venv\Scripts\python.exe -m pytest tests -q                    # 79 passed (78 baseline + 1 unified-server integration test)
 .\.venv\Scripts\python.exe -m ruff check .                       # All checks passed
 .\.venv\Scripts\python.exe -m pip_audit -r requirements.txt -f json -o reports\dependency_audit.json   # No known vulnerabilities
 python C:\Users\noupa\AppData\Local\Temp\opencode\secret_scan.py # local scan → reports/secret_scan.json (PASS)
@@ -198,7 +198,7 @@ Master-prompt capability → status with §26 vocabulary (planned features are n
 | Enterprise dashboard five screens on real data (§13) | PARTIAL | 5 screens implemented and data-service-tested; manual GUI walkthrough documented but not automated in-session |
 | Alert/evidence policy modules (§14) | PASS | threshold/hysteresis/cooldown/dedupe/severity mapping all unit-tested |
 | Security controls incl. auth, rate limit, CORS, secrets policy (§15) | PASS | sha256-key auth; limiter; CORS; bounded payloads; non-root Dockerfile; local scan PASS; threat model in README.md |
-| Containers + quality-gate commands (§16) | BLOCKED | no daemon in-session (§J); commands `make install/lint/test/train/evaluate/demo/benchmark/reproduce` exist and the executed ones returned real exit codes; container build config present |
+| Containers + quality-gate commands (§16) | BLOCKED | no daemon in-session (§J); commands `make install/lint/test/train/evaluate/demo/benchmark/reproduce/serve` exist and the executed ones returned real exit codes; container build config present; `make serve` = single-port unified API+dashboard mode, exercised by `tests/test_unified_server.py` (79 passing on x86) |
 | CI pipeline execution (§22) | BLOCKED | ci.yml valid (2 jobs); no remote/runner; local equivalents run instead (§I) |
 | LinuxONE validation (§17) | BLOCKED | no target hardware; portable-by-design documented; nothing claimed. Prepared: target-side runbook automation `linuxone-validation/validate_linuxone.sh` (env/stop-guards, artifact manifest via `verify_manifest()`, pytest, API lifecycle with disposable DB, on-device ONNX parity smoke, benchmark gate, RESULTS.md + evidence tar) and git remote `origin` (github.com/noupadasankar/Zentinel-AIOps-IBM-Z-Datathon-2026) for clone-on-target |
 | Reproducible experiments incl. manifests (§19) | PASS | model manifest + SHA verification + promotion gates documented (`README.md`, `README.md`) |

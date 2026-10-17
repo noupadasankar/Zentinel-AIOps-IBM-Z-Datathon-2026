@@ -198,6 +198,7 @@ jupyter nbconvert --to notebook --execute notebooks/05_lstm_next_event_model.ipy
 make install          # requirements.lock + editable zentinel package
 make lint             # ruff
 make test             # pytest suite
+make serve            # ONE port: API + dashboard together (single uvicorn process)
 make train            # full frozen-pipeline retrain (requires data/raw/BGL.log; CPU-hour-scale)
 make evaluate         # walk-forward evaluation reports
 make export-onnx      # rebuild ONNX artifact + parity report
@@ -208,7 +209,17 @@ make demo             # offline dashboard demo (labelled fixtures)
 make reproduce        # lint + test + ONNX parity + evaluation
 ```
 
-Native startup (verified end-to-end):
+Single-port unified mode (one process, recommended):
+
+```bash
+python -m zentinel.api.unified --port 8000    # or: make serve
+```
+
+- API at `http://127.0.0.1:8000/` (interactive OpenAPI at `/docs`)
+- Dashboard at `http://127.0.0.1:8000/dashboard` (proxied + websocket-forwarded to a managed internal Streamlit child that never leaves localhost)
+- Verified end-to-end: `/health` 200, `/ready` 200, `/dashboard/_stcore/health` 200, dashboard static assets and the Streamlit websocket pipe all served from the single port; covered by `tests/test_unified_server.py` (79/79 suite).
+
+Classic two-process mode (unchanged, still supported):
 
 ```bash
 pip install -r requirements.lock

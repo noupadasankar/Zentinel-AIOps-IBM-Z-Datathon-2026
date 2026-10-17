@@ -3,7 +3,7 @@ set -u
 set -o pipefail
 
 EXPECTED_COMMIT="186cfa2"
-EXPECTED_ZIP_SHA256="4973a099a1f4f97ae94762f01b1df14966b6760a02be7cde7a3229160fb96dfb"
+EXPECTED_ZIP_SHA256="954d6233fdad3a7a6f1e6418ff2bf5d69fea88a60276b6e3000bda2b3ac268a2"
 
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)}"
 ZENTINEL_ZIP="${ZENTINEL_ZIP:-$HOME/Zentinel-AIOps-IBM-Z-Datathon-2026.zip}"
@@ -203,9 +203,10 @@ if [ -n "${ZENTINEL_API_KEY_SHA256:-}" ]; then
   note "auth ENABLED via environment (X-API-Key required)"
 fi
 
-nohup "${PY}" -m uvicorn zentinel.api.live_api:app --host 127.0.0.1 --port 8000 --workers 1 \
+nohup "${PY}" -m zentinel.api.unified --port 8000 \
   > "${EVID}/06-api.log" 2>&1 &
 echo $! > "${EVID}/api.pid"
+note "single-port mode: one process serves API (/,/docs,/api/v1) and dashboard (/dashboard); streamlit child stays on internal localhost"
 API_PID="$(cat "${EVID}/api.pid")"
 READY="no"
 for i in $(seq 1 45); do
@@ -373,7 +374,7 @@ PY
 echo "persistence restart check"
 kill "${API_PID}" 2>/dev/null
 sleep 2
-nohup "${PY}" -m uvicorn zentinel.api.live_api:app --host 127.0.0.1 --port 8000 --workers 1 \
+nohup "${PY}" -m zentinel.api.unified --port 8000 \
   >> "${EVID}/06-api.log" 2>&1 &
 echo $! > "${EVID}/api.pid"
 API_PID="$(cat "${EVID}/api.pid")"
@@ -389,20 +390,18 @@ else
   fail "API failed after restart; tail:"; tail -40 "${EVID}/06-api.log"
 fi
 
-echo "=== 09 dashboard ==="
-nohup "${PY}" -m streamlit run dashboard/app.py --server.address 127.0.0.1 --server.port 8501 \
-  > "${EVID}/09-dashboard.log" 2>&1 &
-echo $! > "${EVID}/dashboard.pid"
+echo "=== 09 dashboard (same single port) ==="
 DASH_OK="no"
-for i in $(seq 1 40); do
-  if curl -sf http://127.0.0.1:8501/_stcore/health | grep -q ok; then DASH_OK="yes"; break; fi
+for i in $(seq 1 30); do
+  if curl -sf http://127.0.0.1:8000/dashboard/_stcore/health | grep -q ok; then DASH_OK="yes"; break; fi
   sleep 2
 done
 if [ "${DASH_OK}" = "yes" ]; then
-  curl -sS -o /dev/null -w 'dashboard HTTP %{http_code}\n' http://127.0.0.1:8501/ | tee "${EVID}/09-dashboard-health.txt"
-  note "SSH tunnel from PC:  ssh -L 8501:127.0.0.1:8501 <user>@<host>  then open http://localhost:8501 (Overview/Incidents/Review/Windows/Drift/Model Evaluation manual walkthrough required)"
+  curl -sS -o /dev/null -w 'dashboard HTTP %{http_code}\n' http://127.0.0.1:8000/dashboard/ | tee "${EVID}/09-dashboard-health.txt"
+  curl -sS -o /dev/null -w 'dashboard asset HTTP %{http_code}\n' http://127.0.0.1:8000/dashboard/./favicon.png | tee -a "${EVID}/09-dashboard-health.txt"
+  note "SSH tunnel from PC:  ssh -L 8000:127.0.0.1:8000 <user>@<host>  then open http://localhost:8000/dashboard (Overview/Incidents/Review/Windows/Drift/Model Evaluation manual walkthrough required)"
 else
-  fail "dashboard did not respond; log tail:"; tail -30 "${EVID}/09-dashboard.log"
+  fail "dashboard did not respond on unified port; log tail:"; tail -30 "${EVID}/06-api.log"
 fi
 
 echo "=== 10 benchmark on target ==="
@@ -429,9 +428,7 @@ fi
 
 echo "=== 11 RESULTS.md + evidence archive ==="
 kill "${API_PID}" 2>/dev/null
-DASH_PID="$(cat "${EVID}/dashboard.pid" 2>/dev/null || true)"
-[ -n "${DASH_PID}" ] && kill "${DASH_PID}" 2>/dev/null
-echo "services stopped; portable DB left at ${EVID}/../scratch for inspection"
+echo "unified server stopped (API + dashboard child share one pid); portable DB left at ${EVID}/../scratch for inspection"
 
 cat > "${EVID}/RESULTS.md" <<EOF
 # Zentinel AIOps - IBM Z/LinuxONE Validation
