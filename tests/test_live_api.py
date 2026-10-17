@@ -1,0 +1,258 @@
+import hashlib
+from unittest.mock import patch
+
+import pytest
+from fastapi.testclient import TestClient
+
+from zentinel.api.live_api import CURRENT_WINDOW, RECENT_WINDOWS, SECURITY, STATE, app
+from zentinel.api.live_store import LiveStateStore
+
+VALID_BGL_LINE = (
+    "- 1117838570 2005.06.03 "
+    "R02-M1-N0-C:J12-U11 "
+    "2005-06-03-15.42.50.363779 "
+    "R02-M1-N0-C:J12-U11 "
+    "RAS KERNEL INFO instruction cache parity error corrected"
+)
+
+# Test API Keys
+ADMIN_KEY = "admin-secret-test-key"
+ADMIN_KEY_HASH = hashlib.sha256(ADMIN_KEY.encode("utf-8")).hexdigest()
+
+INGEST_KEY = "ingest-secret-test-key"
+INGEST_KEY_HASH = hashlib.sha256(INGEST_KEY.encode("utf-8")).hexdigest()
+
+READ_KEY = "read-secret-test-key"
+READ_KEY_HASH = hashlib.sha256(READ_KEY.encode("utf-8")).hexdigest()
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment(tmp_path):
+    """Setup isolated database, state, and security manager for each test."""
+    db_path = tmp_path / "test_api.sqlite3"
+    store = LiveStateStore(db_path)
+
+    # Reset in-memory state
+    with patch("zentinel.api.live_api.STORE", store), \
+         patch("zentinel.api.live_api.CONFIG.db_path", db_path):
+        STATE.clear()
+        STATE.update({"logs_received": 0, "windows_completed": 0, "unknown_events_received": 0})
+        CURRENT_WINDOW.clear()
+        RECENT_WINDOWS.clear()
+
+        # Configure test security manager with admin, ingest, and read keys
+        keys_cfg = f"admin:{ADMIN_KEY_HASH},ingest:{INGEST_KEY_HASH},read:{READ_KEY_HASH}"
+        SECURITY.api_keys_config = keys_cfg
+        SECURITY._load_keys()
+        SECURITY.rate_limiter.reset()
+
+        yield store
+
+        store.close()
+
+
+def test_health_endpoint_is_open_without_auth():
+    with TestClient(app) as client:
+        response = client.get("/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert "window_size" in data
+
+
+def test_missing_api_key_returns_401():
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/live/ingest",
+            json={"raw_line": VALID_BGL_LINE},
+        )
+        assert response.status_code == 401
+        data = response.json()
+        assert "error" in data
+        assert data["error"]["code"] == 401
+        assert "request_id" in data
+
+
+def test_invalid_api_key_returns_401():
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/live/ingest",
+            json={"raw_line": VALID_BGL_LINE},
+            headers={"X-API-Key": "wrong-key"},
+        )
+        assert response.status_code == 401
+        data = response.json()
+        assert data["error"]["code"] == 401
+
+
+def test_insufficient_role_returns_403():
+    with TestClient(app) as client:
+        # Read key attempting to perform ingest
+        response = client.post(
+            "/api/v1/live/ingest",
+            json={"raw_line": VALID_BGL_LINE},
+            headers={"X-API-Key": READ_KEY},
+        )
+        assert response.status_code == 403
+        data = response.json()
+        assert "cannot perform 'ingest'" in data["detail"]
+
+
+def test_invalid_bgl_line_returns_422():
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/live/ingest",
+            json={"raw_line": "not a valid log line"},
+            headers={"X-API-Key": INGEST_KEY},
+        )
+        assert response.status_code == 422
+        data = response.json()
+        assert "Invalid BGL log line" in data["detail"]
+        assert "request_id" in data
+
+
+def test_successful_ingest_updates_state():
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/live/ingest",
+            json={"raw_line": VALID_BGL_LINE},
+            headers={"X-API-Key": INGEST_KEY},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["window_completed"] is False
+        assert data["lines_in_current_window"] == 1
+        assert data["lines_remaining"] == 99
+        assert data["event"]["line_number"] == 1
+
+
+def test_idempotency_replay_and_collision_409():
+    with TestClient(app) as client:
+        key = "test-idemp-key-1"
+        # First request
+        resp1 = client.post(
+            "/api/v1/live/ingest",
+            json={"raw_line": VALID_BGL_LINE, "idempotency_key": key},
+            headers={"X-API-Key": INGEST_KEY},
+        )
+        assert resp1.status_code == 200
+        data1 = resp1.json()
+        assert data1.get("idempotency_replayed") is None
+
+        # Replay with identical payload -> 200 replayed
+        resp2 = client.post(
+            "/api/v1/live/ingest",
+            json={"raw_line": VALID_BGL_LINE, "idempotency_key": key},
+            headers={"X-API-Key": INGEST_KEY},
+        )
+        assert resp2.status_code == 200
+        data2 = resp2.json()
+        assert data2.get("idempotency_replayed") is True
+        assert data2["event"]["line_number"] == data1["event"]["line_number"]
+
+        # Replay with DIFFERENT payload -> 409 Conflict
+        different_line = VALID_BGL_LINE.replace("instruction cache", "data cache")
+        resp3 = client.post(
+            "/api/v1/live/ingest",
+            json={"raw_line": different_line, "idempotency_key": key},
+            headers={"X-API-Key": INGEST_KEY},
+        )
+        assert resp3.status_code == 409
+        data3 = resp3.json()
+        assert "collision" in data3["detail"].lower()
+
+
+def test_db_failure_rolls_back_and_prevents_state_divergence(setup_test_environment):
+    store = setup_test_environment
+    with TestClient(app, raise_server_exceptions=False) as client:
+        # Initial state is 0
+        assert STATE["logs_received"] == 0
+        assert len(CURRENT_WINDOW) == 0
+
+        # Simulate database failure during save_event_and_state
+        with patch.object(
+            store,
+            "save_event_and_state",
+            side_effect=RuntimeError("Simulated DB Disk Full"),
+        ), patch("zentinel.api.live_api.STORE", store):
+            resp = client.post(
+                "/api/v1/live/ingest",
+                json={"raw_line": VALID_BGL_LINE},
+                headers={"X-API-Key": INGEST_KEY},
+            )
+            assert resp.status_code == 500
+
+        # Verify in-memory state remained completely untouched!
+        assert STATE["logs_received"] == 0
+        assert len(CURRENT_WINDOW) == 0
+
+        # Retry should succeed and log as line 1 (no double append or skipped numbers)
+        with patch("zentinel.api.live_api.STORE", store):
+            retry_resp = client.post(
+                "/api/v1/live/ingest",
+                json={"raw_line": VALID_BGL_LINE},
+                headers={"X-API-Key": INGEST_KEY},
+            )
+            assert retry_resp.status_code == 200
+            retry_data = retry_resp.json()
+            assert retry_data["event"]["line_number"] == 1
+            assert STATE["logs_received"] == 1
+            assert len(CURRENT_WINDOW) == 1
+
+
+def test_hundredth_line_completes_window():
+    with TestClient(app) as client:
+        for i in range(1, 100):
+            r = client.post(
+                "/api/v1/live/ingest",
+                json={"raw_line": VALID_BGL_LINE},
+                headers={"X-API-Key": INGEST_KEY},
+            )
+            assert r.status_code == 200
+            assert r.json()["window_completed"] is False
+
+        # 100th line completes window
+        r100 = client.post(
+            "/api/v1/live/ingest",
+            json={"raw_line": VALID_BGL_LINE},
+            headers={"X-API-Key": INGEST_KEY},
+        )
+        assert r100.status_code == 200
+        d100 = r100.json()
+        assert d100["window_completed"] is True
+        assert d100["lines_in_current_window"] == 0
+        assert d100["window_decision"] is not None
+        assert d100["window_decision"]["window_id"] == 1
+        assert d100["window_decision"]["lines_processed"] == 100
+
+
+def test_rate_limiting_enforced():
+    with TestClient(app) as client:
+        # Set low rate limit
+        SECURITY.rate_limiter.rps = 1.0
+        SECURITY.rate_limiter.burst = 2
+        SECURITY.rate_limiter.reset()
+
+        # First 2 requests succeed (burst capacity)
+        r1 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
+        assert r1.status_code == 200
+        r2 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
+        assert r2.status_code == 200
+
+        # Third immediate request hits 429
+        r3 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
+        assert r3.status_code == 429
+        data = r3.json()
+        assert "Rate limit exceeded" in data["detail"]
+
+
+def test_uniform_error_json_structure():
+    with TestClient(app) as client:
+        response = client.get("/nonexistent-endpoint", headers={"X-API-Key": READ_KEY})
+        assert response.status_code == 404
+        data = response.json()
+        assert "error" in data
+        assert "code" in data["error"]
+        assert "message" in data["error"]
+        assert "request_id" in data
+        assert "traceback" not in str(data).lower()

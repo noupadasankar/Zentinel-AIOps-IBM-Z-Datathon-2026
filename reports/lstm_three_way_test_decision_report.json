@@ -1,0 +1,28 @@
+{
+  "policy": "three_way_anomaly_and_novelty_decision",
+  "total_test_windows": 7122,
+  "lstm_validation_threshold": 3.479122797648112,
+  "novelty_threshold_source": "95th percentile of unknown-event rate on validation windows",
+  "novelty_quantile": 0.95,
+  "novelty_unknown_rate_threshold": 0.02,
+  "decision_counts": {
+    "NOVELTY_DRIFT_REVIEW": 4756,
+    "NO_ANOMALY_DETECTED": 2262,
+    "ANOMALY_ALERT": 104
+  },
+  "review_windows": 4756,
+  "review_rate": 0.6677899466442011,
+  "automatic_decision_windows": 2366,
+  "automatic_decision_coverage": 0.33221005335579895,
+  "anomaly_alerts": 104,
+  "no_anomaly_detected": 2262,
+  "alert_true_positives": 85,
+  "alert_false_positives": 19,
+  "alert_precision": 0.8173076923076923,
+  "total_dataset_labelled_anomalous_windows": 802,
+  "alert_recall_over_all_test_labelled_anomalies": 0.1059850374064838,
+  "review_labelled_anomalies": 702,
+  "review_labelled_normal_windows": 4054,
+  "mean_unknown_rate_review_windows": 0.9095109602573858,
+  "caveat": "Test-period diagnostics were previously inspected, so this is exploratory temporal evaluation. Dataset labels are proxies for anomalies, not independently verified incident ground truth. Review decisions are not automatically normal or anomalous."
+}

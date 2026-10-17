@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "artifacts": {
+    "artifacts/drain3_train_state_0_7.bin": {
+      "sha256": "c3442ca216c20d113fe5aef723e1aa8509ad345d378dc75b093c281228d600c3",
+      "size_bytes": 30160
+    },
+    "artifacts/event_token_vocabulary_v2.json": {
+      "sha256": "72052e8ec81c48ec580485b62b1a1228383b1dc6876dad38b9845dd7687f7aeb",
+      "size_bytes": 20691
+    },
+    "artifacts/lstm_next_event.pt": {
+      "sha256": "a63fee0f25262c564f6b7c3f2183e410fb1e8c587862cd8168a4b9a175b1d0cc",
+      "size_bytes": 343033
+    },
+    "artifacts/lstm_known_run_threshold.json": {
+      "sha256": "85ecbf8e7df75e74b5746d1753b5a70df9a90357fe7e0336529bf7901e04c7b8",
+      "size_bytes": 501
+    },
+    "reports/lstm_three_way_test_decision_report.json": {
+      "sha256": "8d028977775c8dc9b9f404c7edb6a9171f88238c0e4e4ed1a5df104f8759a92d",
+      "size_bytes": 1279
+    }
+  }
+}

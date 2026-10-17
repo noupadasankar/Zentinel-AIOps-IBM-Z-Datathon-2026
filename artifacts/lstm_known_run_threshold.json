@@ -1,0 +1,10 @@
+{
+  "model": "LSTMNextEventKnownRuns",
+  "threshold": 3.479122797648112,
+  "scoring_method": "Average next-event cross-entropy across contiguous runs of known training-vocabulary events only",
+  "unknown_token_scored": false,
+  "transitions_touching_unknown_events_scored": false,
+  "unscorable_window_policy": "Mark unscorable and route to separate novelty/drift monitoring; do not classify as normal",
+  "selected_using_validation_only": true,
+  "test_used_for_threshold_selection": false
+}

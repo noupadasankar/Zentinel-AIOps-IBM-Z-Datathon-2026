@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets and keys
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Datasets and generated data
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/ingest/*
+!data/ingest/.gitkeep
+
+# Model artifacts
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/manifest.json
+!artifacts/drain3_train_state_0_7.bin
+!artifacts/event_token_vocabulary_v2.json
+!artifacts/lstm_next_event.pt
+!artifacts/lstm_known_run_threshold.json
+
+# Reports
+reports/*
+!reports/.gitkeep
+!reports/lstm_three_way_test_decision_report.json
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Databases and cursor state
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite3-wal
+*.sqlite-shm
+*.sqlite3-shm
+*-wal
+*-shm
+data/processed/log_tailer_state.json
+data/processed/rejected_live_lines.jsonl
+
+# Backups and temporary files
+*.bak
+*.tmp
