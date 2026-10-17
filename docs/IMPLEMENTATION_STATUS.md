@@ -20,7 +20,7 @@ Baseline: prior sessions completed the core platform (see [PROJECT_AUDIT.md](PRO
 ## Per-requirement highlights
 
 - `make train` — added this session (`scripts/train_*` entry points documented).
-- Final ZIP (Zentinel-AIOps-IBM-Z-Datathon-2026.zip) - built and verified 2026-10-18: 19.5 MB, 191 files, SHA-256 70bea0d15207cdf61a06166f3f3eb8a8cd180c176c138acf4a8cd18668aaa7a1 (reports/ZIP_VERIFICATION.md); acceptance matrix in reports/FINAL_COMPLETION_REPORT.md.
+- Final ZIP (Zentinel-AIOps-IBM-Z-Datathon-2026.zip) - built and verified 2026-10-18: 19.5 MB, 191 files, SHA-256 0eb394640a3aa603967afda23d5af99b3860c740b22da52d0dab18c5a3f3d72f (reports/ZIP_VERIFICATION.md); acceptance matrix in reports/FINAL_COMPLETION_REPORT.md.
 
 ## Notebook execution ledger (updated as notebooks run)
 
