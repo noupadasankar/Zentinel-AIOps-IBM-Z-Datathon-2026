@@ -15,12 +15,12 @@ Baseline: prior sessions completed the core platform (see [PROJECT_AUDIT.md](PRO
 | Phase 7 — evaluation & benchmark reporting | **DONE** | committed reports (walk-forward, model comparison, ONNX parity, ingestion benchmark); notebooks re-derive/visualize them |
 | Phase 8 — containers & CI | **DONE** | Dockerfile (fixed torch index), compose, ci.yml (ruff + pip-audit + gitleaks + pytest + ONNX + smoke); local container registry access unavailable → compose startup validation done via native stack (`make run-api`, `/health`, `/ready`) |
 | Phase 9 — LinuxONE (s390x) | **BLOCKED (no target hardware)** | portable-by-design; `docs/LINUXONE_DEPLOYMENT.md` written; no s390x claims made |
-| Phase 10 — documentation, packaging, final ZIP | **IN PROGRESS** | docs updated this session; final ZIP + verification report at the end |
+| Phase 10 — documentation, packaging, final ZIP | **DONE** | docs complete; final ZIP built + verified (19.5 MB, 191 files, SHA-256 in `reports/ZIP_VERIFICATION.md`); `reports/FINAL_COMPLETION_REPORT.md` acceptance matrix |
 
 ## Per-requirement highlights
 
 - `make train` — added this session (`scripts/train_*` entry points documented).
-- Final ZIP (`Zentinel-AIOps-IBM-Z-Datathon-2026.zip`) — to be produced after notebooks/docs complete; checklist in `docs/OPERATIONS.md` § Packaging.
+- Final ZIP (Zentinel-AIOps-IBM-Z-Datathon-2026.zip) - built and verified 2026-10-18: 19.5 MB, 191 files, SHA-256 70bea0d15207cdf61a06166f3f3eb8a8cd180c176c138acf4a8cd18668aaa7a1 (reports/ZIP_VERIFICATION.md); acceptance matrix in reports/FINAL_COMPLETION_REPORT.md.
 
 ## Notebook execution ledger (updated as notebooks run)
 

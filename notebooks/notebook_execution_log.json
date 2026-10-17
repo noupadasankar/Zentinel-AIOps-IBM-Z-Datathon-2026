@@ -56,7 +56,7 @@
   },
   "11_streaming_replay_benchmarks.ipynb": {
     "status": "PASS",
-    "seconds": 44.7,
+    "seconds": 49.9,
     "error": ""
   },
   "12_final_results_and_figures.ipynb": {

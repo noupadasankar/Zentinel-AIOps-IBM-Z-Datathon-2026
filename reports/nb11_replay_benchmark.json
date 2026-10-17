@@ -1,6 +1,6 @@
 {
   "notebook": "11_streaming_replay_benchmarks",
-  "generated_at_utc": "2026-10-17T18:48:45Z",
+  "generated_at_utc": "2026-10-17T19:00:37Z",
   "protocol": "2 runs x 8s sequential; 2 runs x 8s concurrent-8; single-line POST /api/v1/live/ingest; scratch SQLite DB",
   "input_provenance": {
     "source": "data/raw/BGL.log",
@@ -17,68 +17,72 @@
     {
       "mode": "sequential",
       "run_seconds": 8.0,
-      "events": 979,
-      "errors": 4431,
-      "events_per_second": 122.38,
-      "p50_ms": 1.95,
-      "p95_ms": 4.16,
-      "p99_ms": 8.13
+      "events": 964,
+      "errors": 0,
+      "rate_limit_rejections": 2395,
+      "events_per_second": 120.5,
+      "p50_ms": 2.94,
+      "p95_ms": 4.11,
+      "p99_ms": 7.5
     },
     {
       "mode": "sequential",
       "run_seconds": 8.0,
       "events": 800,
-      "errors": 3642,
+      "errors": 0,
+      "rate_limit_rejections": 2756,
       "events_per_second": 100.0,
-      "p50_ms": 2.54,
-      "p95_ms": 5.83,
-      "p99_ms": 9.48
+      "p50_ms": 2.89,
+      "p95_ms": 4.0,
+      "p99_ms": 6.37
     }
   ],
   "concurrent_runs": [
     {
       "mode": "concurrent-8",
       "run_seconds": 8.0,
-      "events": 803,
-      "errors": 7131,
-      "events_per_second": 100.38,
-      "p50_ms": 10.16,
-      "p95_ms": 31.05,
-      "p99_ms": 65.82
+      "events": 804,
+      "errors": 0,
+      "rate_limit_rejections": 4852,
+      "events_per_second": 100.5,
+      "p50_ms": 14.88,
+      "p95_ms": 26.72,
+      "p99_ms": 68.74
     },
     {
       "mode": "concurrent-8",
       "run_seconds": 8.0,
       "events": 800,
-      "errors": 7184,
+      "errors": 0,
+      "rate_limit_rejections": 4004,
       "events_per_second": 100.0,
-      "p50_ms": 9.93,
-      "p95_ms": 28.62,
-      "p99_ms": 74.89
+      "p50_ms": 16.66,
+      "p95_ms": 30.21,
+      "p99_ms": 83.27
     }
   ],
   "sequential_median": {
-    "events_per_second": 111.19,
-    "p50_ms": 2.245,
-    "p95_ms": 4.995,
-    "p99_ms": 8.805,
-    "errors": 4036.5
+    "events_per_second": 110.25,
+    "p50_ms": 2.915,
+    "p95_ms": 4.055,
+    "p99_ms": 6.9350000000000005,
+    "errors": 0.0
   },
   "concurrent_median": {
-    "events_per_second": 100.19,
-    "p50_ms": 10.045,
-    "p95_ms": 29.835,
-    "p99_ms": 70.35499999999999,
-    "errors": 7157.5
+    "events_per_second": 100.25,
+    "p50_ms": 15.77,
+    "p95_ms": 28.465,
+    "p99_ms": 76.005,
+    "errors": 0.0
   },
   "stage_breakdown_this_host": {
-    "parse_ms_per_line": 0.004,
-    "frozen_match_ms_per_line": 0.322,
-    "score_ms_per_window": 35.846,
+    "parse_ms_per_line": 0.006,
+    "frozen_match_ms_per_line": 0.307,
+    "score_ms_per_window": 35.531,
     "windows_scored": 1
   },
   "server_counters_after_replay": {
-    "logs_received": 3382,
+    "logs_received": 3368,
     "windows_completed": 33,
     "unknown_events_received": 0
   },
