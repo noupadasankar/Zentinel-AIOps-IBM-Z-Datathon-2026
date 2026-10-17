@@ -42,6 +42,7 @@ artifacts/*
 reports/*
 !reports/.gitkeep
 !reports/*.json
+!reports/*.md
 
 # Editors and operating systems
 .vscode/
