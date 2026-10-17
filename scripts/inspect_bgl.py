@@ -69,16 +69,12 @@ def main() -> None:
             total_lines += 1
             line = raw_line.rstrip("\r\n")
 
-            # Split into the first nine fields and the remaining message.
             parts = line.split(maxsplit=9)
 
-            # Some legitimate BGL records end at the severity field,
-            # meaning the message field is empty.
             if len(parts) == 9:
                 parts.append("")
                 empty_message_lines += 1
 
-            # Records with fewer than nine fields need investigation.
             if len(parts) != len(FIELD_NAMES):
                 malformed_lines += 1
 
@@ -105,7 +101,6 @@ def main() -> None:
                 content,
             ) = parts
 
-            # Reject records whose timestamp cannot be parsed.
             try:
                 timestamp = int(timestamp_text)
             except ValueError:
@@ -123,13 +118,11 @@ def main() -> None:
 
             valid_lines += 1
 
-            # Preserve the original dataset labels.
             label_counts[label] += 1
             level_counts[level] += 1
             type_counts[event_type] += 1
             component_counts[component] += 1
 
-            # Record unusual severity values without discarding them.
             if level not in EXPECTED_LEVELS:
                 unexpected_level_counts[level] += 1
 

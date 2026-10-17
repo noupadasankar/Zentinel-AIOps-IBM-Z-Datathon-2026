@@ -219,7 +219,6 @@ def main():
     print(f"LSTM threshold: {lstm_threshold:.6f}")
     print("No model fitting or threshold tuning will occur.\n")
 
-    # ---------- Isolation Forest ----------
     feature_table = pq.read_table(
         FEATURE_PATH,
         columns=METADATA_COLUMNS + feature_columns,
@@ -251,7 +250,6 @@ def main():
         if_elapsed,
     )
 
-    # ---------- LSTM next-event predictor ----------
     with np.load(SEQUENCE_PATH) as data:
         sequences = data["sequences"].copy()
         lengths = data["lengths"].copy()
@@ -317,7 +315,6 @@ def main():
         lstm_elapsed,
     )
 
-    # ---------- Save side-by-side results ----------
     results = test_frame[METADATA_COLUMNS].copy()
 
     results["isolation_forest_score"] = if_scores

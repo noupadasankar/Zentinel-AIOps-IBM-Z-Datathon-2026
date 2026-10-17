@@ -10,10 +10,8 @@ class MockModel(nn.Module):
         super().__init__()
 
     def forward(self, tokens):
-        # Return deterministic logits giving higher loss for token 5 than token 2
         batch_size, seq_len = tokens.shape
         logits = torch.zeros((batch_size, seq_len, 10), dtype=torch.float32)
-        # bias toward token 2
         logits[:, :, 2] = 2.0
         return logits
 
@@ -56,24 +54,19 @@ def test_generate_incident_evidence():
         top_k=3,
     )
 
-    # 1. Top-k templates by loss
     assert "top_k_templates_by_loss" in evidence
     assert len(evidence["top_k_templates_by_loss"]) > 0
 
-    # 2. First seen / unmatched templates
     assert "first_seen_templates" in evidence
     unmatched_tmpl = evidence["first_seen_templates"][0]
     assert unmatched_tmpl["template"] == "CUSTOM UNMATCHED LOG"
     assert unmatched_tmpl["count"] == 1
 
-    # 3. Unknown rate vs validation threshold
     assert evidence["unknown_rate_evaluation"]["observed_unknown_rate"] == 0.333
     assert evidence["unknown_rate_evaluation"]["exceeded_threshold"] is True
 
-    # 4. Repeated high severity events
     assert evidence["high_severity_breakdown"]["FATAL"] == 1
 
-    # 5. Matching line references
     assert len(evidence["matching_line_references"]) > 0
     ref_lines = [ref["line_number"] for ref in evidence["matching_line_references"]]
-    assert 2 in ref_lines  # Fatal line included
+    assert 2 in ref_lines

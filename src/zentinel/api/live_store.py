@@ -32,7 +32,6 @@ class LiveStateStore:
             self._connection.execute("PRAGMA foreign_keys=ON")
             self._connection.execute("PRAGMA busy_timeout=5000")
 
-        # Apply numbered schema migrations
         with self._lock:
             apply_migrations(self._connection)
 
@@ -213,8 +212,6 @@ class LiveStateStore:
                     ),
                 )
 
-    # --- Alerts and Incidents Persistence ---
-
     def save_or_update_alert(self, incident_dict: dict[str, Any]) -> dict[str, Any]:
         """Insert or update an alert/incident in the database."""
         evidence_str = json.dumps(incident_dict.get("evidence", {}), ensure_ascii=False)
@@ -347,7 +344,6 @@ class LiveStateStore:
             except (json.JSONDecodeError, TypeError):
                 alert["evidence"] = {}
 
-            # Fetch action audit trail
             actions_rows = self._connection.execute(
                 """
                 SELECT action_id, alert_id, action_type, actor, comment, created_at
@@ -390,8 +386,6 @@ class LiveStateStore:
                 )
 
         return self.get_alert(alert_id) or {}
-
-    # --- Review Queue and Drift Summaries ---
 
     def get_review_windows(self, limit: int = 50) -> list[dict[str, Any]]:
         """Retrieve windows routed to NOVELTY_DRIFT_REVIEW using the indexed decision column."""
@@ -521,8 +515,6 @@ class LiveStateStore:
             "top_unmatched_templates": unmatched_samples,
         }
 
-    # --- Model Registry ---
-
     def register_model(
         self,
         model_id: str,
@@ -559,8 +551,6 @@ class LiveStateStore:
                 item["metrics"] = {}
             models.append(item)
         return models
-
-    # --- Maintenance & Retention ---
 
     def purge_retention(
         self,

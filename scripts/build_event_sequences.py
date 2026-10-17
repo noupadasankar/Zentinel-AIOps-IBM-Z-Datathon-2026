@@ -51,7 +51,6 @@ def main() -> None:
     total_rows = parquet.metadata.num_rows
     total_windows = (total_rows + WINDOW_SIZE - 1) // WINDOW_SIZE
 
-    # First pass: derive the vocabulary using training events only.
     training_event_ids = set()
 
     print("========== TRAINING EVENT VOCABULARY ==========")
@@ -70,8 +69,6 @@ def main() -> None:
     if not training_event_ids:
         raise RuntimeError("No known training event IDs were found.")
 
-    # Token 0 is reserved for unknown events. Known training IDs receive
-    # stable, consecutive token IDs starting at 1.
     event_to_token = {
         event_id: token
         for token, event_id in enumerate(
@@ -189,7 +186,6 @@ def main() -> None:
             end_lines[window_id] = line_number
             end_timestamps[window_id] = int(row["timestamp"])
 
-            # Labels are used solely for the evaluation target.
             if row["label"] != "-":
                 targets[window_id] = 1
 
@@ -212,7 +208,6 @@ def main() -> None:
 
         target_windows[name] = int(targets[indices].sum())
 
-    # Save the sequence matrix atomically.
     SEQUENCE_PATH.parent.mkdir(parents=True, exist_ok=True)
     VOCAB_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)

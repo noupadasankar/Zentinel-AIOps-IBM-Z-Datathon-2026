@@ -39,7 +39,6 @@ def compute_per_event_losses(
             current_events = []
             current_tokens = []
 
-    # Final run
     if len(current_tokens) >= 2:
         inputs = torch.tensor(current_tokens[:-1], dtype=torch.long).unsqueeze(0)
         targets = torch.tensor(current_tokens[1:], dtype=torch.long)
@@ -68,7 +67,6 @@ def generate_incident_evidence(
     """
     evidence: dict[str, Any] = {}
 
-    # 1. Top-k templates by actual per-event cross-entropy loss
     scored_pairs = compute_per_event_losses(events, model)
     template_losses: dict[str, list[float]] = defaultdict(list)
     template_sample_lines: dict[str, int] = {}
@@ -94,7 +92,6 @@ def generate_incident_evidence(
     top_templates.sort(key=lambda x: x["mean_loss"], reverse=True)
     evidence["top_k_templates_by_loss"] = top_templates[:top_k]
 
-    # 2. First-seen / unmatched templates
     unmatched = [
         ev for ev in events if ev.get("event_status") in ("unknown_template", "template_missing_from_vocabulary")
     ]
@@ -103,7 +100,6 @@ def generate_incident_evidence(
         {"template": tmpl, "count": count} for tmpl, count in unmatched_counts.most_common(5)
     ]
 
-    # 3. Unknown event rate vs validation threshold
     observed_unknown_rate = float(window_decision.get("unknown_event_rate", 0.0))
     validation_novelty_threshold = 0.02
     evidence["unknown_rate_evaluation"] = {
@@ -113,12 +109,10 @@ def generate_incident_evidence(
         "exceeded_threshold": bool(observed_unknown_rate > validation_novelty_threshold),
     }
 
-    # 4. Repeated high-severity events
     high_sev_records = []
     severity_counter = Counter()
 
     for ev in events:
-        # Check raw line severity if available in template or parse
         template = ev.get("template") or ""
         for sev in ["FATAL", "SEVERE", "ERROR", "FAILURE", "Kill", "WARNING"]:
             if sev in template:
@@ -136,9 +130,7 @@ def generate_incident_evidence(
     evidence["high_severity_breakdown"] = dict(severity_counter)
     evidence["high_severity_count"] = len(high_sev_records)
 
-    # 5. Matching line references (top representative events)
     representative_lines = []
-    # Include up to 5 events with highest loss
     scored_pairs_sorted = sorted(scored_pairs, key=lambda x: x[1], reverse=True)
     for ev, loss in scored_pairs_sorted[:5]:
         representative_lines.append(
@@ -151,7 +143,6 @@ def generate_incident_evidence(
             }
         )
 
-    # Include any FATAL lines
     for item in high_sev_records[:3]:
         representative_lines.append(
             {

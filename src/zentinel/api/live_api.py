@@ -30,7 +30,6 @@ from zentinel.config import (
 from zentinel.models.inference import InferenceEngine
 from zentinel.parsing.drain_parser import parse_bgl_line
 
-# In-memory streaming state protected by mutex
 STATE_LOCK = threading.Lock()
 CURRENT_WINDOW: list[dict[str, Any]] = []
 RECENT_WINDOWS: deque = deque(maxlen=MAX_RECENT_WINDOWS)
@@ -68,15 +67,12 @@ async def lifespan(app: FastAPI):
             "with a single worker (WEB_CONCURRENCY <= 1) to maintain window state consistency."
         )
 
-    # Verify frozen artifact integrity
     verify_manifest()
 
-    # Load frozen Drain3 matcher and LSTM next-event model
     ENGINE.load()
     INCIDENT_POLICY.threshold = ENGINE.lstm_threshold
     INCIDENT_POLICY.hysteresis_threshold = ENGINE.lstm_threshold * 0.70
 
-    # Initialize SQLite store and restore previous state
     STORE = LiveStateStore(CONFIG.db_path)
     restored = STORE.load_state(recent_limit=MAX_RECENT_WINDOWS)
 
@@ -88,13 +84,11 @@ async def lifespan(app: FastAPI):
         RECENT_WINDOWS.clear()
         RECENT_WINDOWS.extend(restored["recent_windows"])
 
-    # Restore incident numbering so restarted processes never replay incident IDs
     INCIDENT_POLICY.incident_counter = max(
         INCIDENT_POLICY.incident_counter,
         STORE.get_last_incident_sequence(),
     )
 
-    # Register default active model in model registry
     STORE.register_model(
         model_id="lstm_next_event_v1",
         name="LSTM Next-Event Predictor",
@@ -114,7 +108,6 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Teardown
     if STORE is not None:
         STORE.close()
 
@@ -129,7 +122,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CONFIG.cors_origins,
@@ -147,9 +139,6 @@ async def add_request_id_middleware(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Request-ID"] = req_id
     return response
-
-
-# --- Uniform Error Handlers (Suppresses stack traces, includes request_id) ---
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -221,9 +210,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
-# --- Security and Role Dependencies ---
-
-
 def get_current_role(
     required_role: str,
     x_api_key: str | None = Header(None, alias="X-API-Key"),
@@ -256,9 +242,6 @@ def require_admin(
     request: Request = None,
 ) -> str:
     return get_current_role("admin", x_api_key, request)
-
-
-# --- Request & Response Models with OpenAPI Examples ---
 
 
 class IngestRequest(BaseModel):
@@ -310,9 +293,6 @@ class AlertCloseRequest(BaseModel):
         description="Resolution reason (RESOLVED, FALSE_POSITIVE)",
         pattern="^(RESOLVED|FALSE_POSITIVE)$",
     )
-
-
-# --- Endpoints ---
 
 
 @app.get("/", tags=["System"])
@@ -385,11 +365,9 @@ def ingest_log(
     payload_sha256 = hashlib.sha256(request.raw_line.encode("utf-8")).hexdigest()
 
     with STATE_LOCK:
-        # Check idempotency
         if request.idempotency_key:
             record = store.get_idempotency_record(request.idempotency_key)
             if record is not None:
-                # Key exists: check for payload collision
                 if record["payload_sha256"] != payload_sha256:
                     raise HTTPException(
                         status_code=409,
@@ -399,7 +377,6 @@ def ingest_log(
                 cached["idempotency_replayed"] = True
                 return cached
 
-        # Prepare state mutation on candidate copies (prevents state divergence on DB failure)
         candidate_state = dict(STATE)
         candidate_window = list(CURRENT_WINDOW)
 
@@ -460,7 +437,6 @@ def ingest_log(
                 **decision,
             }
 
-            # Generate evidence & evaluate incident policy
             evidence = generate_incident_evidence(
                 completed_events,
                 window_result,
@@ -480,7 +456,6 @@ def ingest_log(
             response["lines_remaining"] = WINDOW_SIZE
             response["window_decision"] = window_result
 
-        # Phase 1: Commit to SQLite atomically first
         store.save_event_and_state(
             event=event,
             state=candidate_state,
@@ -491,7 +466,6 @@ def ingest_log(
             response=response,
         )
 
-        # Phase 2: ONLY upon successful DB commit, publish candidate state to memory
         STATE.clear()
         STATE.update(candidate_state)
         CURRENT_WINDOW.clear()
@@ -594,7 +568,6 @@ def recent_windows(
     """Retrieve persisted window decisions, newest first, with optional filtering."""
     store = STORE
     if store is None:
-        # Fallback to in-memory ring before the store is wired (e.g. early startup)
         with STATE_LOCK:
             items = list(RECENT_WINDOWS)[-limit:]
             items.reverse()
@@ -675,9 +648,6 @@ def dashboard_summary(role: str = Depends(require_read)):
     }
 
 
-# --- Alert Management Endpoints ---
-
-
 @app.get("/api/v1/alerts", tags=["Alerts"])
 def list_alerts(
     status: str | None = Query(None, description="Filter by status (OPEN, ACKNOWLEDGED, CLOSED)"),
@@ -750,14 +720,10 @@ def close_alert(
         comment=action.comment,
     )
 
-    # If policy has this as current incident, reset it
     if INCIDENT_POLICY.current_incident and INCIDENT_POLICY.current_incident.incident_id == alert.get("incident_id"):
         INCIDENT_POLICY.current_incident = None
 
     return updated
-
-
-# --- Review Queue and Drift Endpoints ---
 
 
 @app.get("/api/v1/review", tags=["Review Queue"])
@@ -889,9 +855,6 @@ def prometheus_metrics():
         content="\n".join(lines) + "\n",
         media_type="text/plain; version=0.0.4; charset=utf-8",
     )
-
-
-# --- Admin Maintenance Endpoints ---
 
 
 @app.post("/api/v1/admin/retention", tags=["Administration"])

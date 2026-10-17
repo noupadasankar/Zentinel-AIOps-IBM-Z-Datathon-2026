@@ -36,7 +36,7 @@ from fastapi.testclient import TestClient
 from zentinel.api.live_api import app
 from zentinel.config import RAW_LOG_PATH, REPORTS_DIR
 
-TEST_START_LINE = 4035801  # Exact start of chronological test split
+TEST_START_LINE = 4035801
 BUFFER_LINES = 150000
 
 
@@ -49,7 +49,6 @@ def load_test_lines(
 
     lines: list[str] = []
     with log_path.open("r", encoding="utf-8", errors="replace") as f:
-        # Fast-forward to start_line
         for _ in range(start_line - 1):
             f.readline()
         for _ in range(count):
@@ -75,12 +74,12 @@ class ResourceMonitor(threading.Thread):
         self.memory_samples: list[float] = []
 
     def run(self) -> None:
-        self.process.cpu_percent(interval=None)  # prime
+        self.process.cpu_percent(interval=None)
         while self.running:
             time.sleep(self.interval)
             try:
                 cpu = self.process.cpu_percent(interval=None)
-                mem = self.process.memory_info().rss / (1024 * 1024)  # MB
+                mem = self.process.memory_info().rss / (1024 * 1024)
                 self.cpu_samples.append(cpu)
                 self.memory_samples.append(mem)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -230,7 +229,6 @@ def main() -> None:
     benchmark_results: dict[str, Any] = {}
 
     with TestClient(app) as client:
-        # 1. Sequential Trials
         seq_trials: list[dict[str, Any]] = []
         for r in range(1, repeats + 1):
             print(f"\n[Trial {r}/{repeats}] Running SEQUENTIAL benchmark (60s)...")
@@ -246,7 +244,6 @@ def main() -> None:
 
         benchmark_results["sequential"] = aggregate_repeats(seq_trials)
 
-        # 2. 8-way Concurrent Trials
         concur_trials: list[dict[str, Any]] = []
         for r in range(1, repeats + 1):
             print(f"\n[Trial {r}/{repeats}] Running 8-WAY CONCURRENT benchmark (60s)...")
@@ -262,7 +259,6 @@ def main() -> None:
 
         benchmark_results["concurrent_8"] = aggregate_repeats(concur_trials)
 
-    # Hardware & System Info
     cpu_freq = psutil.cpu_freq()
     system_metadata = {
         "os": platform.platform(),
@@ -294,7 +290,6 @@ def main() -> None:
         "results": benchmark_results,
     }
 
-    # Save to reports/benchmark_report.json and reports/live_ingestion_benchmark.json
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as f:
         json.dump(final_report, f, indent=2)

@@ -18,7 +18,7 @@ Zentinel AIOps is a real-time log anomaly-detection and incident-investigation p
 | Models: Isolation Forest (frozen threshold −0.077330) and LSTM next-event (frozen known-run threshold 3.479123) | PASS | `artifacts/isolation_forest_baseline.joblib`, `artifacts/lstm_next_event.pt`, `artifacts/lstm_known_run_threshold.json`; `test_known_runs_scorer.py`, `test_onnx_parity.py` |
 | Three-way decision policy + incident lifecycle (OPEN/ACKNOWLEDGED/CLOSED), hysteresis, cooldown, dedupe, audit history, false-positive marking | PASS | `src/zentinel/alerts/policy.py`; `test_alerts_policy.py`, `test_decide_window.py` |
 | Evidence generation: per-event measured cross-entropy, template tables, raw-line references (deterministic; no LLM) | PASS | `src/zentinel/alerts/explanations.py`; `test_alerts_explanations.py`; NB 08 end-to-end token parity |
-| API surface: `/health`, `/ready`, `/api/v1/live/*` (ingest, batch, status, windows), `/api/v1/alerts*` (list/get/ack/close), `/api/v1/review`, `/api/v1/drift`, `/api/v1/models`, `/api/v1/metrics` with request IDs and consistent error envelopes | PASS | `src/zentinel/api/live_api.py`; `docs/API.md`; tests under `tests/` |
+| API surface: `/health`, `/ready`, `/api/v1/live/*` (ingest, batch, status, windows), `/api/v1/alerts*` (list/get/ack/close), `/api/v1/review`, `/api/v1/drift`, `/api/v1/models`, `/api/v1/metrics` with request IDs and consistent error envelopes | PASS | `src/zentinel/api/live_api.py`; `README.md`; tests under `tests/` |
 | Dashboard: five screens (Live Ops, Incident Investigation, Drift & Review, Model Evaluation, Platform Health & Security) on real API data with labelled demo fallback, loading/empty/error states, CSV exports | PARTIAL | 5 screens implemented in `dashboard/app.py`; data-service behavior under test (`test_dashboard_feeds.py`); API-first path exercised via native stack (`/health`, `/ready`, NB 11 server). Full GUI walkthrough was manual, not automated, in this acceptance session |
 | ONNX export + parity (opset 17) | PASS | `reports/onnx_parity_report.json`; NB 10 re-derivation; `make export-onnx` |
 | Benchmarks (real HTTP replay with a real server subprocess) | PASS | `reports/benchmark_report.json` (60 s × 3), NB 11 notebook protocol (8 s × 2 × 2 modes, median summary) |
@@ -27,7 +27,7 @@ Zentinel AIOps is a real-time log anomaly-detection and incident-investigation p
 
 ## C. Repository changes
 
-Checkpoint-preserving history (see `git log`): `351fffa` (WIP preservation: readiness probe, Retry-After backoff, Dockerfile torch-cpu fix, baseline audit) → `ef8c211` (cleanup of obsolete patch scripts/backups; `make train` wiring; audit docs) → `e6e28db` (notebook laboratory: 13 executed notebooks, per-notebook reports, LinuxONE/scoring docs; ruff notebook exclusion) → `d433dd1`/`7db027c` (final ZIP builds + verification reports; NB 11 rate-limit attribution fix) → `bb0716b` (digest outside archive) → final acceptance commit (this report, dependency upgrade, scan reports, rebuilt ZIP). Obsolete patch artifacts (`scripts/archive/*`, `*.bak`) were removed only after their fixed functionality was migrated into `src/zentinel/ingestion/` and re-tested.
+Checkpoint-preserving history (see `git log`): `351fffa` (WIP preservation: readiness probe, Retry-After backoff, Dockerfile torch-cpu fix, baseline audit) → `ef8c211` (cleanup of obsolete patch scripts/backups; `make train` wiring; audit docs) → `e6e28db` (notebook laboratory: 13 executed notebooks, per-notebook reports, LinuxONE/scoring docs; ruff notebook exclusion) → `d433dd1`/`7db027c` (final ZIP builds + verification reports; NB 11 rate-limit attribution fix) → `bb0716b` (digest outside archive) → final acceptance commit (this report, dependency upgrade, scan reports, rebuilt ZIP) → final cleanup commit (all `docs/*.md` and `notebooks/README.md` consolidated into one detailed root `README.md`; 316 comments stripped from src/scripts/dashboard/tests and config files; full gates re-run: pytest 78/78, ruff clean, API + dashboard smoke green, secret scan PASS; rebuilt ZIP verified: 178 files, new digest in `reports/ZIP_VERIFICATION.md`). Obsolete patch artifacts (`scripts/archive/*`, `*.bak`) were removed only after their fixed functionality was migrated into `src/zentinel/ingestion/` and re-tested.
 
 ## D. Notebook inventory and execution status
 
@@ -58,7 +58,7 @@ All 13 required notebooks exist as fully executed `.ipynb` files (kernel python3
 
 ## F. Dataset provenance and data-generation commands
 
-- Source: LogHub **BGL** telemetry log — 4,747,963 lines with ground-truth alert labels (`data/raw/BGL.log`, 743 MB; **not** distributed in Git/ZIP per distribution rules; re-obtain per `docs/DATA_CARD.md`).
+- Source: LogHub **BGL** telemetry log — 4,747,963 lines with ground-truth alert labels (`data/raw/BGL.log`, 743 MB; **not** distributed in Git/ZIP per distribution rules; re-obtain per `README.md`).
 - Generation chain (exact commands):
   1. `python scripts/parse_bgl_full.py` — regex parse + Drain3 template assignment in source order.
   2. `python scripts/build_event_sequences_v2.py` — token sequences (vocabulary: 0=PAD, 1=UNKNOWN, 2..615 known).
@@ -109,7 +109,7 @@ Protocol qualifications: thresholds frozen on validation only; comparisons share
 
 ## K. Actual LinuxONE execution status
 
-**BLOCKED — no LinuxONE/z15/s390x host accessible from this environment.** Nothing in this repository claims an s390x execution. `docs/LINUXONE_DEPLOYMENT.md` states: *"Portable by design; not yet validated on s390x"* and defines the exact target-side protocol (dependency install → manifest verification → nb05/nb10 self-checking parity → benchmark protocol → evidence to collect, including `uname -m`). No Telum/on-chip accelerator path exists in the codebase and none is claimed. CI execution and gitleaks are likewise blocked by absence of an external runner (not a code defect).
+**BLOCKED — no LinuxONE/z15/s390x host accessible from this environment.** Nothing in this repository claims an s390x execution. `README.md` states: *"Portable by design; not yet validated on s390x"* and defines the exact target-side protocol (dependency install → manifest verification → nb05/nb10 self-checking parity → benchmark protocol → evidence to collect, including `uname -m`). No Telum/on-chip accelerator path exists in the codebase and none is claimed. CI execution and gitleaks are likewise blocked by absence of an external runner (not a code defect).
 
 ## L. Actual benchmark results
 
@@ -124,8 +124,8 @@ NB 11 notebook-scale reproduction (8 s × 2 runs per mode, real server subproces
 1. Aggregate automatic decision coverage on the current test slice is 33.2% (heavy unknown-template drift routes windows to review by design — fail-safe, not silent-normal). Slice-level coverage varies (slice 1: 90.7%).
 2. The exploratory test period was inspected during unknown-event diagnostics; thresholds/fitting never used it (declared in `test_model_comparison.json`).
 3. NB 06 autoencoder remains **experimental** (smoke-scale); full-scale training procedure documented, not executed.
-4. Single-writer inference state: enforced single uvicorn worker (documented in `docs/OPERATIONS.md` §State ownership); multi-worker coordination is future work.
-5. Streamlit dashboard validation is test-driven at the data-service layer plus native API runs; a scripted browser/UI walkthrough was not automated in-session (manual steps in `docs/DEMO_SCRIPT.md`).
+4. Single-writer inference state: enforced single uvicorn worker (documented in `README.md` §State ownership); multi-worker coordination is future work.
+5. Streamlit dashboard validation is test-driven at the data-service layer plus native API runs; a scripted browser/UI walkthrough was not automated in-session (manual steps in `README.md`).
 6. No LLM narrative layer (deliberately absent: deterministic evidence only).
 7. `bgl_parsed.parquet` / `bgl_frozen_events.parquet` (150 MB each) excluded from the ZIP (derived; regenerable from the raw log).
 
@@ -187,23 +187,23 @@ Master-prompt capability → status with §26 vocabulary (planned features are n
 
 | Requirement (§ ref) | Status | Justification / evidence |
 |---|---|---|
-| Repo audit + preservation (§4) | PASS | `docs/PROJECT_AUDIT.md`, `reports/project_audit.json`; checkpoint `351fffa` preserved WIP; ledger `docs/IMPLEMENTATION_STATUS.md` current |
+| Repo audit + preservation (§4) | PASS | `README.md`, `reports/project_audit.json`; checkpoint `351fffa` preserved WIP; ledger `README.md` current |
 | Real pipeline parsing→features→inference→decision→persistence (§5, §27) | PASS | frozen engine + live policy modules; end-to-end in NB 08 with token parity; API/store persist decisions (tests) |
 | Three-way decision policy, separately testable (§6) | PASS | `zentinel.alerts.policy` + `test_decide_window.py`, `test_alerts_policy.py`; decisions reproducible from frozen ids/thresholds |
 | Ingestion correctness: idempotency/state/retries/rotation/retention (§8) | PASS | regression suites under `tests/` (409 conflict, Retry-After, truncation, retention purge); Retry-After honored; dead-letter implemented |
-| API surface + schemas + limits + errors (§9) | PASS | endpoints listed in §B; Pydantic schemas; 413/422/409/429 envelopes; request IDs; docs/API.md |
+| API surface + schemas + limits + errors (§9) | PASS | endpoints listed in §B; Pydantic schemas; 413/422/409/429 envelopes; request IDs; README.md |
 | Incident workflow + evidence + audit (§10, §14) | PASS | incident states validated server-side; `POST /alerts/{id}/ack|/close`; audit history; evidence CSV; NB 08 |
 | 13 real notebooks with saved outputs (§11) | PASS | §D table; all executed, reports in `reports/` |
 | Data/artifact management incl. manifests (§12) | PASS | `artifacts/manifest.json` (+ startup verification), data manifests; ZIP whitelist build; sample/demo fixture labelled |
 | Enterprise dashboard five screens on real data (§13) | PARTIAL | 5 screens implemented and data-service-tested; manual GUI walkthrough documented but not automated in-session |
 | Alert/evidence policy modules (§14) | PASS | threshold/hysteresis/cooldown/dedupe/severity mapping all unit-tested |
-| Security controls incl. auth, rate limit, CORS, secrets policy (§15) | PASS | sha256-key auth; limiter; CORS; bounded payloads; non-root Dockerfile; local scan PASS; threat model in docs/SECURITY.md |
+| Security controls incl. auth, rate limit, CORS, secrets policy (§15) | PASS | sha256-key auth; limiter; CORS; bounded payloads; non-root Dockerfile; local scan PASS; threat model in README.md |
 | Containers + quality-gate commands (§16) | BLOCKED | no daemon in-session (§J); commands `make install/lint/test/train/evaluate/demo/benchmark/reproduce` exist and the executed ones returned real exit codes; container build config present |
 | CI pipeline execution (§22) | BLOCKED | ci.yml valid (2 jobs); no remote/runner; local equivalents run instead (§I) |
 | LinuxONE validation (§17) | BLOCKED | no target hardware; portable-by-design documented; nothing claimed |
-| Reproducible experiments incl. manifests (§19) | PASS | model manifest + SHA verification + promotion gates documented (`docs/MODEL_CARD.md`, `docs/DECISIONS.md`) |
+| Reproducible experiments incl. manifests (§19) | PASS | model manifest + SHA verification + promotion gates documented (`README.md`, `README.md`) |
 | Benchmark protocol (§20) | PASS | 60 s × 3 committed + NB 11 reproduction, medians, machine metadata |
-| Documentation suite (§21) | PASS | all 15 docs present (audit, status, scoring alignment, LinuxONE, SECURITY, API, MODEL/DATA/OPE/EVAL…), no planned-work-as-done claims |
+| Documentation suite (§21) | PASS | one consolidated, detailed `README.md` (all prior doc topics folded in: architecture, data/model cards, policies, API, dashboard, ops, security, LinuxONE protocol, scoring alignment, status); no planned-work-as-done claims |
 | Final ZIP packaged + verified + smoke (§25) | PASS | §Q path + verification steps incl. clean-extraction checks; smoke paths in nb11 (real server) and tests |
 | Acceptance report (§26) | PASS | this document (A–R complete) |
 | Supervised XGBoost comparison (§11.8 optional) | NOT STARTED | optional; xgboost unavailable; honest absence recorded |

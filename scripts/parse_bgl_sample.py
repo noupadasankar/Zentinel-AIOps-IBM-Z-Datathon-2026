@@ -71,8 +71,6 @@ def main() -> None:
             if not record.message:
                 empty_message_count += 1
 
-            # Include stable event metadata, but exclude timestamps and
-            # node identifiers to avoid unnecessary template variation.
             model_input = " ".join(
                 value
                 for value in (
@@ -84,8 +82,6 @@ def main() -> None:
                 if value
             )
 
-            # The standard metadata normally guarantees a nonempty input.
-            # Keep a safe fallback in case an unusual record has no message.
             if not model_input:
                 model_input = "[EMPTY_LOG_MESSAGE]"
 
@@ -102,7 +98,6 @@ def main() -> None:
             template_by_cluster[cluster_id] = template
             change_type_counts[change_type] += 1
 
-            # JSON Lines: one independently readable JSON object per record.
             row = record.to_dict()
             row.update(
                 {

@@ -45,7 +45,6 @@ def main() -> int:
         "generator": "scripts/generate_project_audit.py",
     }
 
-    # --- Git baseline ---
     audit["git"] = {
         "head": git(["log", "-1", "--format=%H"]),
         "head_subject": git(["log", "-1", "--format=%s"]),
@@ -53,13 +52,11 @@ def main() -> int:
         "dirty_at_generation": bool(git(["status", "--porcelain"])),
     }
 
-    # --- Runtime ---
     audit["runtime"] = {
         "python": sys.version.split()[0],
         "executable": sys.executable,
     }
 
-    # --- Repository inventory ---
     key_paths = [
         "README.md", "CHANGELOG.md", "requirements.txt", "requirements.lock",
         "pyproject.toml", "pytest.ini", "Dockerfile", "docker-compose.yml",
@@ -80,7 +77,6 @@ def main() -> int:
             }
     audit["directories"] = dirs
 
-    # --- Source modules ---
     src_modules = sorted(
         str(p.relative_to(ROOT)).replace("\\", "/")
         for p in (ROOT / "src" / "zentinel").rglob("*.py")
@@ -88,33 +84,27 @@ def main() -> int:
     )
     audit["source_modules"] = src_modules
 
-    # --- Scripts inventory ---
     audit["scripts"] = sorted(
         str(p.relative_to(ROOT)).replace("\\", "/")
         for p in (ROOT / "scripts").glob("*.py")
     )
 
-    # --- Tests inventory ---
     audit["test_files"] = sorted(p.name for p in TESTS.glob("test_*.py"))
 
-    # --- Reports inventory ---
     audit["reports"] = sorted(p.name for p in REPORTS.glob("*.json"))
     audit["docs"] = sorted(p.name for p in DOCS.glob("*.md"))
 
-    # --- Artifact inventory with hashes ---
     artifacts = {}
     for p in sorted((ROOT / "artifacts").iterdir()):
         if p.is_file():
             artifacts[p.name] = {"bytes": p.stat().st_size, "sha256": sha256_of(p)}
     audit["artifacts"] = artifacts
 
-    # --- Manifest verification status ---
     audit["manifest_check"] = {
         "manifest_exists": (ROOT / "artifacts" / "manifest.json").is_file(),
         "note": "Runtime verifies manifest via zentinel.config.verify_manifest() at API startup and in tests.",
     }
 
-    # --- API surface (parsed from live_api.py by static scan) ---
     live_api = ROOT / "src" / "zentinel" / "api" / "live_api.py"
     endpoints = []
     if live_api.is_file():
@@ -126,7 +116,6 @@ def main() -> int:
                 if ".get(" in decorators or ".post(" in decorators:
                     method = "GET" if ".get(" in decorators else "POST"
                     if line_s.count('(') > 0 and '"' in line_s:
-                        # extract path from first quoted segment
                         first = line_s.split('"')
                         if len(first) >= 2:
                             endpoints.append({"method": method, "path": first[1]})
@@ -134,7 +123,6 @@ def main() -> int:
         {f"{e['method']} {e['path']}" for e in endpoints}
     )
 
-    # --- Data products ---
     processed = {}
     for p in sorted((ROOT / "data" / "processed").glob("*")):
         if p.is_file() and p.suffix != "-shm" and p.suffix != "-wal" and not p.name.endswith(("-shm", "-wal")):
@@ -147,7 +135,6 @@ def main() -> int:
             raw_files[p.name] = {"bytes": p.stat().st_size}
     audit["data_raw"] = raw_files
 
-    # --- notebooks status ---
     nb_dir = ROOT / "notebooks"
     audit["notebooks"] = sorted(p.name for p in nb_dir.glob("*.ipynb")) if nb_dir.is_dir() else []
 

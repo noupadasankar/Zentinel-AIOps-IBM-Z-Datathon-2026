@@ -19,7 +19,6 @@ def compute_slice_metrics(
     if total_windows == 0:
         return {}
 
-    # Three-way breakdown
     decisions = df["decision"].value_counts().to_dict()
     alert_count = int(decisions.get("ANOMALY_ALERT", 0))
     normal_count = int(decisions.get("NO_ANOMALY_DETECTED", 0))
@@ -29,7 +28,6 @@ def compute_slice_metrics(
     coverage = float(automatic_windows / total_windows)
     review_rate = float(review_count / total_windows)
 
-    # Automatic decision metrics (evaluated where model took automatic action)
     auto_df = df[df["decision"].isin(["ANOMALY_ALERT", "NO_ANOMALY_DETECTED"])].copy()
     if len(auto_df) > 0:
         y_true = auto_df["target_anomaly"].values
@@ -47,11 +45,9 @@ def compute_slice_metrics(
         tp, fp, tn, fn = 0, 0, 0, 0
         precision, recall, f1 = 0.0, 0.0, 0.0
 
-    # Overall recall over all anomalies (including those routed to review)
     total_anomalies = int((df["target_anomaly"] == 1).sum())
     recall_over_all_anomalies = float(tp / total_anomalies) if total_anomalies > 0 else 0.0
 
-    # Time-based metrics: False alerts per hour
     false_alerts_per_hour = None
     span_hours = None
     if start_ts is not None and end_ts is not None and len(start_ts) > 0:
@@ -94,7 +90,6 @@ def compute_detection_delays(
     df = df.copy()
     df["start_timestamp"] = start_ts.values
 
-    # Find contiguous anomaly episodes (runs of target_anomaly == 1)
     episodes: list[dict[str, Any]] = []
     in_episode = False
     current_ep: list[dict[str, Any]] = []
@@ -251,15 +246,12 @@ def run_full_walk_forward_evaluation(
         metrics["window_range"] = [int(s_start), int(s_end - 1)]
         slices_report.append(metrics)
 
-    # Overall dataset metrics
     overall_metrics = compute_slice_metrics(df_dec, start_ts, end_ts)
 
-    # Detection delays
     delays_report = {}
     if start_ts is not None:
         delays_report = compute_detection_delays(df_dec, start_ts)
 
-    # 95% CIs via block bootstrap
     ci_report = run_block_bootstrap_ci(df_dec, start_ts, end_ts, n_bootstraps=500, block_size=50)
 
     report = {

@@ -4,6 +4,7 @@ target-version = "py311"
 exclude = [
     ".git",
     ".venv",
+    ".venv-*",
     "scripts/archive",
     "notebooks",
 ]

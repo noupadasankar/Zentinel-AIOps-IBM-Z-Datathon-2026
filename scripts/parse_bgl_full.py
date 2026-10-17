@@ -53,7 +53,6 @@ def main() -> None:
     if not INPUT_PATH.is_file():
         raise FileNotFoundError(f"BGL input not found: {INPUT_PATH}")
 
-    # Never silently reuse a previous run's model state or partial output.
     existing = [path for path in (OUTPUT_PATH, TEMP_PATH, STATE_PATH) if path.exists()]
     if existing:
         paths = "\n".join(str(path) for path in existing)
@@ -115,8 +114,6 @@ def main() -> None:
 
                 record = parse_bgl_line(raw_line, line_number)
 
-                # Labels are preserved for evaluation but excluded from
-                # the input sent to Drain3 to avoid label leakage.
                 template_input = " ".join(
                     value
                     for value in (
@@ -192,7 +189,6 @@ def main() -> None:
         writer.close()
         writer = None
 
-        # Publish the completed Parquet file only after the input finishes.
         os.replace(TEMP_PATH, OUTPUT_PATH)
 
     except Exception:

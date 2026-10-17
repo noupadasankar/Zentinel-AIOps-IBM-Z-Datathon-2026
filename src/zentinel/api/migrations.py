@@ -1,7 +1,6 @@
 import json
 import sqlite3
 
-# Define numbered migrations: (version, name, callable(conn))
 MIGRATIONS: list[tuple[int, str, list[str]]] = [
     (
         1,
@@ -69,11 +68,9 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
         2,
         "002_add_metadata_columns",
         [
-            # Add payload_sha256 if not present
             """
             ALTER TABLE ingestion_idempotency ADD COLUMN payload_sha256 TEXT NOT NULL DEFAULT '';
             """,
-            # Add source_id, model_id, latency_ms to ingested_events
             """
             ALTER TABLE ingested_events ADD COLUMN source_id TEXT NOT NULL DEFAULT 'default';
             """,
@@ -83,7 +80,6 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             """
             ALTER TABLE ingested_events ADD COLUMN latency_ms REAL NOT NULL DEFAULT 0.0;
             """,
-            # Add source_id, model_id, latency_ms to live_windows
             """
             ALTER TABLE live_windows ADD COLUMN source_id TEXT NOT NULL DEFAULT 'default';
             """,
@@ -186,7 +182,6 @@ def apply_migrations(conn: sqlite3.Connection) -> list[int]:
     """
     applied = []
 
-    # Ensure schema_migrations table exists
     with conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -208,7 +203,6 @@ def apply_migrations(conn: sqlite3.Connection) -> list[int]:
                 try:
                     conn.execute(statement)
                 except sqlite3.OperationalError as exc:
-                    # Ignore 'duplicate column name' if column was already created in earlier iteration
                     if "duplicate column name" in str(exc).lower():
                         continue
                     raise

@@ -57,7 +57,6 @@ def setup_phase2_env(tmp_path):
 
 def test_alerts_crud_and_actions(setup_phase2_env):
     store = setup_phase2_env
-    # Seed an alert
     store.save_or_update_alert(
         {
             "incident_id": "INC-0001",
@@ -76,7 +75,6 @@ def test_alerts_crud_and_actions(setup_phase2_env):
     )
 
     with TestClient(app) as client:
-        # 1. List alerts
         r_list = client.get("/api/v1/alerts", headers={"X-API-Key": READ_KEY})
         assert r_list.status_code == 200
         data = r_list.json()
@@ -86,12 +84,10 @@ def test_alerts_crud_and_actions(setup_phase2_env):
         assert alert["status"] == "OPEN"
         assert alert["severity"] == "HIGH"
 
-        # 2. Get detail
         r_detail = client.get(f"/api/v1/alerts/{alert_id}", headers={"X-API-Key": READ_KEY})
         assert r_detail.status_code == 200
         assert r_detail.json()["incident_id"] == "INC-0001"
 
-        # 3. Acknowledge alert
         r_ack = client.post(
             f"/api/v1/alerts/{alert_id}/ack",
             json={"actor": "sre-alice", "comment": "Investigating node J12"},
@@ -103,7 +99,6 @@ def test_alerts_crud_and_actions(setup_phase2_env):
         assert len(ack_data["actions"]) == 1
         assert ack_data["actions"][0]["action_type"] == "ACKNOWLEDGE"
 
-        # 4. Close alert
         r_close = client.post(
             f"/api/v1/alerts/{alert_id}/close",
             json={"actor": "sre-alice", "comment": "Hardware repaired", "reason": "RESOLVED"},
@@ -117,7 +112,7 @@ def test_alerts_crud_and_actions(setup_phase2_env):
 
 def test_batch_ingest_endpoint():
     with TestClient(app) as client:
-        lines = [SAMPLE_BGL_LINE] * 105  # Ingest 105 lines (1 completed window)
+        lines = [SAMPLE_BGL_LINE] * 105
         response = client.post(
             "/api/v1/live/ingest/batch",
             json={"lines": lines},
@@ -132,7 +127,6 @@ def test_batch_ingest_endpoint():
 
 def test_review_queue_json_and_csv(setup_phase2_env):
     store = setup_phase2_env
-    # Seed a review window
     review_window = {
         "window_id": 1,
         "first_line_number": 1,
@@ -160,13 +154,11 @@ def test_review_queue_json_and_csv(setup_phase2_env):
     )
 
     with TestClient(app) as client:
-        # JSON format
         r_json = client.get("/api/v1/review?format=json", headers={"X-API-Key": READ_KEY})
         assert r_json.status_code == 200
         assert r_json.json()["count"] == 1
         assert r_json.json()["items"][0]["decision"] == "NOVELTY_DRIFT_REVIEW"
 
-        # CSV format
         r_csv = client.get("/api/v1/review?format=csv", headers={"X-API-Key": READ_KEY})
         assert r_csv.status_code == 200
         assert "text/csv" in r_csv.headers["content-type"]
@@ -198,12 +190,10 @@ def test_models_and_drift_endpoints(setup_phase2_env):
     )
 
     with TestClient(app) as client:
-        # Models
         r_models = client.get("/api/v1/models", headers={"X-API-Key": READ_KEY})
         assert r_models.status_code == 200
         assert len(r_models.json()["active_models"]) >= 1
 
-        # Drift
         r_drift = client.get("/api/v1/drift", headers={"X-API-Key": READ_KEY})
         assert r_drift.status_code == 200
         assert "drift_status" in r_drift.json()

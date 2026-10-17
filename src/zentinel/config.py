@@ -3,14 +3,12 @@ import json
 import os
 from pathlib import Path
 
-# Base directories
 ROOT_DIR = Path(__file__).resolve().parents[2]
 ARTIFACTS_DIR = ROOT_DIR / "artifacts"
 REPORTS_DIR = ROOT_DIR / "reports"
 DATA_DIR = ROOT_DIR / "data"
 RAW_LOG_PATH = DATA_DIR / "raw" / "BGL.log"
 
-# Standard frozen model / inference assets
 DRAIN_STATE_PATH = ARTIFACTS_DIR / "drain3_train_state_0_7.bin"
 VOCAB_PATH = ARTIFACTS_DIR / "event_token_vocabulary_v2.json"
 MODEL_PATH = ARTIFACTS_DIR / "lstm_next_event.pt"
@@ -18,7 +16,6 @@ MODEL_THRESHOLD_PATH = ARTIFACTS_DIR / "lstm_known_run_threshold.json"
 DECISION_REPORT_PATH = REPORTS_DIR / "lstm_three_way_test_decision_report.json"
 MANIFEST_PATH = ARTIFACTS_DIR / "manifest.json"
 
-# Ingestion constants
 WINDOW_SIZE = 100
 PAD_TOKEN = 0
 UNKNOWN_TOKEN = 1
@@ -92,7 +89,6 @@ class ZentinelConfig:
         if not self.db_path.is_absolute():
             self.db_path = ROOT_DIR / self.db_path
 
-        # Security
         self.api_key_sha256 = os.getenv("ZENTINEL_API_KEY_SHA256", "")
         cors_raw = os.getenv(
             "ZENTINEL_CORS_ORIGINS",
@@ -102,10 +98,8 @@ class ZentinelConfig:
         self.rate_limit_rps = float(os.getenv("ZENTINEL_RATE_LIMIT_RPS", "100.0"))
         self.rate_limit_burst = int(os.getenv("ZENTINEL_RATE_LIMIT_BURST", "200"))
 
-        # Retention
         self.idempotency_retention_days = int(os.getenv("ZENTINEL_IDEMPOTENCY_RETENTION_DAYS", "7"))
         self.event_retention_days = int(os.getenv("ZENTINEL_EVENT_RETENTION_DAYS", "30"))
 
-        # Windowing
         self.window_size = WINDOW_SIZE
         self.max_recent_windows = MAX_RECENT_WINDOWS

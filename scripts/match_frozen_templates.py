@@ -183,7 +183,6 @@ def main() -> None:
                     validation_end,
                 )
 
-                # Do not pass labels into the matcher.
                 model_input = build_template_input(row)
                 cluster = miner.match(model_input)
 
@@ -248,7 +247,6 @@ def main() -> None:
         writer.close()
         writer = None
 
-        # Publish the dataset only after all input records are processed.
         os.replace(TEMP_PATH, OUTPUT_PATH)
 
     except Exception:

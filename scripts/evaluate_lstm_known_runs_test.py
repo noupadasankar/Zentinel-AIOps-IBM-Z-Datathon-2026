@@ -72,7 +72,6 @@ def load_state_dict(path):
 
     state = {k: v for k, v in checkpoint.items() if torch.is_tensor(v)}
 
-    # Remove the common DataParallel prefix if present.
     if state and all(k.startswith("module.") for k in state):
         state = {k[len("module.") :]: v for k, v in state.items()}
 
@@ -112,7 +111,6 @@ class ReconstructedLSTM(nn.Module):
         if not vocab_candidates:
             raise ValueError("Could not identify the embedding matrix in the checkpoint.")
 
-        # The embedding matrix has shape [vocabulary size, embedding size].
         embedding_key, embedding_weight = vocab_candidates[0]
         embedding_prefix = embedding_key.rsplit(".", 1)[0]
         vocab_size = int(embedding_weight.shape[0])
@@ -144,7 +142,6 @@ class ReconstructedLSTM(nn.Module):
         projection_key = projection_candidates[-1]
         projection_prefix = projection_key.rsplit(".", 1)[0]
 
-        # These checks avoid silently loading an incompatible architecture.
         names = [
             embedding_prefix.split(".")[-1],
             lstm_prefix.split(".")[-1],
@@ -202,7 +199,6 @@ def collect_known_runs(sequence_rows, global_indices):
             if token >= 2:
                 current.append(token)
             else:
-                # Both UNK (1) and PAD (0) break a known-event run.
                 save_run()
                 current = []
 

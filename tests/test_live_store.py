@@ -146,7 +146,6 @@ def test_idempotency_response_survives_store_reload(tmp_path):
     finally:
         store.close()
 
-    # Open a fresh store instance to verify persistence across reboots
     restored_store = LiveStateStore(database_path)
     try:
         assert restored_store.get_idempotent_response(key) == original_response
@@ -161,7 +160,6 @@ def test_retention_purge(tmp_path):
     store = LiveStateStore(database_path)
 
     try:
-        # Insert artificial old records directly
         with store._connection:
             store._connection.execute("""
                 INSERT INTO ingestion_idempotency (idempotency_key, payload_sha256, response_json, created_at)
@@ -209,11 +207,9 @@ def test_wal_checkpoint_and_backup(tmp_path):
         checkpoint_result = store.wal_checkpoint(mode="PASSIVE")
         assert checkpoint_result["mode"] == "PASSIVE"
 
-        # Test online backup API
         store.backup_database(backup_path)
         assert backup_path.exists()
 
-        # Verify backup contains the saved state
         backup_store = LiveStateStore(backup_path)
         try:
             loaded = backup_store.load_state()

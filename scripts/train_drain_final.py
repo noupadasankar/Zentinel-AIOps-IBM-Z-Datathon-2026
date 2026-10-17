@@ -81,7 +81,6 @@ def main() -> None:
 
             miner.add_log_message(build_template_input(record))
 
-            # Track labels for audit only; they are not model inputs.
             labels[record.label] += 1
             empty_messages += int(not record.message)
             processed += 1
@@ -92,7 +91,6 @@ def main() -> None:
     if processed != train_end:
         raise RuntimeError(f"Expected {train_end:,} training records; processed {processed:,}.")
 
-    # Save the frozen training vocabulary once fitting is complete.
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     miner.persistence_handler = FilePersistence(str(STATE_PATH))
     miner.save_state("training_complete")

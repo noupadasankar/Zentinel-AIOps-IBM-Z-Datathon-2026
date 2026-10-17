@@ -66,8 +66,6 @@ def main() -> None:
             if maximum_time is None or event_time > maximum_time:
                 maximum_time = event_time
 
-            # The fixed-width event-time format sorts lexicographically
-            # in the same order as its chronological components.
             if previous_time is not None and event_time < previous_time:
                 decreasing_pairs += 1
 

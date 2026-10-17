@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 
-# Add src to sys.path so zentinel is importable
 SRC_DIR = Path(__file__).resolve().parents[1] / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
@@ -14,7 +13,6 @@ from zentinel.api.live_api import app
 def smoke_test():
     print("Executing Zentinel live smoke test...")
     with TestClient(app) as client:
-        # 1. Health check
         res = client.get("/health")
         if res.status_code != 200:
             print(f"FAILED: /health returned {res.status_code}")
@@ -22,7 +20,6 @@ def smoke_test():
         health_data = res.json()
         print(f"PASS: /health returned ok (vocab size={health_data['vocabulary_size']})")
 
-        # 2. Ingest 100 lines to verify live inference and window decision
         sample_bgl = (
             "- 1117838570 2005.06.03 "
             "R02-M1-N0-C:J12-U11 "
@@ -52,7 +49,6 @@ def smoke_test():
             f"(score={decision['lstm_anomaly_score']:.4f})"
         )
 
-        # 3. Status check
         status_res = client.get("/api/v1/live/status")
         if status_res.status_code != 200:
             print(f"FAILED: /api/v1/live/status returned {status_res.status_code}")

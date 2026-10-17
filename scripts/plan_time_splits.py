@@ -81,7 +81,6 @@ def main() -> None:
     print(f"Window size: {WINDOW_SIZE} consecutive log records")
     print(f"Total windows: {total_windows:,}\n")
 
-    # Read only labels in batches; this does not create model features.
     for batch in parquet.iter_batches(
         batch_size=100_000,
         columns=["label"],

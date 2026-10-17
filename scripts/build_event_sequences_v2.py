@@ -44,7 +44,6 @@ def main():
     total_rows = parquet.metadata.num_rows
     total_windows = (total_rows + WINDOW_SIZE - 1) // WINDOW_SIZE
 
-    # Learn the token vocabulary from training records only.
     training_event_ids = set()
 
     print("Building vocabulary from training records only...")
@@ -64,7 +63,6 @@ def main():
     if not training_event_ids:
         raise RuntimeError("No known training event IDs were found.")
 
-    # Token 0 is PAD; token 1 is UNK; known event tokens start at 2.
     event_to_token = {
         event_id: token
         for token, event_id in enumerate(
@@ -167,7 +165,6 @@ def main():
             end_timestamps[window_id] = int(row["timestamp"])
             record_counts[split] += 1
 
-            # Labels are targets only; they never enter the sequence.
             if row["label"] != "-":
                 targets[window_id] = 1
 
@@ -183,7 +180,6 @@ def main():
     if np.any(split_codes == 255):
         raise RuntimeError("Some windows have no split assignment.")
 
-    # Persist the sequence arrays to a new artifact.
     SEQUENCE_PATH.parent.mkdir(parents=True, exist_ok=True)
     VOCAB_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)

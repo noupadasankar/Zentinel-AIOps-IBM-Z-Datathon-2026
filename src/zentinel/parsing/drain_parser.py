@@ -50,8 +50,6 @@ def parse_bgl_line(raw_line: str, line_number: int = 0) -> BGLRecord:
     """
     line = raw_line.rstrip("\r\n")
 
-    # Preserve the message tail instead of splitting the whole line
-    # into individual whitespace-separated tokens.
     parts = line.split(maxsplit=5)
 
     if len(parts) < 5:
@@ -67,18 +65,14 @@ def parse_bgl_line(raw_line: str, line_number: int = 0) -> BGLRecord:
 
     tail_fields = tail.split(maxsplit=4)
 
-    # Only parse metadata when the recognized severity occupies
-    # the expected fourth position in the metadata tail.
     standard_layout = len(tail_fields) >= 4 and tail_fields[3] in KNOWN_SEVERITIES
 
     if standard_layout:
         node_repeat, event_type, component, severity = tail_fields[:4]
 
-        # An empty message is valid. Do not invent message text.
         message = tail_fields[4] if len(tail_fields) == 5 else ""
         parse_status = "standard"
     else:
-        # Preserve all text when the metadata structure is uncertain.
         node_repeat = None
         event_type = None
         component = None

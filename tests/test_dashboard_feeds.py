@@ -70,7 +70,7 @@ def client_with_store(tmp_path):
 def test_migration_004_backfills_decision_column(tmp_path):
     """Existing DBs upgraded to migration 004 get decision values backfilled."""
     db_path = tmp_path / "legacy.sqlite3"
-    store = LiveStateStore(db_path)  # applies all migrations incl. 004
+    store = LiveStateStore(db_path)
 
     payload = {"window_id": 1, "decision": "ANOMALY_ALERT"}
     with store._lock, store._connection:
@@ -79,7 +79,6 @@ def test_migration_004_backfills_decision_column(tmp_path):
             (1, json.dumps(payload)),
         )
 
-    # Force a manual replay of the 004 backfill logic as if upgrading an old DB
     from zentinel.api.migrations import _backfill_live_window_decisions
 
     _backfill_live_window_decisions(store._connection)

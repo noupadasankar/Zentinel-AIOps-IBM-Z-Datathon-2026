@@ -47,7 +47,6 @@ def main() -> None:
             total += 1
             line = raw_line.rstrip("\r\n")
 
-            # Preserve everything after the first five fields as a tail.
             parts = line.split(maxsplit=5)
 
             if len(parts) < 5:
@@ -88,7 +87,6 @@ def main() -> None:
             valid_prefix += 1
             label_counts[label] += 1
 
-            # Only interpret metadata when its expected structure is present.
             tail_fields = tail.split(maxsplit=4)
 
             has_standard_layout = len(tail_fields) >= 4 and tail_fields[3] in KNOWN_LEVELS
@@ -97,8 +95,6 @@ def main() -> None:
                 standard_layout += 1
                 severity_counts[tail_fields[3]] += 1
 
-                # Four metadata tokens with no trailing content means
-                # that the message is empty.
                 if len(tail_fields) == 4:
                     empty_messages += 1
             else:

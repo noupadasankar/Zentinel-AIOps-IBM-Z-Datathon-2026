@@ -76,7 +76,6 @@ def main():
     if len(validation_indices) == 0 or len(test_indices) == 0:
         raise ValueError("Validation or test split is empty.")
 
-    # Derive the novelty threshold from VALIDATION ONLY.
     validation_rates = np.array([unknown_rate(sequences[i])[3] for i in validation_indices])
 
     drift_threshold = float(np.quantile(validation_rates, DRIFT_QUANTILE))
@@ -102,7 +101,6 @@ def main():
         insufficient_known_events = not has_score
         high_unknown_rate = rate > drift_threshold
 
-        # Conservative precedence: investigate drift/unscorable data first.
         if insufficient_known_events:
             decision = "NOVELTY_DRIFT_REVIEW"
             reason = "INSUFFICIENT_KNOWN_TRANSITIONS"

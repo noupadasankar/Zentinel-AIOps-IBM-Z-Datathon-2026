@@ -140,7 +140,6 @@ def main():
     train_mask = data["split"].eq("train")
     validation_mask = data["split"].eq("validation")
 
-    # Train on normal training windows only.
     train_normal_mask = train_mask & data["target_anomaly"].eq(0)
 
     if train_normal_mask.sum() == 0:
@@ -170,8 +169,6 @@ def main():
     print("\nFitting Isolation Forest on normal training windows...")
     model.fit(X_train)
 
-    # decision_function is higher for normal data.
-    # Negating it gives a score where higher means more anomalous.
     validation_scores = -model.decision_function(X_validation)
 
     precisions, recalls, thresholds = precision_recall_curve(
@@ -186,8 +183,6 @@ def main():
 
     best_f1 = float(np.max(f1_values))
 
-    # Prefer higher precision, then the higher threshold if the maximum
-    # F1 is tied. This keeps the selection deterministic.
     candidate_indices = np.flatnonzero(np.isclose(f1_values, best_f1, rtol=1e-10, atol=1e-12))
 
     best_index = max(

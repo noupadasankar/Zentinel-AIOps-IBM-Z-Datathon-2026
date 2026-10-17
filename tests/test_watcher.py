@@ -41,11 +41,9 @@ def test_file_replacement_detected_by_first_line_change(tmp_path):
     offset, file_id = watcher.load_cursor()
     assert offset == log_file.stat().st_size
 
-    # Simulate log rotation/replacement where first line changes
     log_file.write_text("completely new first line after rotation\n", encoding="utf-8")
     new_offset, new_file_id = watcher.load_cursor()
 
-    # Watcher detects replacement and resets offset to 0!
     assert new_offset == 0
     assert new_file_id != file_id
 
@@ -64,7 +62,6 @@ def test_dead_letter_records_400_and_422_with_correct_source_file(tmp_path):
     )
     watcher.offset, watcher.file_id = watcher.load_cursor()
 
-    # Mock API returning 422 Unprocessable Entity
     mock_resp = MagicMock()
     mock_resp.status_code = 422
     mock_resp.text = "Unprocessable log record"
@@ -75,10 +72,8 @@ def test_dead_letter_records_400_and_422_with_correct_source_file(tmp_path):
     result = watcher.run_once(mock_client)
     assert result == {"status": "rejected", "code": 422}
 
-    # Offset must have advanced past the bad line
     assert watcher.offset > 0
 
-    # Dead letter must record the actual watched file path
     assert dead_letter_file.exists()
     records = [json.loads(line) for line in dead_letter_file.read_text(encoding="utf-8").splitlines()]
     assert len(records) == 1
@@ -103,7 +98,6 @@ def test_transient_error_retries_with_backoff_without_advancing(tmp_path):
     watcher.offset, watcher.file_id = watcher.load_cursor()
     initial_offset = watcher.offset
 
-    # Mock transient 503 Service Unavailable
     mock_resp = MagicMock()
     mock_resp.status_code = 503
 
@@ -114,11 +108,8 @@ def test_transient_error_retries_with_backoff_without_advancing(tmp_path):
         result = watcher.run_once(mock_client)
 
     assert result is None
-    # Cursor offset must NOT advance on server error!
     assert watcher.offset == initial_offset
-    # Backoff increased
     assert watcher.current_backoff == 0.2
-    # Not sent to dead letter
     assert not dead_letter_file.exists()
 
 
@@ -175,7 +166,7 @@ def test_retry_after_header_honored(tmp_path):
         result = watcher.run_once(mock_client)
 
     assert result is None
-    assert watcher.offset == 0  # cursor must not advance on transient failure
+    assert watcher.offset == 0
     assert sleeps == [3.0]
 
 
@@ -240,7 +231,7 @@ def test_successful_ingest_advances_cursor_and_resets_backoff(tmp_path):
         initial_backoff=0.1,
     )
     watcher.offset, watcher.file_id = watcher.load_cursor()
-    watcher.current_backoff = 0.8  # elevated backoff
+    watcher.current_backoff = 0.8
 
     mock_resp = MagicMock()
     mock_resp.status_code = 200
@@ -257,7 +248,7 @@ def test_successful_ingest_advances_cursor_and_resets_backoff(tmp_path):
 
     assert result is not None
     assert watcher.offset == log_file.stat().st_size
-    assert watcher.current_backoff == 0.1  # reset to initial
+    assert watcher.current_backoff == 0.1
     assert len(decisions) == 1
 
 

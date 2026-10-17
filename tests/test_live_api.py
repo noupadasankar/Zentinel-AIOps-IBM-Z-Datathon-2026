@@ -16,7 +16,6 @@ VALID_BGL_LINE = (
     "RAS KERNEL INFO instruction cache parity error corrected"
 )
 
-# Test API Keys
 ADMIN_KEY = "admin-secret-test-key"
 ADMIN_KEY_HASH = hashlib.sha256(ADMIN_KEY.encode("utf-8")).hexdigest()
 
@@ -33,14 +32,12 @@ def setup_test_environment(tmp_path):
     db_path = tmp_path / "test_api.sqlite3"
     store = LiveStateStore(db_path)
 
-    # Reset in-memory state
     with patch("zentinel.api.live_api.STORE", store), patch("zentinel.api.live_api.CONFIG.db_path", db_path):
         STATE.clear()
         STATE.update({"logs_received": 0, "windows_completed": 0, "unknown_events_received": 0})
         CURRENT_WINDOW.clear()
         RECENT_WINDOWS.clear()
 
-        # Configure test security manager with admin, ingest, and read keys
         keys_cfg = f"admin:{ADMIN_KEY_HASH},ingest:{INGEST_KEY_HASH},read:{READ_KEY_HASH}"
         SECURITY.api_keys_config = keys_cfg
         SECURITY._load_keys()
@@ -100,7 +97,6 @@ def test_invalid_api_key_returns_401():
 
 def test_insufficient_role_returns_403():
     with TestClient(app) as client:
-        # Read key attempting to perform ingest
         response = client.post(
             "/api/v1/live/ingest",
             json={"raw_line": VALID_BGL_LINE},
@@ -142,7 +138,6 @@ def test_successful_ingest_updates_state():
 def test_idempotency_replay_and_collision_409():
     with TestClient(app) as client:
         key = "test-idemp-key-1"
-        # First request
         resp1 = client.post(
             "/api/v1/live/ingest",
             json={"raw_line": VALID_BGL_LINE, "idempotency_key": key},
@@ -152,7 +147,6 @@ def test_idempotency_replay_and_collision_409():
         data1 = resp1.json()
         assert data1.get("idempotency_replayed") is None
 
-        # Replay with identical payload -> 200 replayed
         resp2 = client.post(
             "/api/v1/live/ingest",
             json={"raw_line": VALID_BGL_LINE, "idempotency_key": key},
@@ -163,7 +157,6 @@ def test_idempotency_replay_and_collision_409():
         assert data2.get("idempotency_replayed") is True
         assert data2["event"]["line_number"] == data1["event"]["line_number"]
 
-        # Replay with DIFFERENT payload -> 409 Conflict
         different_line = VALID_BGL_LINE.replace("instruction cache", "data cache")
         resp3 = client.post(
             "/api/v1/live/ingest",
@@ -178,11 +171,9 @@ def test_idempotency_replay_and_collision_409():
 def test_db_failure_rolls_back_and_prevents_state_divergence(setup_test_environment):
     store = setup_test_environment
     with TestClient(app, raise_server_exceptions=False) as client:
-        # Initial state is 0
         assert STATE["logs_received"] == 0
         assert len(CURRENT_WINDOW) == 0
 
-        # Simulate database failure during save_event_and_state
         with (
             patch.object(
                 store,
@@ -198,11 +189,9 @@ def test_db_failure_rolls_back_and_prevents_state_divergence(setup_test_environm
             )
             assert resp.status_code == 500
 
-        # Verify in-memory state remained completely untouched!
         assert STATE["logs_received"] == 0
         assert len(CURRENT_WINDOW) == 0
 
-        # Retry should succeed and log as line 1 (no double append or skipped numbers)
         with patch("zentinel.api.live_api.STORE", store):
             retry_resp = client.post(
                 "/api/v1/live/ingest",
@@ -227,7 +216,6 @@ def test_hundredth_line_completes_window():
             assert r.status_code == 200
             assert r.json()["window_completed"] is False
 
-        # 100th line completes window
         r100 = client.post(
             "/api/v1/live/ingest",
             json={"raw_line": VALID_BGL_LINE},
@@ -244,18 +232,15 @@ def test_hundredth_line_completes_window():
 
 def test_rate_limiting_enforced():
     with TestClient(app) as client:
-        # Set low rate limit
         SECURITY.rate_limiter.rps = 1.0
         SECURITY.rate_limiter.burst = 2
         SECURITY.rate_limiter.reset()
 
-        # First 2 requests succeed (burst capacity)
         r1 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
         assert r1.status_code == 200
         r2 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
         assert r2.status_code == 200
 
-        # Third immediate request hits 429
         r3 = client.get("/api/v1/live/status", headers={"X-API-Key": READ_KEY})
         assert r3.status_code == 429
         data = r3.json()

@@ -160,7 +160,6 @@ def main():
 
     split_report = {name: finalize_stats(stats) for name, stats in split_stats.items()}
 
-    # Print date-level diagnostics specifically for validation and test.
     date_report = []
 
     for (split, date), stats in sorted(date_stats.items()):
@@ -170,7 +169,6 @@ def main():
             item["date"] = date
             date_report.append(item)
 
-    # Inspect contiguous source blocks to identify when unknowns rise.
     chunk_report = []
 
     for chunk_id, stats in sorted(chunk_stats.items()):

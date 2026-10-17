@@ -140,7 +140,6 @@ def main() -> None:
                 if total % 500_000 == 0:
                     print(f"Checked {total:,} records | raw mismatches={raw_mismatches:,}")
 
-        # Check that the original file has no unprocessed trailing lines.
         extra_source_line = source.readline() != ""
 
     normal_count = label_counts.get("-", 0)

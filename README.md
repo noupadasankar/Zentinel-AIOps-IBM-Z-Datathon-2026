@@ -1,157 +1,235 @@
-# Zentinel AIOps: Enterprise Log Anomaly Detection Platform
+# Zentinel AIOps — IBM Z Datathon 2026
 
-[![CI](https://github.com/zentinel-aiops/zentinel/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![ONNX Opset 17](https://img.shields.io/badge/ONNX-Opset_17-orange.svg)](reports/onnx_parity_report.json)
-[![Artifact Integrity: Verified](https://img.shields.io/badge/Artifacts-SHA256_Verified-green.svg)](artifacts/manifest.json)
+Real-time operational-log anomaly detection and incident-investigation platform. Ingests raw log lines, parses them against a **frozen** template state, builds temporal windows, scores them with a PyTorch LSTM next-event model and an Isolation Forest, applies a deterministic three-way decision policy, groups alert windows into evidence-backed incidents, and exposes everything through a FastAPI backend and a Streamlit operations dashboard.
 
-> **Zentinel AIOps** is a log anomaly detection and observability platform designed for distributed infrastructure. Built on **LogHub BlueGene/L**, Zentinel couples **frozen Drain3 template mining** with a **known-run next-event LSTM** to deliver bounded **three-way operational decisions**: `NO_ANOMALY_DETECTED`, `ANOMALY_ALERT`, and `NOVELTY_DRIFT_REVIEW`.
+- **Status:** complete, 78/78 tests passing, lint clean, acceptance-verified package
+- **Target platform:** IBM Z / LinuxONE (portable by design; **not yet validated on s390x** — no on-device claims made)
+- **Final artifact:** `Zentinel-AIOps-IBM-Z-Datathon-2026.zip` — SHA-256 in [`reports/ZIP_VERIFICATION.md`](reports/ZIP_VERIFICATION.md)
 
 ---
 
-## Concepts and Data Flow
+## 1. Pipeline overview
 
 ```
-log file (BGL line) ──▶ FILE WATCHER ──▶ POST /api/v1/live/ingest ──▶ Drain3 frozen matcher
-     (tail + cursor)        (X-API-Key)         (idempotency)          └─▶ token ─┐
-                                                                                  ▼
- dashboard ◀── GET /api/v1/dashboards/summary ◀── SQLite WAL store ◀── known-run LSTM scoring
- (live UI)        (single aggregated feed)          (transactions)     └─▶ three-way decision
+raw log line ──► POST /api/v1/live/ingest ──► parse (frozen Drain3, 615 templates)
+             ──► token 0=PAD 1=UNKNOWN 2..615 ◄── unknown → UNKNOWN, never refit
+             ──► 100-line window (47,480 windows, 654 features over the dataset)
+             ──► Isolation Forest (647-dim features) + LSTM known-run scoring
+             ──► three-way decision ──► incident policy (hysteresis/cooldown/dedupe)
+             ──► SQLite persistence (WAL) ──► API ──► dashboard ──► operator actions (audit)
 ```
+
+| Module | Path | Responsibility |
+|---|---|---|
+| config + artifact integrity | `src/zentinel/config.py` | paths from env, `verify_manifest()` SHA-256 check at startup |
+| ingestion | `src/zentinel/ingestion/` | idempotency (payload-mismatch → 409), Retry-After backoff, truncation/rotation detection, dead-letter, retention |
+| parsing | `src/zentinel/parsing/drain_parser.py` | `parse_bgl_line`, frozen `TemplateMiner.match(..., never-refit guard)`, UNK mapping |
+| features | `src/zentinel/features/` | window identity, template counts, entropy, unknown-rate |
+| models | `src/zentinel/models/` | `InferenceEngine` (IF + LSTM + thresholds), `score_known_runs` (UNK/PAD break runs), ONNX opset-17 export |
+| alerts | `src/zentinel/alerts/` | three-way policy, hysteresis, cooldown, dedupe, severity, incident lifecycle, measured evidence |
+| API | `src/zentinel/api/` | FastAPI routes, schemas, auth, rate limiting, single-worker state discipline |
+| dashboard | `dashboard/app.py` | 10 operator pages, live-API-first, labelled demo fallback |
+| research | `notebooks/00–12.ipynb`, `scripts/` | executed laboratory + training/eval pipelines |
 
 ---
 
-## 5-Command Quick Start
+## 2. Data (LogHub BGL)
 
-Spin up the complete platform (Live FastAPI Engine, Dark-Theme Operations Dashboard, and Log Watcher) in under 2 minutes:
+| Item | Value |
+|---|---|
+| Source | LogHub **BGL** telemetry, 4,747,963 labelled lines (`data/raw/BGL.log`, 743 MB — not distributed; re-obtain per the dataset card section below) |
+| Chronological split 70/15/15 | train lines 1–3,323,600 (33,236 windows) · validation 3,323,601–4,035,800 (7,122) · test 4,035,801–4,747,963 (7,122; 802 anomalous) |
+| Windows | 100 lines → 47,480 windows × 654 features |
+| Frozen templates | **615** (training split only) |
+| Shipped in ZIP | `data/processed/bgl_parsed_sample.jsonl` (14.5 MB), `bgl_window_features.parquet` (6.9 MB), sequences npz, per-window scores/decisions, `data/raw/sample_replay.log` demo fixture |
+
+Data card (schema & semantics): BGL lines are `<label>` + `<timestamp>` + node/card/LBA fields + free-form message; a window is `target_anomaly=1` when any line carries a labelled alert class. Sequences use tokens 0=PAD, 1=UNKNOWN, 2–615 known. Regeneration chain:
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/zentinel-aiops/zentinel.git && cd zentinel
-
-# 2. Configure environment from template
-cp .env.example .env
-
-# 3. Launch full stack via Docker Compose
-docker compose up -d --build
-
-# 4. Verify system health
-curl -s http://127.0.0.1:8000/health
-
-# 5. Open the Operations Command Center
-# Navigate to: http://127.0.0.1:8501
+python scripts/parse_bgl_full.py
+python scripts/build_event_sequences_v2.py
+python scripts/build_window_features.py
+python scripts/train_isolation_forest.py
+python scripts/train_lstm_predictor.py
+python scripts/score_lstm_known_runs.py
+python scripts/build_three_way_decisions.py
 ```
 
-*To run natively on Python instead of Docker (the `zentinel` package is a `src/`-layout package — install it editable before starting the server):*
+---
+
+## 3. Models and frozen thresholds
+
+| Model | Config | Threshold (validation-selected; test never used for selection) |
+|---|---|---|
+| LSTM next-event (production) | vocab 616, embed 32, hidden 64, window 100, seed 42, 8 epochs, lr 1e-3, trained on normal training windows only | known-run score ≥ **3.479122797648112** |
+| Isolation Forest | 200 trees, seed 42, `joblib.load` (STACK_GLOBAL pickle — load via joblib, not plain pickle) | score ≥ **−0.077330** (max validation F1, ties → precision → higher threshold) |
+| Drain3 state | frozen `.bin` (615 templates) | never refit at inference (runtime monkey-patch guard in NB 02) |
+| LSTM autoencoder | **EXPERIMENTAL**, smoke fixture only, `"experimental": true` flag in artifact | never promoted |
+
+Every artifact is hashed in `artifacts/manifest.json`; the API refuses to start on mismatch.
+
+---
+
+## 4. Three-way decision policy
+
+| Decision | Condition |
+|---|---|
+| `ANOMALY_ALERT` | scorable known-run window with score ≥ τ and unknown rate ≤ novelty limit |
+| `NO_ANOMALY_DETECTED` | scorable window, score < τ |
+| `NOVELTY_DRIFT_REVIEW` | unknown-template rate > **0.02** (validation q95) or transitions < 2 — human review, never silently normal |
+
+- Hysteresis: open at τ; close after 3 consecutive windows < 0.70·τ (2.4354).
+- Cooldown suppresses flapping; dedupe suppresses re-alerts.
+- Incident states OPEN → ACKNOWLEDGED → CLOSED (+ false-positive marking), validated server-side with full audit history.
+- Every decision reproducible from window id + feature data + model artifact hash + frozen threshold + template-state + policy version.
+
+---
+
+## 5. API (FastAPI)
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /health`, `GET /ready` | liveness; readiness = engine + persistence |
+| `POST /api/v1/live/ingest` | single line; idempotent; payload mismatch → 409 |
+| `POST /api/v1/live/ingest/batch` | bounded batch, per-record validation, partial-failure semantics |
+| `GET /api/v1/live/status` | counters |
+| `GET /api/v1/live/windows` | paginated scored windows |
+| `GET /api/v1/alerts` · `/{id}` | incident list/detail |
+| `POST /api/v1/alerts/{id}/ack` · `/close` | operator actions (audit-logged) |
+| `GET /api/v1/review` (`format=csv`) | novelty-review queue + export |
+| `GET /api/v1/drift` · `/models` · `/metrics` | drift data, model registry, real measured counters |
+
+Interactive OpenAPI: `http://127.0.0.1:8000/docs` — all schemas, limits, error envelopes, request IDs, auth requirements live there. Security: sha256-key auth (`ZENTINEL_API_KEY_SHA256`), 100 rps default limiter with `Retry-After`, strict CORS, bounded payloads, non-root container runtime user.
+
+---
+
+## 6. Dashboard (10 pages, real API data)
+
+Dark navy theme; cyan accents; amber = review, red = alert. Sidebar groups:
+
+- **Overview** — health banner, KPI strip (events processed, windows scored, auto-coverage, review share, open incidents), score timeline with threshold line, decision mix, top patterns, recent activity.
+- **Incidents (N)** — filterable list + detail: severity/state/peak score/model+threshold versions, supporting templates, raw log-line references, related windows, evidence summary; working Acknowledge / Close / False-positive buttons (real API calls, errors surfaced); audit history; CSV export; printable report.
+- **Review Queue** — unmatched/first-seen patterns, frequencies, timestamps, source filters, CSV export of retraining candidates (never mutates frozen state).
+- **Windows Browser** — split filter, range slider, paginated scored-window table.
+- **Stream & Composition** — live token composition and known-run charts.
+- **Drift Diagnostics** — unknown-rate timeline vs 0.02 threshold, coverage metrics.
+- **Model Evaluation** — model registry, comparison tables, PR curve, confusion matrix, split metadata, artifact hashes, benchmark results (test metrics labelled exploratory).
+- **Thresholds & Models** — threshold lines + provenance (offline-safe registry caption).
+- **API Keys & Security** — masked key administration.
+- **Settings & Database** — admin/DB ops with feedback.
+
+Sidebar: connection badge (`API Connected (Live)` / `Offline Demo Mode`), auto-refresh (5 s), **Stream Replay** control (file 100–5,000 lines → real `/ingest/batch`). Every page has loading/empty/error states; demo fixtures are labelled and used only when the API is down.
+
+---
+
+## 7. Evaluation results (from committed reports)
+
+| Metric | Value | Source |
+|---|---|---|
+| Walk-forward test F1 | **0.8333** (95 % CI [0.6430, 0.9489]) | `reports/temporal_walk_forward_evaluation.json` |
+| Walk-forward precision / recall | 0.8173 / 0.8500 | same |
+| Automatic coverage / review share | 0.3322 / 0.6678 (slice 1: 90.7 % coverage, F1 0.9123) | same |
+| False alerts | 0.0130/h | same |
+| Three-way mix (test, 7,122 windows) | 104 alerts · 2,262 normal · 4,756 review | `reports/lstm_three_way_test_decision_report.json` |
+| Isolation Forest (exploratory test) | P 0.3228 · R 0.0636 · ROC-AUC 0.8517 · PR-AUC 0.3501 | `reports/nb04_isolation_forest_report.json` |
+| LSTM parity (production reload) | window scores ≤ 1.9e-06 diff · decisions 100 % agree · 0.469 ms/window | `reports/nb05_lstm_checks.json` |
+| ONNX parity (opset 17) | 1,000 runs max logit diff 4.77e-06 · 918/918 identical decisions | `reports/onnx_parity_report.json` |
+| Ingestion benchmark (60 s × 3) | sequential 101.13 ± 1.55 ev/s (p50 2.21 ms) · 8-client 100.00 ev/s (p50 24.11 ms) | `reports/benchmark_report.json` |
+| NB 11 replay (8 s × 2 per mode) | seq median 110.25 ev/s · conc-8 median 100.25 ev/s · 0 hard errors | `reports/nb11_replay_benchmark.json` |
+
+Incident replay across all 7,122 test decisions (NB 08): 53 incidents opened, 52 closed, 194 updated windows, 30 cooldowns; peak-alert forensics re-parsed live from raw BGL lines with **0 token mismatches** (`reports/nb08_explainability_report.json`, evidence export `data/processed/alert_evidence.csv`).
+
+Label discipline: test labels used for fitting/threshold selection = **never**; exploratory diagnostics = declared inside each affected report.
+
+---
+
+## 8. Notebook laboratory (13/13 executed PASS)
+
+| NB | Topic | Evidence file |
+|---|---|---|
+| 00 | environment, artifact manifests, contract checks | `reports/nb00_run_manifest.json` |
+| 01 | data exploration, imbalance, report cross-checks | `reports/nb01_data_quality_report.json` |
+| 02 | frozen template audit (615), unknown scan, no-refit guard | `reports/nb02_template_state_report.json` |
+| 03 | features/splits + leakage guards (contiguity, order, label-not-a-feature) | `reports/nb03_split_manifest.json` |
+| 04 | Isolation Forest baseline + parity ≤ 1e-9 | `reports/nb04_isolation_forest_report.json` |
+| 05 | production LSTM + parity + latency | `reports/nb05_lstm_checks.json` |
+| 06 | experimental autoencoder (flagged, non-production) | `reports/nb06_autoencoder_experiment.json` |
+| 07 | model comparison + confusion + PR curves | `reports/nb07_model_comparison_expanded.json` |
+| 08 | incident replay + live raw-log evidence (0 mismatches) | `reports/nb08_explainability_report.json` |
+| 09 | drift timelines + validation-only threshold grid + synthetic scenario | `reports/nb09_drift_report.json` |
+| 10 | ONNX export/parity re-derivation | `reports/nb10_onnx_parity_local.json` |
+| 11 | live-API ingestion benchmark | `reports/nb11_replay_benchmark.json` |
+| 12 | final consolidation + reproduction commands | `reports/nb12_final_summary.json` |
+
+Re-execute any notebook standalone:
+
+```bash
+jupyter nbconvert --to notebook --execute notebooks/05_lstm_next_event_model.ipynb
+```
+
+(NB 02/08/11 additionally need `data/raw/BGL.log`; the shipped demo replay works without it.)
+
+---
+
+## 9. Quality gates (executed, dated 2026-10-18)
+
+| Gate | Result |
+|---|---|
+| pytest (parser, drain matcher, scorer, policy, store, API, watcher, ONNX, dashboard feeds) | **78 passed** |
+| ruff | clean |
+| pip-audit 2.10.1 | clean after pytest 9.1.1 upgrade (PYSEC-2026-1845 fixed) |
+| local secret scan (109 files) | 0 findings |
+| artifact manifest verification | clean in repo and inside the ZIP |
+| CI workflow (`.github/workflows/ci.yml`) | valid config (2 jobs) — not executed in-session (no runner) |
+| Docker | daemon unavailable on this host — verified via the native server path (NB 11) |
+| LinuxONE validation | not performed — portable-by-design; target protocol documented below |
+
+---
+
+## 10. LinuxONE (s390x) status
+
+**Portable by design; not yet validated on s390x.** No host was available, so nothing is claimed. Executed-on-device evidence collection steps: record `uname -m`, install Python 3.11 + `requirements.lock` + `pip install -e . --no-deps`, verify `artifacts/manifest.json` SHA-256s, run the API, `GET /ready`, re-run notebooks 05/10 (self-checking parity), then run the 60 s × 3 benchmark protocol and archive the notebook outputs + telemetry with the run. No Telum/AI-accelerator path exists in the codebase and none is claimed.
+
+---
+
+## 11. Operations quick reference
+
+```bash
+make install          # requirements.lock + editable zentinel package
+make lint             # ruff
+make test             # pytest suite
+make train            # full frozen-pipeline retrain (requires data/raw/BGL.log; CPU-hour-scale)
+make evaluate         # walk-forward evaluation reports
+make export-onnx      # rebuild ONNX artifact + parity report
+make benchmark        # 60 s × 3 ingest benchmark against a running API
+make run-api          # uvicorn (single worker enforced)
+make run-dashboard    # streamlit :8501
+make demo             # offline dashboard demo (labelled fixtures)
+make reproduce        # lint + test + ONNX parity + evaluation
+```
+
+Native startup (verified end-to-end):
+
 ```bash
 pip install -r requirements.lock
-pip install -e . --no-deps        # installs the zentinel package from src/ (also done by `make install`)
-pytest -ra
-python -m uvicorn zentinel.api.live_api:app --host 127.0.0.1 --port 8000 --workers 1
-streamlit run dashboard/app.py --server.port 8501
+pip install -e . --no-deps
+uvicorn zentinel.api.live_api:app --host 127.0.0.1 --port 8000 --workers 1   # /health, /ready, /docs
+streamlit run dashboard/app.py                                              # http://localhost:8501
 ```
 
-*Optional — tail a log file through the live ingestion pipeline (same command the Docker watcher uses):*
-```bash
-python -m zentinel.ingestion.watcher data/raw/sample_replay.log \
-    --api-url http://127.0.0.1:8000 \
-    --api-key your-ingest-key \
-    --from-start
-```
+Backups: stop the worker or use SQLite `VACUUM INTO 'backup.sqlite3'` while WAL mode keeps readers consistent; copy `data/processed/zentinel_live.sqlite3*` cold otherwise. Retention purge and migrations are applied automatically at API startup (bounded batches, referenced incident rows protected).
 
 ---
 
-## Measured Performance & Empirical Results
+## 12. Package
 
-All metrics below originate directly from committed reports in [`reports/`](reports/):
+`Zentinel-AIOps-IBM-Z-Datathon-2026.zip` — 19.5 MB, built with an explicit include-list (application, notebooks, small data, frozen artifacts, reports, Docker/CI/Makefile, sample fixture). Excluded by construction: raw 743 MB log, DBs, caches, venvs, `.env`, egg-info. Post-build verification (CRC, required paths, forbidden-name scan, artifact SHA re-check, 13/13 notebooks executed): [`reports/ZIP_VERIFICATION.md`](reports/ZIP_VERIFICATION.md) — kept outside the archive because a file cannot contain its own archive's digest. Acceptance report: [`reports/FINAL_COMPLETION_REPORT.md`](reports/FINAL_COMPLETION_REPORT.md).
 
-### 1. Temporal Walk-Forward Validation Table (Test Period)
-*Evaluated across 4 consecutive chronological test slices (7,122 test windows / 712,163 log lines).*
-*Context: **Exploratory temporal test set** (inspected during drift diagnostics).*
+## 13. Known limitations
 
-| Evaluation Slice | Window ID Range | Scorable Coverage % | Precision | Recall | F1 Score | Ground-Truth Anomaly Windows | Decision Routing Insight |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Slice 1** | `W-0000` – `W-1779` | **90.67%** (1,614 / 1,780) | **81.73%** | **85.00%** | **83.33%** | 100 | High known coverage; clean anomaly capture. |
-| **Slice 2** | `W-1780` – `W-3559` | **7.70%** (137 / 1,780) | 0.00% | 0.00% | 0.00% | 0 | Drift onset; unknown templates emerge. |
-| **Slice 3** | `W-3560` – `W-5339` | **0.00%** (0 / 1,780) | N/A *(drift)*| N/A | N/A | 0 | **100% routed to `NOVELTY_DRIFT_REVIEW`**; 0 false alarms. |
-| **Slice 4** | `W-5340` – `W-7121` | **34.51%** (615 / 1,782) | 0.00% | 0.00% | 0.00% | 0 | Partial recovery; novel templates stabilize. |
-| **Overall Aggregate**| `W-0000` – `W-7121` | **33.22%** (2,366 / 7,122) | **81.73%** | **85.00%** | **83.33%** | **100** | **0.0130 False Alerts / Hour**. |
-
-*Source: [`reports/temporal_walk_forward_evaluation.json`](reports/temporal_walk_forward_evaluation.json)*
-
-### 2. Operational Reliability & Lead Time
-- **False Alert Rate**: **0.0130 false alerts / hour** (0.31 / day), eliminating operator alert fatigue.
-- **Detection Delay / Lead Time**: Median **8.50 seconds** from episode onset to alert (p90: 9,504.5 s).
-- **95% Block-Bootstrap CIs** (500 resamples): F1 Score **[0.792, 0.871]** (Precision [0.758, 0.867], Recall [0.789, 0.902]).
-
-### 3. Ingestion Throughput Benchmark
-*Measured on TEST-period lines (line 4,035,801 onwards) across 3 repeated trials of 60 seconds each:*
-- **Sequential (1 worker)**: **101.13 ± 1.55 events/s** | Latency: p50 = **2.21 ms**, p95 = **6.03 ms**, p99 = **21.50 ms** (Peak RAM: 290.78 MB).
-- **8-way Concurrent**: **100.00 ± 0.02 events/s** | Latency: p50 = **24.11 ms**, p95 = **69.56 ms**, p99 = **106.92 ms** (Peak RAM: 328.63 MB).
-- *Source: [`reports/benchmark_report.json`](reports/benchmark_report.json)*
-
-### 4. ONNX Runtime Export & Numerical Parity (Opset 17)
-- Evaluated on **1,000 real runs** and **918 test windows**:
-  - **Max Logit Difference**: **$4.77 \times 10^{-6}$** (< 5e-6).
-  - **Decision Agreement**: **100.00% identical window decisions** between PyTorch CPU and ONNX Runtime.
-  - **PyTorch CPU Latency**: 0.501 ms mean per run.
-  - **ONNX Runtime CPU Latency**: 0.645 ms mean per run.
-  - *Source: [`reports/onnx_parity_report.json`](reports/onnx_parity_report.json)*
-
----
-
-## Architectural Highlights
-
-```
-+-------------------------------------------------------------------------------------------------+
-|                                 THREE-WAY OPERATIONAL DECISION                                  |
-+------------------------------------+--------------------------------+---------------------------+
-|        NOVELTY_DRIFT_REVIEW        |         ANOMALY_ALERT          |    NO_ANOMALY_DETECTED    |
-| (Unknown Rate > 2% or Transitions < 2)| (Score >= 3.4791 on Known Runs)|   (Score < 3.4791 Normal) |
-+------------------------------------+--------------------------------+---------------------------+
-```
-
-1. **Frozen Template Mining**: Trained strictly on the 70% chronological training split ($T_1$). `TemplateMiner.add_log_message()` is **never** called at inference (Non-Negotiable Rule 3). Unmatched logs cleanly map to `UNKNOWN_TOKEN` (1).
-2. **Known-Run LSTM Scoring**: Sequence transitions are evaluated over contiguous sub-runs of known tokens ($L \ge 2$), computing conditional cross-entropy loss without allowing unmapped templates to corrupt transition probabilities.
-3. **Transactional Candidate-Copy Persistence**: State updates are computed on speculative copies and committed atomically to SQLite WAL before being promoted to in-memory runtime state, eliminating state/DB divergence.
-4. **Hysteresis Alert Policy**: Alerts open at $\tau = 3.4791$ and close strictly when 3 consecutive windows fall below $0.70 \times \tau$ ($2.4354$), completely eliminating alert flapping.
-5. **Grounded Forensic Evidence**: Incident evidence is derived purely from physical quantities (per-event cross-entropy loss, template frequency, raw line references). **Zero hallucinated metrics; no synthetic SHAP claims.**
-
----
-
-## Documentation Suite
-
-Comprehensive engineering documentation is available in [`docs/`](docs/):
-
-- 🏛️ [**System Architecture**](docs/ARCHITECTURE.md): End-to-end design, ingestion topology, state machine, and data flow.
-- 📊 [**Dataset Card**](docs/DATA_CARD.md): LogHub BGL schema, chronological boundaries, label masking, and drift characteristics.
-- 🧠 [**Model Card**](docs/MODEL_CARD.md): LSTM architecture, hyperparameters, calibration, and ONNX opset 17 specifications.
-- 🔌 [**REST API Reference**](docs/API.md): Complete OpenAPI endpoint documentation, authentication, curl examples, and JSON schemas.
-- 🛡️ [**Security Architecture**](docs/SECURITY.md): Threat model, constant-time key validation, SQL injection defense, and non-root container isolation.
-- 🧪 [**Notebook Laboratory**](notebooks/README.md): 13 fully executed research/verification notebooks (00–12) with per-notebook JSON reports.
-- 🐧 [**LinuxONE Deployment**](docs/LINUXONE_DEPLOYMENT.md): s390x portability inventory and target-side verification protocol (no on-device claims made).
-- 🎯 [**Scoring Alignment**](docs/DATATHON_SCORING_ALIGNMENT.md): Requirement-by-requirement mapping to the datathon criteria with evidence pointers.
-- 🚀 [**Operations & Runbook**](docs/OPERATIONS.md): Deployment, numbered migrations, retention purge, backup procedures, and troubleshooting.
-- 📈 [**Evaluation Report**](docs/EVALUATION.md): Walk-forward temporal evaluation, detection delay, false alert rate, and CI methodology.
-- ⚖️ [**Architectural Decisions (ADR)**](docs/DECISIONS.md): Record of design decisions (ADR-001 through ADR-011).
-- 📜 [**Changelog**](CHANGELOG.md): Versioned release history adhering to Keep a Changelog.
-- 🎬 [**2-Minute Demo Script**](docs/DEMO_SCRIPT.md): Step-by-step executive walkthrough script.
-- 📑 [**Executive Slide Deck**](docs/SLIDES.md): 7-slide architectural presentation outline.
-
----
-
-## Hardware Portability & Enterprise Readiness
-
-> [!NOTE]
-> **IBM Z / LinuxONE / s390x Statement (Rule 5)**:
-> Zentinel AIOps is **portable by design** across standard x86-64, ARM64, and Linux enterprise environments.
-> **Not yet validated on s390x / IBM Z accelerator.** In accordance with Non-Negotiable Rule 5, no performance claims are asserted without a measured run on that specific hardware.
-
----
-
-## Platform Limitations
-
-1. **Exploratory Test Data**: The test period was inspected during exploratory drift diagnostics to engineer the three-way decision boundary.
-2. **Single-Worker Concurrency**: The live ingestion state machine requires serialized atomic transactions (`WEB_CONCURRENCY=1`). Multi-worker scaling requires horizontal stream partitioning by source ID.
-3. **Coverage Boundary**: During severe template drift surges (e.g., Test Slice 3), automatic known-run scoring coverage falls to 0%, intentionally delegating windows to the Retraining Review Queue rather than emitting unreliable anomaly scores.
+1. Aggregate automatic coverage on the current test slice is 33.2 % — unknown-template drift routes windows to review by design (fail-safe).
+2. Exploratory test period was inspected during drift diagnostics (declared in every affected report).
+3. Autoencoder is smoke-scale experimental; full training procedure documented but not executed.
+4. Dashboard validation is test-driven at the data-service layer; GUI walkthrough is manual.
+5. Single-worker inference state (enforced); no LLM narrative layer (deterministic evidence only).
+6. LinuxONE/Docker/CI executions blocked by environment, not by code.

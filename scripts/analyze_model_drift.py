@@ -213,7 +213,6 @@ def main():
             print(f"  False positives: {metrics['false_positives']:,}")
             print(f"  Score/unknown-rate Spearman correlation: {metrics['score_unknown_rate_spearman']}")
 
-    # Compare the later test period in contiguous blocks.
     chunk_reports = []
 
     for split_name, frame in split_frames.items():

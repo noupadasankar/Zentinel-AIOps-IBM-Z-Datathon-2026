@@ -25,11 +25,8 @@ def test_incident_opens_on_alert():
 def test_severity_escalation():
     policy = IncidentPolicy(threshold=3.0)
 
-    # Low severity: score in [3.0, 4.05)
     assert policy.calculate_severity(3.5) == "LOW"
-    # Medium severity: score in [4.05, 6.6)
     assert policy.calculate_severity(5.0) == "MEDIUM"
-    # High severity: score >= 6.6
     assert policy.calculate_severity(7.5) == "HIGH"
 
 
@@ -59,15 +56,13 @@ def test_consecutive_anomalies_extend_incident():
     inc2, action2 = policy.process_window(w2)
     assert action2 == "UPDATED"
     assert inc2.window_count == 2
-    assert inc2.score == 5.5  # peak score updated
-    assert inc2.severity == "MEDIUM"  # escalated
+    assert inc2.score == 5.5
+    assert inc2.severity == "MEDIUM"
 
 
 def test_hysteresis_requires_three_consecutive_normal_windows_below_point_seven_threshold():
-    # threshold = 3.0, hysteresis_threshold = 2.1
     policy = IncidentPolicy(threshold=3.0, hysteresis_factor=0.7, required_normal_windows=3)
 
-    # Open incident
     w1 = {
         "window_id": 1,
         "first_line_number": 1,
@@ -77,7 +72,6 @@ def test_hysteresis_requires_three_consecutive_normal_windows_below_point_seven_
     }
     policy.process_window(w1)
 
-    # Normal window 1: score = 1.5 < 2.1 -> count = 1
     w_norm1 = {
         "window_id": 2,
         "first_line_number": 101,
@@ -90,7 +84,6 @@ def test_hysteresis_requires_three_consecutive_normal_windows_below_point_seven_
     assert inc.status == "OPEN"
     assert inc.consecutive_normal_count == 1
 
-    # Ambiguous window: score = 2.5 (between 2.1 and 3.0) -> resets normal count to 0!
     w_amb = {
         "window_id": 3,
         "first_line_number": 201,
@@ -102,7 +95,6 @@ def test_hysteresis_requires_three_consecutive_normal_windows_below_point_seven_
     assert act == "ACTIVE"
     assert inc.consecutive_normal_count == 0
 
-    # Three consecutive windows strictly below 2.1
     for i in range(4, 7):
         w = {
             "window_id": i,

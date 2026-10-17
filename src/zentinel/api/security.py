@@ -19,7 +19,7 @@ class TokenBucketRateLimiter:
     def __init__(self, rps: float = 100.0, burst: int = 200):
         self.rps = max(0.1, float(rps))
         self.burst = max(1, int(burst))
-        self.buckets: dict[str, tuple[float, float]] = {}  # key -> (tokens, last_timestamp)
+        self.buckets: dict[str, tuple[float, float]] = {}
         self.lock = threading.Lock()
 
     def check(self, key: str) -> bool:
@@ -57,14 +57,13 @@ class SecurityManager:
             rps=rate_limit_rps,
             burst=rate_limit_burst,
         )
-        self._key_map: dict[str, str] = {}  # sha256_hex -> role
+        self._key_map: dict[str, str] = {}
         self._load_keys()
 
     def _load_keys(self):
         """Parse role:sha256 entries from configuration."""
         raw = self.api_keys_config.strip()
         if not raw:
-            # When no keys configured, do not populate _key_map
             return
 
         entries = [item.strip() for item in raw.split(",") if item.strip()]
@@ -95,7 +94,6 @@ class SecurityManager:
         Returns the resolved role, or raises HTTPException on failure.
         """
         if not self.auth_enabled:
-            # Auth not configured; open access in development
             return "admin"
 
         if not api_key:

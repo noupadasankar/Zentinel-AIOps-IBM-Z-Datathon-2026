@@ -9,7 +9,6 @@ from zentinel.config import verify_manifest
 
 
 def test_manifest_verification_succeeds_on_real_artifacts():
-    # Should complete without error on actual committed artifacts
     verify_manifest()
 
 

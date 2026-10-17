@@ -91,7 +91,6 @@ def collect_known_runs(sequences, lengths, window_indices):
             elif not is_known and start is not None:
                 run = sequence[start:position]
 
-                # At least two known events are needed for a prediction.
                 if len(run) >= 2:
                     run_windows.append(int(window_index))
                     runs.append(run.astype(np.int64, copy=True))

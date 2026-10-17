@@ -8,8 +8,8 @@ class Incident:
     """An incident grouping consecutive anomalous windows with hysteresis."""
 
     incident_id: str
-    status: str  # OPEN, ACKNOWLEDGED, CLOSED
-    severity: str  # LOW, MEDIUM, HIGH
+    status: str
+    severity: str
     score: float
     threshold: float
     first_window_id: int
@@ -111,7 +111,6 @@ class IncidentPolicy:
             severity = self.calculate_severity(score_val)
 
             if self.current_incident is not None and self.current_incident.status != "CLOSED":
-                # Extend existing open incident
                 inc = self.current_incident
                 inc.last_window_id = window_id
                 inc.last_line_number = last_line
@@ -119,7 +118,6 @@ class IncidentPolicy:
                 inc.consecutive_normal_count = 0
                 inc.updated_at = now_iso
 
-                # Peak score and severity escalate if score increases
                 if score_val > inc.score:
                     inc.score = score_val
                     inc.severity = self.calculate_severity(score_val)
@@ -133,12 +131,9 @@ class IncidentPolicy:
                 )
                 return inc, "UPDATED"
 
-            # Check cooldown before opening a brand-new incident
             if self.windows_since_last_close < self.cooldown_windows and self.incident_counter > 0:
-                # Still within cooldown; suppressed as part of cooldown smoothing
                 return None, "COOLDOWN"
 
-            # Open a new incident
             self.incident_counter += 1
             incident_id = f"INC-{self.incident_counter:04d}"
 
@@ -165,22 +160,17 @@ class IncidentPolicy:
             self.current_incident = inc
             return inc, "OPENED"
 
-        # Non-anomalous window (Normal or Novelty Drift)
         self.windows_since_last_close += 1
 
         if self.current_incident is not None and self.current_incident.status != "CLOSED":
-            # Check hysteresis threshold: score strictly below 0.7 * threshold
             if (score is not None and score < self.hysteresis_threshold) or (
                 decision == "NO_ANOMALY_DETECTED" and score is None
             ):
                 self.current_incident.consecutive_normal_count += 1
             else:
-                # Score still in indeterminate band between 0.7*threshold and threshold,
-                # or high unknown rate: do not count toward closure
                 self.current_incident.consecutive_normal_count = 0
 
             if self.current_incident.consecutive_normal_count >= self.required_normal_windows:
-                # Close the incident via hysteresis
                 inc = self.current_incident
                 inc.status = "CLOSED"
                 inc.closed_at = now_iso

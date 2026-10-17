@@ -40,7 +40,6 @@ def main() -> None:
         if not path.is_file():
             raise FileNotFoundError(f"Required file not found: {path}")
 
-    # Use a separate state file. Never reuse the full-dataset state.
     if STATE_PATH.exists():
         raise SystemExit(
             f"Training state already exists: {STATE_PATH}\n"
@@ -60,8 +59,6 @@ def main() -> None:
     config.drain_sim_th = 0.4
     config.drain_depth = 4
 
-    # Intentionally use no persistence while fitting. This avoids
-    # repeatedly serializing the model during millions of log updates.
     miner = TemplateMiner(persistence_handler=None, config=config)
 
     label_counts = Counter()
@@ -86,8 +83,6 @@ def main() -> None:
             raw_line = raw_line.rstrip("\r\n")
             record = parse_bgl_line(raw_line, line_number)
 
-            # The label is recorded for auditing only; it is never
-            # passed into Drain3 or included in the template input.
             label_counts[record.label] += 1
             parse_status_counts[record.parse_status] += 1
 
@@ -103,7 +98,6 @@ def main() -> None:
     if records_processed != train_end:
         raise RuntimeError(f"Expected {train_end:,} training records, processed {records_processed:,}.")
 
-    # Persist only once training has finished.
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     persistence = FilePersistence(str(STATE_PATH))
     miner.persistence_handler = persistence

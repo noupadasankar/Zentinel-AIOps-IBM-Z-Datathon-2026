@@ -89,7 +89,6 @@ class InferenceEngine:
             if not path.is_file():
                 raise FileNotFoundError(f"Required inference asset missing: {path}")
 
-        # Vocabulary & Thresholds
         self.vocab = json.loads(self.vocab_path.read_text(encoding="utf-8"))
         self.original_id_to_token = self.vocab["original_event_id_to_token"]
 
@@ -106,7 +105,6 @@ class InferenceEngine:
         if int(self.vocab["vocabulary_size"]) != 616:
             raise ValueError("Vocabulary size does not match the saved LSTM.")
 
-        # PyTorch Model Checkpoint
         checkpoint = torch.load(
             self.model_path,
             map_location="cpu",
@@ -127,7 +125,6 @@ class InferenceEngine:
         self.model.load_state_dict(checkpoint["model_state_dict"], strict=True)
         self.model.eval()
 
-        # Frozen Drain3 miner. Rule 3: Never call add_log_message() at inference!
         drain_config = TemplateMinerConfig()
         drain_config.drain_sim_th = 0.70
         drain_config.drain_depth = 4
@@ -160,7 +157,6 @@ class InferenceEngine:
 
         template_input = self.make_template_input(record)
 
-        # match() only looks up existing templates. Never call add_log_message().
         cluster = self.miner.match(
             template_input,
             full_search_strategy="never",

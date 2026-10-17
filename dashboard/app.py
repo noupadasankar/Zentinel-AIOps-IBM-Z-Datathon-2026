@@ -32,7 +32,7 @@ DATA_DIR = ROOT_DIR / "data"
 SAMPLE_REPLAY_PATH = DATA_DIR / "raw/sample_replay.log"
 INCOMING_LOG_PATH = DATA_DIR / "ingest/incoming.log"
 
-REFRESH_SECONDS = 5  # interval used when auto-refresh is enabled
+REFRESH_SECONDS = 5
 CHART_WINDOW_LIMIT = 200
 
 st.set_page_config(
@@ -42,7 +42,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ----------------- Theme & Custom CSS -----------------
 DARK_THEME_CSS = """
 <style>
 /* Main Dark Palette */
@@ -223,9 +222,6 @@ div[data-testid="stDataFrame"] {
 st.markdown(DARK_THEME_CSS, unsafe_allow_html=True)
 
 
-# ----------------- Session & Config -----------------
-
-
 def _init_state(key: str, default: Any) -> Any:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -239,9 +235,6 @@ _init_state("zen_api_url", DEFAULT_API_URL)
 _init_state("zen_api_key", DEFAULT_API_KEY)
 _init_state("zen_auto", True)
 _init_state("zen_nav", "Overview")
-
-
-# ----------------- Data Loading & API Helpers -----------------
 
 
 @st.cache_data(ttl=2.0, show_spinner=False)
@@ -355,9 +348,6 @@ def is_live() -> bool:
     return _get("/api/v1/live/status") is not None
 
 
-# ----------------- Clear DEMO fallbacks (offline mode ONLY) -----------------
-
-
 def demo_summary() -> dict[str, Any]:
     return {
         "counters": {"logs_received": 234300, "windows_completed": 2343, "unknown_events_received": 2811},
@@ -409,9 +399,6 @@ def demo_patterns() -> list[dict[str, Any]]:
     ]
 
 
-# ----------------- Streaming replay (real pipeline traffic) -----------------
-
-
 def stream_replay(max_lines: int, replay_path: Path | None = None) -> tuple[int, int, int, list[str]]:
     """
     POST sample log lines to the live ingestion API through the batch endpoint.
@@ -460,9 +447,6 @@ def stream_replay(max_lines: int, replay_path: Path | None = None) -> tuple[int,
                 errors.append(f"HTTP {resp.status_code}: {resp.text[:200]}")
                 break
     return sent, rejected, windows, errors
-
-
-# ----------------- Sidebar -----------------
 
 
 def render_sidebar():
@@ -592,9 +576,6 @@ def _render_replay_control(live: bool):
             st.rerun()
 
 
-# ----------------- Top Banner -----------------
-
-
 @st.fragment(run_every=REFRESH_SECONDS)
 def render_top_banner():
     live = is_live()
@@ -665,8 +646,6 @@ def render_top_banner():
         unsafe_allow_html=True,
     )
 
-
-# ----------------- Charts -----------------
 
 PLOT_LAYOUT = {
     "template": "plotly_dark",
@@ -787,9 +766,6 @@ def build_decision_mix(decision_counts: dict[str, int]):
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ----------------- Overview page -----------------
-
-
 @st.fragment(run_every=REFRESH_SECONDS)
 def render_overview():
     live = is_live()
@@ -817,10 +793,8 @@ def render_overview():
             unsafe_allow_html=True,
         )
 
-    # --- KPI row (real values; trend computed from real pages) ---
     anomaly_now = float(kpis.get("anomaly_rate_recent_100", 0.0))
     if len(items) >= 200 and not demo:
-        # items arrive newest-first: first 100 are the most recent window set
         prior_items = items[100:200]
         anomaly_prior = sum(1 for i in prior_items if i.get("decision") == "ANOMALY_ALERT") / max(1, len(prior_items))
         delta = anomaly_now - anomaly_prior
@@ -883,14 +857,12 @@ def render_overview():
             unsafe_allow_html=True,
         )
 
-    # --- Main timeline ---
     st.markdown(
         "<h4 style='margin-top: 18px; margin-bottom: 8px; color:#F8FAFC;'>LSTM Anomaly Score & Unknown Rate</h4>",
         unsafe_allow_html=True,
     )
     build_score_chart(items, thresholds, demo=demo)
 
-    # --- Decision mix + stream composition ---
     c_left, c_right = st.columns([5, 5])
     with c_left:
         st.markdown(
@@ -951,7 +923,6 @@ def render_overview():
                     unsafe_allow_html=True,
                 )
 
-    # --- Top patterns (drift + incident evidence) ---
     c_pl, c_pr = st.columns([5, 5])
     with c_pl:
         render_top_patterns(live, demo)
@@ -1051,9 +1022,6 @@ def render_recent_activity(summary: dict[str, Any], live: bool, demo: bool):
             """,
             unsafe_allow_html=True,
         )
-
-
-# ----------------- Incidents page -----------------
 
 
 def render_incidents_page():
@@ -1185,9 +1153,6 @@ def render_incidents_page():
                             st.error(f"Action failed (HTTP {status_code}): {body}")
 
 
-# ----------------- Review Queue page -----------------
-
-
 def render_review_queue_page():
     st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>Novelty & Drift Review Queue</h2>", unsafe_allow_html=True)
     st.caption("Unmatched templates and drift-routed windows requiring human triage before retraining")
@@ -1241,9 +1206,6 @@ def render_review_queue_page():
         )
 
 
-# ----------------- Windows Browser page -----------------
-
-
 def render_windows_browser_page():
     st.markdown("<h2 style='font-weight:800; color:#F8FAFC;'>Windows Browser</h2>", unsafe_allow_html=True)
     st.caption("Inspect 100-line streaming inference windows and three-way decisions")
@@ -1283,9 +1245,6 @@ def render_windows_browser_page():
     else:
         st.markdown("<span class='demo-tag'>DEMO DATA</span>", unsafe_allow_html=True)
         build_score_chart(demo_windows(100), {}, demo=True)
-
-
-# ----------------- Stream & Composition page -----------------
 
 
 def render_stream_page():
@@ -1342,9 +1301,6 @@ def render_stream_page():
         st.caption("No decisions recorded yet.")
 
 
-# ----------------- Drift Diagnostics page -----------------
-
-
 def render_drift_page():
     st.markdown(
         "<h2 style='font-weight:800; color:#F8FAFC;'>Template & Novelty Drift Diagnostics</h2>", unsafe_allow_html=True
@@ -1391,9 +1347,6 @@ def render_drift_page():
                 st.code(html.escape(str(tmpl)))
         else:
             st.caption("No unmatched templates observed.")
-
-
-# ----------------- Model Evaluation page -----------------
 
 
 def render_model_evaluation_page():
@@ -1494,9 +1447,6 @@ def render_model_evaluation_page():
     st.table(pd.DataFrame(comp_data))
 
 
-# ----------------- Thresholds & Models page -----------------
-
-
 def render_thresholds_page():
     st.markdown(
         "<h2 style='font-weight:800; color:#F8FAFC;'>Thresholds, Models & Sensitivity</h2>", unsafe_allow_html=True
@@ -1538,9 +1488,6 @@ def render_thresholds_page():
         st.dataframe(df_models, use_container_width=True)
     else:
         st.caption("Model registry unavailable (offline).")
-
-
-# ----------------- API Keys & Security page -----------------
 
 
 def render_security_page():
@@ -1588,9 +1535,6 @@ def render_security_page():
         - **Non-root container isolation** and read-only artifact mounts in the reference Docker deployment.
         """
     )
-
-
-# ----------------- Settings & Database page -----------------
 
 
 def render_settings_page():
@@ -1665,8 +1609,6 @@ def _show_admin_result(label: str, status_code: int, body: dict[str, Any] | str)
             )
         )
 
-
-# ----------------- Router -----------------
 
 render_sidebar()
 render_top_banner()

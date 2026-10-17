@@ -216,7 +216,6 @@ def main():
             window["end_timestamp"] - window["start_timestamp"],
         )
 
-        # This records temporal throughput, not incident severity.
         counts["unique_known_template_count"] = len(window["seen_known_ids"])
         counts["unique_event_ids_count"] = len(window["seen_ids"])
 
@@ -234,7 +233,6 @@ def main():
             "logs_per_second": (log_count / max(duration, 1) if log_count else 0.0),
         }
 
-        # Guard against accidental omission of any numerical feature.
         if set(feature_columns) - set(row):
             missing = sorted(set(feature_columns) - set(row))
             raise RuntimeError(f"Missing feature values: {missing}")
@@ -318,7 +316,6 @@ def main():
                 counts = current["counts"]
                 counts["log_count"] += 1
 
-                # Labels are used only to produce the target, never a feature.
                 if row["label"] != "-":
                     current["target_anomaly"] = 1
 

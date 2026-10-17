@@ -65,7 +65,6 @@ def export_lstm_to_onnx(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     dummy_input = torch.tensor([[2, 3, 4, 5]], dtype=torch.long)
 
-    # Use legacy torchscript exporter for rock-solid opset 17 compatibility
     torch.onnx.export(
         model,
         dummy_input,
@@ -82,7 +81,6 @@ def export_lstm_to_onnx(
         dynamo=False,
     )
 
-    # Verify ONNX model integrity
     onnx_model = onnx.load(str(output_path))
     onnx.checker.check_model(onnx_model)
     return output_path
@@ -105,7 +103,6 @@ class ONNXInferenceEngine:
         self.model_threshold_path = model_threshold_path
         self.decision_report_path = decision_report_path
 
-        # Verify existence
         for path in [
             self.onnx_path,
             self.vocab_path,
@@ -124,7 +121,6 @@ class ONNXInferenceEngine:
         decision_report = json.loads(self.decision_report_path.read_text(encoding="utf-8"))
         self.novelty_threshold = float(decision_report["novelty_unknown_rate_threshold"])
 
-        # Setup ONNX Runtime session
         session_options = ort.SessionOptions()
         session_options.inter_op_num_threads = 1
         session_options.intra_op_num_threads = 1
@@ -142,16 +138,13 @@ class ONNXInferenceEngine:
         tokens_in = np.asarray([run[:-1]], dtype=np.int64)
         targets = np.asarray(run[1:], dtype=np.int64)
 
-        # Run ONNX inference
-        logits = self.session.run(None, {"tokens": tokens_in})[0]  # shape: (1, seq_len, vocab_size)
-        logits_2d = logits[0]  # shape: (seq_len, vocab_size)
+        logits = self.session.run(None, {"tokens": tokens_in})[0]
+        logits_2d = logits[0]
 
-        # Numerically stable cross-entropy loss computation
         max_logits = np.max(logits_2d, axis=-1, keepdims=True)
         exp_logits = np.exp(logits_2d - max_logits)
         log_softmax = (logits_2d - max_logits) - np.log(np.sum(exp_logits, axis=-1, keepdims=True))
 
-        # Gather target loss: -log_softmax[i, targets[i]]
         loss_sum = float(-np.sum(log_softmax[np.arange(len(targets)), targets]))
         return loss_sum, len(run) - 1
 
@@ -220,7 +213,7 @@ class ONNXInferenceEngine:
 
 def extract_known_runs_from_dataset(
     sequences_npz_path: Path = SEQUENCES_PATH,
-    split_code: int = 2,  # 2 = test split
+    split_code: int = 2,
     max_runs: int = 1000,
 ) -> tuple[list[list[int]], list[list[int]]]:
     """Extract real known runs and whole windows from dataset for parity testing.
@@ -272,19 +265,15 @@ def evaluate_onnx_parity(
     Returns:
         Comprehensive validation dictionary report.
     """
-    # 1. Load PyTorch Engine
     pt_engine = InferenceEngine()
     pt_engine.load()
     pt_model = pt_engine.model
 
-    # 2. Load ONNX Engine
     onnx_engine = ONNXInferenceEngine(onnx_path=onnx_path)
 
-    # 3. Extract real runs and windows
     runs, windows = extract_known_runs_from_dataset(max_runs=num_runs)
     test_windows = windows[:num_windows]
 
-    # --- Run-Level Parity & Latency ---
     logit_diffs: list[float] = []
     loss_diffs: list[float] = []
     pt_latencies_ms: list[float] = []
@@ -296,7 +285,6 @@ def evaluate_onnx_parity(
         tokens_in_pt = torch.tensor(tokens_in_np, dtype=torch.long)
         targets_pt = torch.tensor(targets_np, dtype=torch.long)
 
-        # PyTorch execution
         t0 = time.perf_counter()
         with torch.no_grad():
             pt_logits = pt_model(tokens_in_pt)
@@ -304,20 +292,17 @@ def evaluate_onnx_parity(
         t1 = time.perf_counter()
         pt_latencies_ms.append((t1 - t0) * 1000.0)
 
-        # ONNX Runtime execution
         t0 = time.perf_counter()
         ort_logits = onnx_engine.session.run(None, {"tokens": tokens_in_np})[0]
         ort_loss, _ = onnx_engine._score_single_run(run)
         t1 = time.perf_counter()
         ort_latencies_ms.append((t1 - t0) * 1000.0)
 
-        # Compare outputs
         pt_logits_np = pt_logits.numpy()
         diff = float(np.max(np.abs(ort_logits - pt_logits_np)))
         logit_diffs.append(diff)
         loss_diffs.append(abs(pt_loss - ort_loss))
 
-    # --- Window-Level Decision Parity ---
     identical_decisions = 0
     decision_mismatches: list[dict[str, Any]] = []
 

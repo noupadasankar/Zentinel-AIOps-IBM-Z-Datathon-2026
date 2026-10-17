@@ -20,7 +20,7 @@ def test_onnx_export_creates_valid_model(tmp_path: Path):
         opset_version=17,
     )
     assert out_path.is_file()
-    assert out_path.stat().st_size > 50000  # model weights present
+    assert out_path.stat().st_size > 50000
 
 
 def test_onnx_inference_engine_scoring():
@@ -29,18 +29,15 @@ def test_onnx_inference_engine_scoring():
 
     engine = ONNXInferenceEngine(onnx_path=DEFAULT_ONNX_PATH)
 
-    # Empty / short run
     score, transitions = engine.score_known_runs([2])
     assert score is None
     assert transitions == 0
 
-    # Valid known run
     score, transitions = engine.score_known_runs([2, 5, 8, 12])
     assert score is not None
     assert transitions == 3
     assert score > 0.0
 
-    # Decision evaluation
     events = [{"token": 5} for _ in range(100)]
     res = engine.decide_window(events)
     assert res["decision"] in ["NO_ANOMALY_DETECTED", "ANOMALY_ALERT", "NOVELTY_DRIFT_REVIEW"]

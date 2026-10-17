@@ -85,9 +85,6 @@ class LogFileWatcher:
         temp_path = self.cursor_path.with_suffix(".json.tmp")
         temp_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
-        # fsreplace can transiently fail when the target is locked by a
-        # scanner/sync client (WATCHDOG / AV / indexer). Retry briefly, then
-        # fall back to a direct write so the watcher keeps making progress.
         for attempt in range(3):
             try:
                 os.replace(temp_path, self.cursor_path)
@@ -123,12 +120,10 @@ class LogFileWatcher:
                     stored_file_id = state.get("file_id", "")
                     stored_offset = int(state.get("byte_offset", 0))
 
-                    # Detect file replacement by inode or first-line change
                     if stored_file_id and stored_file_id != current_file_id:
                         self.save_cursor(0, current_file_id)
                         return 0, current_file_id
 
-                    # Detect file truncation
                     file_size = self.file_path.stat().st_size
                     if file_size < stored_offset:
                         self.save_cursor(0, current_file_id)
@@ -138,7 +133,6 @@ class LogFileWatcher:
             except (json.JSONDecodeError, OSError, KeyError, ValueError):
                 pass
 
-        # Default to EOF if no cursor exists
         file_size = self.file_path.stat().st_size
         self.save_cursor(file_size, current_file_id)
         return file_size, current_file_id
@@ -173,7 +167,7 @@ class LogFileWatcher:
                 time.sleep(min(float(retry_after), 60.0))
                 return
             except ValueError:
-                pass  # non-numeric Retry-After: fall back to backoff
+                pass
         jittered = self.current_backoff * random.uniform(0.5, 1.5)
         time.sleep(min(jittered, self.max_backoff))
 
@@ -190,7 +184,6 @@ class LogFileWatcher:
             time.sleep(self.poll_seconds)
             return None
 
-        # Check for file rotation, replacement, or truncation
         current_file_id = compute_file_id(self.file_path)
         file_size = self.file_path.stat().st_size
 
@@ -211,7 +204,6 @@ class LogFileWatcher:
 
         line = raw_bytes.decode("utf-8", errors="replace").rstrip("\r\n")
 
-        # Skip empty lines
         if not line.strip():
             self.offset = next_offset
             self.save_cursor(self.offset, self.file_id)
@@ -233,12 +225,10 @@ class LogFileWatcher:
                 timeout=30.0,
             )
         except httpx.RequestError:
-            # Network failure: back off and retry
             self._sleep_before_retry()
             self.current_backoff = min(self.current_backoff * 2, self.max_backoff)
             return None
 
-        # Dead-letter only 400 and 422 (and 409 key collision)
         if response.status_code in (400, 422, 409):
             self.save_dead_letter(
                 line,
@@ -250,7 +240,6 @@ class LogFileWatcher:
             self.current_backoff = self.initial_backoff
             return {"status": "rejected", "code": response.status_code}
 
-        # Retry 408, 429, and 5xx with backoff (+ honor Retry-After when present)
         if response.status_code in (408, 429) or response.status_code >= 500:
             self._sleep_before_retry(response)
             self.current_backoff = min(self.current_backoff * 2, self.max_backoff)
@@ -261,7 +250,6 @@ class LogFileWatcher:
             self.current_backoff = min(self.current_backoff * 2, self.max_backoff)
             return None
 
-        # Successfully ingested
         self.current_backoff = self.initial_backoff
         self.offset = next_offset
         self.save_cursor(self.offset, self.file_id)

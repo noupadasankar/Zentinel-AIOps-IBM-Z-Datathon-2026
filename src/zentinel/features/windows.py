@@ -39,7 +39,6 @@ def extract_window_features(
     if not input_path.exists():
         raise FileNotFoundError(f"Input events file missing: {input_path}")
 
-    # Logic to build or read features
     return {
         "status": "completed",
         "input_path": str(input_path),

@@ -138,8 +138,6 @@ def calculate_window_scores(
                 device=device,
             ).unsqueeze(0)
 
-            # A sequence of length L has L-1 next-event targets.
-            # Do not score targets at padding positions.
             valid_mask = positions < (length_batch.unsqueeze(1) - 1)
 
             summed_loss = (token_losses * valid_mask.float()).sum(dim=1)
@@ -252,7 +250,6 @@ def main() -> None:
     train_indices = np.flatnonzero(split_codes == SPLIT_CODES["train"])
     validation_indices = np.flatnonzero(split_codes == SPLIT_CODES["validation"])
 
-    # Learn normal sequences only. Labels are targets, never inputs.
     normal_train_indices = train_indices[targets[train_indices] == 0]
 
     if len(normal_train_indices) == 0:
@@ -408,7 +405,6 @@ def main() -> None:
     VALIDATION_SCORES_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    # Save weights and architecture metadata, not the whole Python object.
     torch.save(
         {
             "model_state_dict": model.state_dict(),

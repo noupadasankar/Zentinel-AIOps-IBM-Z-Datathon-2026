@@ -92,7 +92,7 @@ def test_map_event_to_token_unknown_template():
 def test_map_event_to_token_missing_from_vocabulary():
     engine = InferenceEngine()
     engine._is_loaded = True
-    engine.original_id_to_token = {"10": 2}  # Cluster 999 not in vocabulary
+    engine.original_id_to_token = {"10": 2}
 
     mock_cluster = MagicMock()
     mock_cluster.cluster_id = 999
