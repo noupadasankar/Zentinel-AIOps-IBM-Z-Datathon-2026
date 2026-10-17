@@ -52,8 +52,9 @@ def test_manifest_verification_fails_on_missing_file(tmp_path):
 
 @pytest.mark.anyio
 async def test_lifespan_refuses_web_concurrency_greater_than_one():
-    with patch.dict(os.environ, {"WEB_CONCURRENCY": "2"}), pytest.raises(
-        RuntimeError, match="WEB_CONCURRENCY is set to 2"
+    with (
+        patch.dict(os.environ, {"WEB_CONCURRENCY": "2"}),
+        pytest.raises(RuntimeError, match="WEB_CONCURRENCY is set to 2"),
     ):
         async with lifespan(app):
             pass

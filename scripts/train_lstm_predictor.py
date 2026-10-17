@@ -1,4 +1,3 @@
-
 """Train an LSTM next-event predictor for BGL log anomalies."""
 
 import json
@@ -29,9 +28,7 @@ VOCAB_PATH = ROOT / "artifacts" / "event_token_vocabulary_v2.json"
 MODEL_PATH = ROOT / "artifacts" / "lstm_next_event.pt"
 THRESHOLD_PATH = ROOT / "artifacts" / "lstm_threshold.json"
 
-VALIDATION_SCORES_PATH = (
-    ROOT / "data" / "processed" / "lstm_validation_scores.parquet"
-)
+VALIDATION_SCORES_PATH = ROOT / "data" / "processed" / "lstm_validation_scores.parquet"
 REPORT_PATH = ROOT / "reports" / "lstm_validation_report.json"
 
 SEED = 42
@@ -112,7 +109,7 @@ def calculate_window_scores(
 
     with torch.no_grad():
         for offset in range(0, len(indices), batch_size):
-            selected = indices[offset:offset + batch_size]
+            selected = indices[offset : offset + batch_size]
 
             token_batch = torch.as_tensor(
                 sequences[selected],
@@ -145,9 +142,7 @@ def calculate_window_scores(
             # Do not score targets at padding positions.
             valid_mask = positions < (length_batch.unsqueeze(1) - 1)
 
-            summed_loss = (
-                token_losses * valid_mask.float()
-            ).sum(dim=1)
+            summed_loss = (token_losses * valid_mask.float()).sum(dim=1)
 
             valid_counts = valid_mask.sum(dim=1).clamp_min(1)
 
@@ -180,24 +175,12 @@ def evaluate_scores(
         "false_positives": int(fp),
         "true_negatives": int(tn),
         "false_negatives": int(fn),
-        "precision": float(
-            precision_score(y_true, predictions, zero_division=0)
-        ),
-        "recall": float(
-            recall_score(y_true, predictions, zero_division=0)
-        ),
-        "f1": float(
-            f1_score(y_true, predictions, zero_division=0)
-        ),
-        "false_positive_rate": float(
-            fp / (fp + tn) if (fp + tn) else 0.0
-        ),
-        "false_positive_windows_per_1000_normal_windows": float(
-            fp / (fp + tn) * 1000 if (fp + tn) else 0.0
-        ),
-        "average_precision_pr_auc": float(
-            average_precision_score(y_true, scores)
-        ),
+        "precision": float(precision_score(y_true, predictions, zero_division=0)),
+        "recall": float(recall_score(y_true, predictions, zero_division=0)),
+        "f1": float(f1_score(y_true, predictions, zero_division=0)),
+        "false_positive_rate": float(fp / (fp + tn) if (fp + tn) else 0.0),
+        "false_positive_windows_per_1000_normal_windows": float(fp / (fp + tn) * 1000 if (fp + tn) else 0.0),
+        "average_precision_pr_auc": float(average_precision_score(y_true, scores)),
         "roc_auc": float(roc_auc_score(y_true, scores)),
         "score_min": float(scores.min()),
         "score_median": float(np.median(scores)),
@@ -224,8 +207,7 @@ def main() -> None:
     if existing:
         raise SystemExit(
             "Existing LSTM output files found. Inspect them before "
-            "rerunning; this script will not overwrite them:\n"
-            + "\n".join(str(path) for path in existing)
+            "rerunning; this script will not overwrite them:\n" + "\n".join(str(path) for path in existing)
         )
 
     set_seed(SEED)
@@ -268,9 +250,7 @@ def main() -> None:
         raise ValueError("Invalid split codes found.")
 
     train_indices = np.flatnonzero(split_codes == SPLIT_CODES["train"])
-    validation_indices = np.flatnonzero(
-        split_codes == SPLIT_CODES["validation"]
-    )
+    validation_indices = np.flatnonzero(split_codes == SPLIT_CODES["validation"])
 
     # Learn normal sequences only. Labels are targets, never inputs.
     normal_train_indices = train_indices[targets[train_indices] == 0]
@@ -284,10 +264,7 @@ def main() -> None:
     print(f"Total windows: {len(sequences):,}")
     print(f"Training windows: {len(train_indices):,}")
     print(f"Normal training windows used: {len(normal_train_indices):,}")
-    print(
-        "Anomalous training windows excluded: "
-        f"{int((targets[train_indices] == 1).sum()):,}"
-    )
+    print(f"Anomalous training windows excluded: {int((targets[train_indices] == 1).sum()):,}")
     print(f"Validation windows: {len(validation_indices):,}")
     print(f"Vocabulary size: {vocab_size:,}")
 
@@ -367,21 +344,12 @@ def main() -> None:
 
             optimizer.step()
 
-            accumulated_loss += float(
-                (losses.detach() * valid_mask_float).sum().item()
-            )
+            accumulated_loss += float((losses.detach() * valid_mask_float).sum().item())
             accumulated_tokens += int(valid_count.item())
 
-        epoch_loss = (
-            accumulated_loss / accumulated_tokens
-            if accumulated_tokens
-            else float("nan")
-        )
+        epoch_loss = accumulated_loss / accumulated_tokens if accumulated_tokens else float("nan")
 
-        print(
-            f"Epoch {epoch + 1:02d}/{EPOCHS} | "
-            f"normal next-event loss={epoch_loss:.5f}"
-        )
+        print(f"Epoch {epoch + 1:02d}/{EPOCHS} | normal next-event loss={epoch_loss:.5f}")
 
     print("\nScoring validation sequences...")
 
@@ -403,16 +371,11 @@ def main() -> None:
     if len(thresholds) == 0:
         raise RuntimeError("Unable to determine validation threshold.")
 
-    f1_values = (
-        2 * precisions[:-1] * recalls[:-1]
-        / (precisions[:-1] + recalls[:-1] + 1e-12)
-    )
+    f1_values = 2 * precisions[:-1] * recalls[:-1] / (precisions[:-1] + recalls[:-1] + 1e-12)
 
     best_f1 = float(f1_values.max())
 
-    candidate_indices = np.flatnonzero(
-        np.isclose(f1_values, best_f1, rtol=1e-10, atol=1e-12)
-    )
+    candidate_indices = np.flatnonzero(np.isclose(f1_values, best_f1, rtol=1e-10, atol=1e-12))
 
     best_index = max(
         candidate_indices,
@@ -475,9 +438,7 @@ def main() -> None:
         "end_timestamp": end_timestamps[validation_indices],
         "target_anomaly": y_validation,
         "anomaly_score": validation_scores,
-        "predicted_anomaly": (
-            validation_scores >= selected_threshold
-        ).astype(np.int8),
+        "predicted_anomaly": (validation_scores >= selected_threshold).astype(np.int8),
     }
 
     pq.write_table(
@@ -496,9 +457,7 @@ def main() -> None:
         "outputs": {
             "model": str(MODEL_PATH.relative_to(ROOT)),
             "threshold": str(THRESHOLD_PATH.relative_to(ROOT)),
-            "validation_scores": str(
-                VALIDATION_SCORES_PATH.relative_to(ROOT)
-            ),
+            "validation_scores": str(VALIDATION_SCORES_PATH.relative_to(ROOT)),
         },
     }
 

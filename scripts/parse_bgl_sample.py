@@ -1,4 +1,3 @@
-
 """Parse a small BGL sample and mine event templates with Drain3."""
 
 import json
@@ -105,33 +104,32 @@ def main() -> None:
 
             # JSON Lines: one independently readable JSON object per record.
             row = record.to_dict()
-            row.update({
-                "source": "LogHub BGL",
-                "raw_line": raw_line,
-                "template_input": model_input,
-                "event_id": cluster_id,
-                "event_template": template,
-                "template_change_type": change_type,
-            })
-
-            output.write(
-                json.dumps(row, ensure_ascii=False) + "\n"
+            row.update(
+                {
+                    "source": "LogHub BGL",
+                    "raw_line": raw_line,
+                    "template_input": model_input,
+                    "event_id": cluster_id,
+                    "event_template": template,
+                    "template_change_type": change_type,
+                }
             )
 
+            output.write(json.dumps(row, ensure_ascii=False) + "\n")
+
             if processed % 5_000 == 0:
-                print(
-                    f"Processed {processed:,} lines | "
-                    f"templates={len(cluster_counts):,}"
-                )
+                print(f"Processed {processed:,} lines | templates={len(cluster_counts):,}")
 
     top_templates = []
 
     for cluster_id, count in cluster_counts.most_common(20):
-        top_templates.append({
-            "event_id": cluster_id,
-            "count": count,
-            "template": template_by_cluster[cluster_id],
-        })
+        top_templates.append(
+            {
+                "event_id": cluster_id,
+                "count": count,
+                "template": template_by_cluster[cluster_id],
+            }
+        )
 
     report = {
         "dataset": "LogHub BGL",
@@ -165,10 +163,7 @@ def main() -> None:
 
     print("\nTop event templates:")
     for item in top_templates[:10]:
-        print(
-            f"  ID {item['event_id']}: {item['count']:,} records | "
-            f"{item['template']}"
-        )
+        print(f"  ID {item['event_id']}: {item['count']:,} records | {item['template']}")
 
     print(f"\nParsed records: {OUTPUT_PATH}")
     print(f"Summary report: {REPORT_PATH}")
@@ -176,9 +171,7 @@ def main() -> None:
     if processed == SAMPLE_LIMIT:
         print("\nSUCCESS: The complete sample was parsed.")
     else:
-        print(
-            f"\nNOTE: The source ended after {processed:,} records."
-        )
+        print(f"\nNOTE: The source ended after {processed:,} records.")
 
 
 if __name__ == "__main__":

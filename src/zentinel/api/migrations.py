@@ -1,3 +1,4 @@
+import json
 import sqlite3
 
 # Define numbered migrations: (version, name, callable(conn))
@@ -163,6 +164,18 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
             """,
         ],
     ),
+    (
+        4,
+        "004_live_window_decision_column",
+        [
+            """
+            ALTER TABLE live_windows ADD COLUMN decision TEXT NOT NULL DEFAULT '';
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_live_windows_decision ON live_windows(decision);
+            """,
+        ],
+    ),
 ]
 
 
@@ -200,6 +213,9 @@ def apply_migrations(conn: sqlite3.Connection) -> list[int]:
                         continue
                     raise
 
+            if version == 4:
+                _backfill_live_window_decisions(conn)
+
             conn.execute(
                 "INSERT INTO schema_migrations (version, name) VALUES (?, ?)",
                 (version, name),
@@ -207,3 +223,17 @@ def apply_migrations(conn: sqlite3.Connection) -> list[int]:
             applied.append(version)
 
     return applied
+
+
+def _backfill_live_window_decisions(conn: sqlite3.Connection) -> None:
+    """Populate the decision column from existing payload_json blobs."""
+    rows = conn.execute("SELECT window_id, payload_json FROM live_windows WHERE decision = ''").fetchall()
+    for window_id, payload_json in rows:
+        try:
+            decision = json.loads(payload_json).get("decision", "")
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            decision = ""
+        conn.execute(
+            "UPDATE live_windows SET decision = ? WHERE window_id = ?",
+            (decision, window_id),
+        )

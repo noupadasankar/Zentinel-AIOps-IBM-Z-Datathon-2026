@@ -1,4 +1,4 @@
-﻿import json
+import json
 import statistics
 import time
 from collections import Counter
@@ -26,10 +26,7 @@ def percentile(values, percent):
     upper = min(lower + 1, len(ordered) - 1)
     fraction = position - lower
 
-    return (
-        ordered[lower] * (1 - fraction)
-        + ordered[upper] * fraction
-    )
+    return ordered[lower] * (1 - fraction) + ordered[upper] * fraction
 
 
 def main():
@@ -79,9 +76,7 @@ def main():
                 response.raise_for_status()
                 result = response.json()
 
-                latency = (
-                    time.perf_counter() - request_start
-                ) * 1000
+                latency = (time.perf_counter() - request_start) * 1000
 
                 latencies_ms.append(latency)
                 statuses[result["event"]["event_status"]] += 1
@@ -102,9 +97,7 @@ def main():
     successful = len(latencies_ms)
 
     scores = [
-        float(window["lstm_anomaly_score"])
-        for window in completed_windows
-        if window["lstm_anomaly_score"] is not None
+        float(window["lstm_anomaly_score"]) for window in completed_windows if window["lstm_anomaly_score"] is not None
     ]
 
     report = {
@@ -116,38 +109,19 @@ def main():
         "successful_requests": successful,
         "failed_requests": failures,
         "elapsed_seconds": round(elapsed, 6),
-        "records_per_second": (
-            round(successful / elapsed, 3) if elapsed > 0 else None
-        ),
+        "records_per_second": (round(successful / elapsed, 3) if elapsed > 0 else None),
         "latency_ms": {
-            "mean": (
-                round(statistics.mean(latencies_ms), 3)
-                if latencies_ms else None
-            ),
-            "median_p50": (
-                round(percentile(latencies_ms, 50), 3)
-                if latencies_ms else None
-            ),
-            "p95": (
-                round(percentile(latencies_ms, 95), 3)
-                if latencies_ms else None
-            ),
-            "p99": (
-                round(percentile(latencies_ms, 99), 3)
-                if latencies_ms else None
-            ),
-            "max": (
-                round(max(latencies_ms), 3)
-                if latencies_ms else None
-            ),
+            "mean": (round(statistics.mean(latencies_ms), 3) if latencies_ms else None),
+            "median_p50": (round(percentile(latencies_ms, 50), 3) if latencies_ms else None),
+            "p95": (round(percentile(latencies_ms, 95), 3) if latencies_ms else None),
+            "p99": (round(percentile(latencies_ms, 99), 3) if latencies_ms else None),
+            "max": (round(max(latencies_ms), 3) if latencies_ms else None),
         },
         "event_match_status_counts": dict(statuses),
         "completed_windows": len(completed_windows),
         "window_decision_counts": dict(decisions),
         "scorable_windows": len(scores),
-        "mean_lstm_score": (
-            round(statistics.mean(scores), 6) if scores else None
-        ),
+        "mean_lstm_score": (round(statistics.mean(scores), 6) if scores else None),
         "limitations": [
             "Single-process local API benchmark.",
             "Sequential requests; no concurrency tested.",

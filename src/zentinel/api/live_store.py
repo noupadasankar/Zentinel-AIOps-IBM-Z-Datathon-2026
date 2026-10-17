@@ -48,26 +48,24 @@ class LiveStateStore:
                 WHERE singleton_id = 1
             """).fetchone()
 
-            recent_rows = self._connection.execute("""
+            recent_rows = self._connection.execute(
+                """
                 SELECT payload_json
                 FROM live_windows
                 ORDER BY window_id DESC
                 LIMIT ?
-            """, (recent_limit,)).fetchall()
+            """,
+                (recent_limit,),
+            ).fetchall()
 
         current_window = json.loads(state_row["current_window_json"]) if state_row else []
 
-        recent_windows = [
-            json.loads(row["payload_json"])
-            for row in reversed(recent_rows)
-        ]
+        recent_windows = [json.loads(row["payload_json"]) for row in reversed(recent_rows)]
 
         state = {
             "logs_received": int(state_row["logs_received"]) if state_row else 0,
             "windows_completed": int(state_row["windows_completed"]) if state_row else 0,
-            "unknown_events_received": int(
-                state_row["unknown_events_received"]
-            ) if state_row else 0,
+            "unknown_events_received": int(state_row["unknown_events_received"]) if state_row else 0,
         }
 
         return {
@@ -126,7 +124,8 @@ class LiveStateStore:
         )
 
         with self._lock, self._connection:
-            self._connection.execute("""
+            self._connection.execute(
+                """
                     INSERT OR REPLACE INTO ingested_events (
                         line_number,
                         timestamp,
@@ -139,20 +138,23 @@ class LiveStateStore:
                         model_id,
                         latency_ms
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                int(event["line_number"]),
-                int(event["timestamp"]),
-                str(event["parse_status"]),
-                int(event["token"]),
-                str(event["event_status"]),
-                event["matched_event_id"],
-                event["template"],
-                source_id,
-                model_id,
-                float(latency_ms),
-            ))
+                """,
+                (
+                    int(event["line_number"]),
+                    int(event["timestamp"]),
+                    str(event["parse_status"]),
+                    int(event["token"]),
+                    str(event["event_status"]),
+                    event["matched_event_id"],
+                    event["template"],
+                    source_id,
+                    model_id,
+                    float(latency_ms),
+                ),
+            )
 
-            self._connection.execute("""
+            self._connection.execute(
+                """
                     UPDATE live_service_state
                     SET logs_received = ?,
                         windows_completed = ?,
@@ -160,54 +162,62 @@ class LiveStateStore:
                         current_window_json = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE singleton_id = 1
-                """, (
-                int(state["logs_received"]),
-                int(state["windows_completed"]),
-                int(state["unknown_events_received"]),
-                current_json,
-            ))
+                """,
+                (
+                    int(state["logs_received"]),
+                    int(state["windows_completed"]),
+                    int(state["unknown_events_received"]),
+                    current_json,
+                ),
+            )
 
             if idempotency_key is not None and response is not None:
                 sha_val = payload_sha256 if payload_sha256 is not None else ""
-                self._connection.execute("""
+                self._connection.execute(
+                    """
                         INSERT INTO ingestion_idempotency (
                             idempotency_key,
                             payload_sha256,
                             response_json
                         ) VALUES (?, ?, ?)
-                    """, (
-                    idempotency_key,
-                    sha_val,
-                    json.dumps(response, ensure_ascii=False),
-                ))
+                    """,
+                    (
+                        idempotency_key,
+                        sha_val,
+                        json.dumps(response, ensure_ascii=False),
+                    ),
+                )
 
             if window_result is not None:
-                self._connection.execute("""
+                self._connection.execute(
+                    """
                         INSERT OR REPLACE INTO live_windows (
                             window_id,
                             payload_json,
+                            decision,
                             source_id,
                             model_id,
                             latency_ms
-                        ) VALUES (?, ?, ?, ?, ?)
-                    """, (
-                    int(window_result["window_id"]),
-                    json.dumps(
-                        window_result,
-                        ensure_ascii=False,
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        int(window_result["window_id"]),
+                        json.dumps(
+                            window_result,
+                            ensure_ascii=False,
+                        ),
+                        str(window_result.get("decision", "")),
+                        source_id,
+                        model_id,
+                        float(latency_ms),
                     ),
-                    source_id,
-                    model_id,
-                    float(latency_ms),
-                ))
+                )
 
     # --- Alerts and Incidents Persistence ---
 
     def save_or_update_alert(self, incident_dict: dict[str, Any]) -> dict[str, Any]:
         """Insert or update an alert/incident in the database."""
-        evidence_str = json.dumps(
-            incident_dict.get("evidence", {}), ensure_ascii=False
-        )
+        evidence_str = json.dumps(incident_dict.get("evidence", {}), ensure_ascii=False)
 
         with self._lock, self._connection:
             existing = self._connection.execute(
@@ -217,7 +227,8 @@ class LiveStateStore:
 
             if existing:
                 alert_id = int(existing["alert_id"])
-                self._connection.execute("""
+                self._connection.execute(
+                    """
                         UPDATE alerts
                         SET status = ?,
                             severity = ?,
@@ -231,45 +242,50 @@ class LiveStateStore:
                             updated_at = ?,
                             closed_at = ?
                         WHERE alert_id = ?
-                    """, (
-                    incident_dict["status"],
-                    incident_dict["severity"],
-                    float(incident_dict["score"]),
-                    float(incident_dict["threshold"]),
-                    int(incident_dict["last_window_id"]),
-                    int(incident_dict["last_line_number"]),
-                    int(incident_dict["window_count"]),
-                    incident_dict["summary"],
-                    evidence_str,
-                    incident_dict.get("updated_at") or datetime.now(UTC).isoformat(),
-                    incident_dict.get("closed_at"),
-                    alert_id,
-                ))
+                    """,
+                    (
+                        incident_dict["status"],
+                        incident_dict["severity"],
+                        float(incident_dict["score"]),
+                        float(incident_dict["threshold"]),
+                        int(incident_dict["last_window_id"]),
+                        int(incident_dict["last_line_number"]),
+                        int(incident_dict["window_count"]),
+                        incident_dict["summary"],
+                        evidence_str,
+                        incident_dict.get("updated_at") or datetime.now(UTC).isoformat(),
+                        incident_dict.get("closed_at"),
+                        alert_id,
+                    ),
+                )
             else:
-                cur = self._connection.execute("""
+                cur = self._connection.execute(
+                    """
                         INSERT INTO alerts (
                             incident_id, status, severity, score, threshold,
                             first_window_id, last_window_id, first_line_number,
                             last_line_number, window_count, summary, evidence_json,
                             created_at, updated_at, closed_at
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                    incident_dict["incident_id"],
-                    incident_dict["status"],
-                    incident_dict["severity"],
-                    float(incident_dict["score"]),
-                    float(incident_dict["threshold"]),
-                    int(incident_dict["first_window_id"]),
-                    int(incident_dict["last_window_id"]),
-                    int(incident_dict["first_line_number"]),
-                    int(incident_dict["last_line_number"]),
-                    int(incident_dict["window_count"]),
-                    incident_dict["summary"],
-                    evidence_str,
-                    incident_dict.get("created_at") or datetime.now(UTC).isoformat(),
-                    incident_dict.get("updated_at") or datetime.now(UTC).isoformat(),
-                    incident_dict.get("closed_at"),
-                ))
+                    """,
+                    (
+                        incident_dict["incident_id"],
+                        incident_dict["status"],
+                        incident_dict["severity"],
+                        float(incident_dict["score"]),
+                        float(incident_dict["threshold"]),
+                        int(incident_dict["first_window_id"]),
+                        int(incident_dict["last_window_id"]),
+                        int(incident_dict["first_line_number"]),
+                        int(incident_dict["last_line_number"]),
+                        int(incident_dict["window_count"]),
+                        incident_dict["summary"],
+                        evidence_str,
+                        incident_dict.get("created_at") or datetime.now(UTC).isoformat(),
+                        incident_dict.get("updated_at") or datetime.now(UTC).isoformat(),
+                        incident_dict.get("closed_at"),
+                    ),
+                )
                 alert_id = cur.lastrowid
 
         return self.get_alert(alert_id) or {}
@@ -378,13 +394,13 @@ class LiveStateStore:
     # --- Review Queue and Drift Summaries ---
 
     def get_review_windows(self, limit: int = 50) -> list[dict[str, Any]]:
-        """Retrieve windows routed to NOVELTY_DRIFT_REVIEW."""
+        """Retrieve windows routed to NOVELTY_DRIFT_REVIEW using the indexed decision column."""
         with self._lock:
             rows = self._connection.execute(
                 """
-                SELECT window_id, payload_json, created_at
+                SELECT window_id, payload_json, decision, created_at
                 FROM live_windows
-                WHERE payload_json LIKE '%NOVELTY_DRIFT_REVIEW%'
+                WHERE decision = 'NOVELTY_DRIFT_REVIEW'
                 ORDER BY window_id DESC
                 LIMIT ?
                 """,
@@ -401,20 +417,86 @@ class LiveStateStore:
                 pass
         return reviews
 
+    def get_decision_distribution(self, recent_limit: int | None = None) -> dict[str, int]:
+        """
+        Count completed windows per decision. When recent_limit is provided the
+        counts cover only the most recent N windows (by window_id).
+        """
+        base = "SELECT decision FROM live_windows"
+        query = f"""
+            SELECT decision, COUNT(*)
+            FROM ({base + " ORDER BY window_id DESC LIMIT ?" if recent_limit else base})
+            GROUP BY decision
+        """
+        with self._lock:
+            rows = self._connection.execute(
+                query,
+                (int(recent_limit),) if recent_limit else (),
+            ).fetchall()
+
+        return {row[0]: int(row[1]) for row in rows if row[0]}
+
+    def get_windows_page(
+        self,
+        decision: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        """Query persisted window decisions with optional decision filter."""
+        query = "SELECT payload_json, created_at FROM live_windows"
+        params: list[Any] = []
+
+        if decision and decision != "ALL":
+            query += " WHERE decision = ?"
+            params.append(decision.upper())
+
+        query += " ORDER BY window_id DESC LIMIT ? OFFSET ?"
+        params.extend([int(limit), int(offset)])
+
+        with self._lock:
+            rows = self._connection.execute(query, params).fetchall()
+
+        items = []
+        for row in rows:
+            try:
+                payload = json.loads(row["payload_json"])
+                payload["persisted_at"] = row["created_at"]
+                items.append(payload)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        return items
+
+    def get_last_incident_sequence(self) -> int:
+        """
+        Highest INC-#### sequence persisted, so IncidentPolicy counters survive
+        process restarts without replaying duplicate incident IDs.
+        """
+        with self._lock:
+            row = self._connection.execute("SELECT incident_id FROM alerts ORDER BY alert_id DESC LIMIT 1").fetchone()
+
+        if row is None:
+            return 0
+        incident_id = str(row["incident_id"])
+        if incident_id.startswith("INC-"):
+            suffix = incident_id[4:]
+            if suffix.isdigit():
+                return int(suffix)
+        return 0
+
     def get_drift_summary(self) -> dict[str, Any]:
         """Aggregate template drift and unknown token metrics."""
         with self._lock:
-            total_events = self._connection.execute(
-                "SELECT COUNT(*) FROM ingested_events"
-            ).fetchone()[0]
+            total_events = self._connection.execute("SELECT COUNT(*) FROM ingested_events").fetchone()[0]
 
             unknown_events = self._connection.execute(
                 "SELECT COUNT(*) FROM ingested_events WHERE token = 1"
             ).fetchone()[0]
 
-            status_counts = dict(self._connection.execute(
-                "SELECT event_status, COUNT(*) FROM ingested_events GROUP BY event_status"
-            ).fetchall())
+            status_counts = dict(
+                self._connection.execute(
+                    "SELECT event_status, COUNT(*) FROM ingested_events GROUP BY event_status"
+                ).fetchall()
+            )
 
             unmatched_samples = [
                 row[0]
@@ -467,9 +549,7 @@ class LiveStateStore:
     def get_models(self) -> list[dict[str, Any]]:
         """List registered models and active thresholds."""
         with self._lock:
-            rows = self._connection.execute(
-                "SELECT * FROM model_registry ORDER BY registered_at DESC"
-            ).fetchall()
+            rows = self._connection.execute("SELECT * FROM model_registry ORDER BY registered_at DESC").fetchall()
         models = []
         for row in rows:
             item = dict(row)
@@ -523,9 +603,7 @@ class LiveStateStore:
             raise ValueError(f"Invalid WAL checkpoint mode: {mode}. Must be one of {valid_modes}")
 
         with self._lock:
-            row = self._connection.execute(
-                f"PRAGMA wal_checkpoint({mode_upper})"
-            ).fetchone()
+            row = self._connection.execute(f"PRAGMA wal_checkpoint({mode_upper})").fetchone()
 
         return {
             "mode": mode_upper,

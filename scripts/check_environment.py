@@ -1,4 +1,4 @@
-﻿from importlib.metadata import version
+from importlib.metadata import version
 
 from drain3 import TemplateMiner
 from drain3.template_miner_config import TemplateMinerConfig
@@ -35,9 +35,6 @@ messages = [
 
 for message in messages:
     result = miner.add_log_message(message)
-    print(
-        f"Cluster ID: {result['cluster_id']} | "
-        f"Template: {result['template_mined']}"
-    )
+    print(f"Cluster ID: {result['cluster_id']} | Template: {result['template_mined']}")
 
 print("\nSUCCESS: Environment and Drain3 test completed.")

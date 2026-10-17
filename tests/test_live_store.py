@@ -1,4 +1,3 @@
-
 from zentinel.api.live_store import LiveStateStore
 
 
@@ -10,8 +9,7 @@ def make_event(line_number=1, token=2):
         "token": token,
         "event_status": "matched" if token >= 2 else "unknown_template",
         "matched_event_id": 1 if token >= 2 else None,
-        "template": "RAS KERNEL INFO instruction cache parity error corrected"
-        if token >= 2 else None,
+        "template": "RAS KERNEL INFO instruction cache parity error corrected" if token >= 2 else None,
     }
 
 
@@ -151,10 +149,7 @@ def test_idempotency_response_survives_store_reload(tmp_path):
     # Open a fresh store instance to verify persistence across reboots
     restored_store = LiveStateStore(database_path)
     try:
-        assert (
-            restored_store.get_idempotent_response(key)
-            == original_response
-        )
+        assert restored_store.get_idempotent_response(key) == original_response
         rec = restored_store.get_idempotency_record(key)
         assert rec["payload_sha256"] == "abc123hash"
     finally:
@@ -186,17 +181,12 @@ def test_retention_purge(tmp_path):
         with store._connection:
             remaining_keys = [
                 row[0]
-                for row in store._connection.execute(
-                    "SELECT idempotency_key FROM ingestion_idempotency"
-                ).fetchall()
+                for row in store._connection.execute("SELECT idempotency_key FROM ingestion_idempotency").fetchall()
             ]
             assert remaining_keys == ["recent-key"]
 
             remaining_lines = [
-                row[0]
-                for row in store._connection.execute(
-                    "SELECT line_number FROM ingested_events"
-                ).fetchall()
+                row[0] for row in store._connection.execute("SELECT line_number FROM ingested_events").fetchall()
             ]
             assert remaining_lines == [2]
     finally:

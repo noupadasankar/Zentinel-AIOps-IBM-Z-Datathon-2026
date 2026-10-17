@@ -187,11 +187,7 @@ class ONNXInferenceEngine:
         lstm_score, transition_count = self.score_known_runs(tokens)
         scorable = lstm_score is not None
 
-        lstm_would_alert = (
-            bool(lstm_score >= self.lstm_threshold)
-            if scorable
-            else None
-        )
+        lstm_would_alert = bool(lstm_score >= self.lstm_threshold) if scorable else None
 
         high_unknown_rate = unknown_rate > self.novelty_threshold
 
@@ -352,7 +348,9 @@ def evaluate_onnx_parity(
     report = {
         "status": "PASS" if pct_identical == 100.0 and max(logit_diffs) < 1e-4 else "FAIL",
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "onnx_model_path": (onnx_path.relative_to(ROOT_DIR).as_posix() if onnx_path.is_relative_to(ROOT_DIR) else onnx_path.as_posix()),
+        "onnx_model_path": (
+            onnx_path.relative_to(ROOT_DIR).as_posix() if onnx_path.is_relative_to(ROOT_DIR) else onnx_path.as_posix()
+        ),
         "opset_version": 17,
         "runs_parity": {
             "runs_evaluated": len(runs),

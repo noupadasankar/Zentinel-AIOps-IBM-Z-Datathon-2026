@@ -1,4 +1,3 @@
-
 """Investigate unknown Drain3 matches by time, label, and log type."""
 
 import json
@@ -55,19 +54,15 @@ def finalize_stats(stats):
     unknown = stats["unknown"]
 
     result = dict(stats)
-    result["unknown_percentage"] = round(
-        100 * unknown / records, 4
-    ) if records else 0.0
+    result["unknown_percentage"] = round(100 * unknown / records, 4) if records else 0.0
 
-    result["unknown_alert_label_percentage"] = round(
-        100 * stats["unknown_alert_labelled"] /
-        stats["alert_labelled"], 4
-    ) if stats["alert_labelled"] else 0.0
+    result["unknown_alert_label_percentage"] = (
+        round(100 * stats["unknown_alert_labelled"] / stats["alert_labelled"], 4) if stats["alert_labelled"] else 0.0
+    )
 
-    result["unknown_normal_label_percentage"] = round(
-        100 * stats["unknown_normal_labelled"] /
-        stats["normal_labelled"], 4
-    ) if stats["normal_labelled"] else 0.0
+    result["unknown_normal_label_percentage"] = (
+        round(100 * stats["unknown_normal_labelled"] / stats["normal_labelled"], 4) if stats["normal_labelled"] else 0.0
+    )
 
     return result
 
@@ -163,10 +158,7 @@ def main():
     total_unknown = sum(s["unknown"] for s in split_stats.values())
     total_records = sum(s["records"] for s in split_stats.values())
 
-    split_report = {
-        name: finalize_stats(stats)
-        for name, stats in split_stats.items()
-    }
+    split_report = {name: finalize_stats(stats) for name, stats in split_stats.items()}
 
     # Print date-level diagnostics specifically for validation and test.
     date_report = []
@@ -201,17 +193,12 @@ def main():
         for category, count in unknown_categories.most_common(20)
     ]
 
-    top_unknown_labels = [
-        {"label": label, "unknown_count": count}
-        for label, count in unknown_labels.most_common(20)
-    ]
+    top_unknown_labels = [{"label": label, "unknown_count": count} for label, count in unknown_labels.most_common(20)]
 
     report = {
         "records_inspected": processed,
         "total_unknown": total_unknown,
-        "unknown_percentage": round(
-            100 * total_unknown / total_records, 4
-        ) if total_records else 0.0,
+        "unknown_percentage": round(100 * total_unknown / total_records, 4) if total_records else 0.0,
         "split_statistics": split_report,
         "validation_and_test_by_date": date_report,
         "contiguous_source_chunks": chunk_report,
@@ -235,21 +222,12 @@ def main():
         print(f"  Records: {stats['records']:,}")
         print(f"  Unknown: {stats['unknown']:,}")
         print(f"  Unknown rate: {stats['unknown_percentage']:.4f}%")
-        print(
-            "  Unknown among alert-labelled records: "
-            f"{stats['unknown_alert_label_percentage']:.4f}%"
-        )
-        print(
-            "  Unknown among normal-labelled records: "
-            f"{stats['unknown_normal_label_percentage']:.4f}%"
-        )
+        print(f"  Unknown among alert-labelled records: {stats['unknown_alert_label_percentage']:.4f}%")
+        print(f"  Unknown among normal-labelled records: {stats['unknown_normal_label_percentage']:.4f}%")
 
     print("\nContiguous chunks with unknown rate >= 5%:")
 
-    high_unknown_chunks = [
-        item for item in chunk_report
-        if item["unknown_percentage"] >= 5.0
-    ]
+    high_unknown_chunks = [item for item in chunk_report if item["unknown_percentage"] >= 5.0]
 
     for item in high_unknown_chunks[:30]:
         print(
@@ -266,18 +244,12 @@ def main():
 
     print("\nTop unknown metadata categories:")
     for item in top_categories[:10]:
-        print(
-            f"  {item['event_type']} / {item['component']} / "
-            f"{item['severity']}: {item['unknown_count']:,}"
-        )
+        print(f"  {item['event_type']} / {item['component']} / {item['severity']}: {item['unknown_count']:,}")
 
     print("\nFirst unknown raw log examples:")
 
     for item in first_examples[:5]:
-        print(
-            f"\n  Line {item['line_number']:,} | "
-            f"{item['date']} | label={item['label']}"
-        )
+        print(f"\n  Line {item['line_number']:,} | {item['date']} | label={item['label']}")
         print(f"  {item['raw_line']}")
 
     print(f"\nDetailed report saved to: {REPORT_PATH}")

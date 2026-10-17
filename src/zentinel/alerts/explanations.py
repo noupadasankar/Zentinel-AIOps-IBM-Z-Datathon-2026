@@ -81,28 +81,26 @@ def generate_incident_evidence(
 
     top_templates = []
     for tmpl, losses in template_losses.items():
-        top_templates.append({
-            "template": tmpl,
-            "event_count": len(losses),
-            "mean_loss": float(sum(losses) / len(losses)),
-            "max_loss": float(max(losses)),
-            "sample_line_number": template_sample_lines.get(tmpl),
-        })
+        top_templates.append(
+            {
+                "template": tmpl,
+                "event_count": len(losses),
+                "mean_loss": float(sum(losses) / len(losses)),
+                "max_loss": float(max(losses)),
+                "sample_line_number": template_sample_lines.get(tmpl),
+            }
+        )
 
     top_templates.sort(key=lambda x: x["mean_loss"], reverse=True)
     evidence["top_k_templates_by_loss"] = top_templates[:top_k]
 
     # 2. First-seen / unmatched templates
     unmatched = [
-        ev for ev in events
-        if ev.get("event_status") in ("unknown_template", "template_missing_from_vocabulary")
+        ev for ev in events if ev.get("event_status") in ("unknown_template", "template_missing_from_vocabulary")
     ]
-    unmatched_counts = Counter(
-        ev.get("template") or "[NEW_UNMATCHED_MESSAGE]" for ev in unmatched
-    )
+    unmatched_counts = Counter(ev.get("template") or "[NEW_UNMATCHED_MESSAGE]" for ev in unmatched)
     evidence["first_seen_templates"] = [
-        {"template": tmpl, "count": count}
-        for tmpl, count in unmatched_counts.most_common(5)
+        {"template": tmpl, "count": count} for tmpl, count in unmatched_counts.most_common(5)
     ]
 
     # 3. Unknown event rate vs validation threshold
@@ -125,12 +123,14 @@ def generate_incident_evidence(
         for sev in ["FATAL", "SEVERE", "ERROR", "FAILURE", "Kill", "WARNING"]:
             if sev in template:
                 severity_counter[sev] += 1
-                high_sev_records.append({
-                    "line_number": ev.get("line_number"),
-                    "timestamp": ev.get("timestamp"),
-                    "severity": sev,
-                    "template": template,
-                })
+                high_sev_records.append(
+                    {
+                        "line_number": ev.get("line_number"),
+                        "timestamp": ev.get("timestamp"),
+                        "severity": sev,
+                        "template": template,
+                    }
+                )
                 break
 
     evidence["high_severity_breakdown"] = dict(severity_counter)
@@ -141,23 +141,27 @@ def generate_incident_evidence(
     # Include up to 5 events with highest loss
     scored_pairs_sorted = sorted(scored_pairs, key=lambda x: x[1], reverse=True)
     for ev, loss in scored_pairs_sorted[:5]:
-        representative_lines.append({
-            "line_number": ev.get("line_number"),
-            "timestamp": ev.get("timestamp"),
-            "loss": float(loss),
-            "template": ev.get("template"),
-            "reason": "HIGH_EVENT_LOSS",
-        })
+        representative_lines.append(
+            {
+                "line_number": ev.get("line_number"),
+                "timestamp": ev.get("timestamp"),
+                "loss": float(loss),
+                "template": ev.get("template"),
+                "reason": "HIGH_EVENT_LOSS",
+            }
+        )
 
     # Include any FATAL lines
     for item in high_sev_records[:3]:
-        representative_lines.append({
-            "line_number": item["line_number"],
-            "timestamp": item["timestamp"],
-            "loss": None,
-            "template": item["template"],
-            "reason": f"CRITICAL_SEVERITY_{item['severity']}",
-        })
+        representative_lines.append(
+            {
+                "line_number": item["line_number"],
+                "timestamp": item["timestamp"],
+                "loss": None,
+                "template": item["template"],
+                "reason": f"CRITICAL_SEVERITY_{item['severity']}",
+            }
+        )
 
     evidence["matching_line_references"] = representative_lines
 

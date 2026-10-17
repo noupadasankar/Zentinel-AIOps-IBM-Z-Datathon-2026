@@ -1,4 +1,3 @@
-
 """Compare Drain3 thresholds using training data only."""
 
 import json
@@ -73,14 +72,9 @@ def main() -> None:
 
         largest_count = clusters[0].size if clusters else 0
 
-        total_wildcards = sum(
-            cluster.size * cluster.get_template().count("<*>")
-            for cluster in clusters
-        )
+        total_wildcards = sum(cluster.size * cluster.get_template().count("<*>") for cluster in clusters)
 
-        weighted_average_wildcards = (
-            total_wildcards / processed if processed else 0.0
-        )
+        weighted_average_wildcards = total_wildcards / processed if processed else 0.0
 
         top_templates = [
             {
@@ -97,12 +91,8 @@ def main() -> None:
             "records_processed": processed,
             "template_count": len(clusters),
             "largest_template_count": largest_count,
-            "largest_template_percentage": round(
-                largest_count * 100 / processed, 2
-            ) if processed else 0.0,
-            "weighted_average_wildcards_per_record": round(
-                weighted_average_wildcards, 3
-            ),
+            "largest_template_percentage": round(largest_count * 100 / processed, 2) if processed else 0.0,
+            "weighted_average_wildcards_per_record": round(weighted_average_wildcards, 3),
             "top_templates": top_templates,
         }
 
@@ -110,21 +100,12 @@ def main() -> None:
 
         print(f"Records: {processed:,}")
         print(f"Templates: {len(clusters):,}")
-        print(
-            "Largest template share: "
-            f"{result['largest_template_percentage']:.2f}%"
-        )
-        print(
-            "Weighted average wildcards: "
-            f"{weighted_average_wildcards:.3f}"
-        )
+        print(f"Largest template share: {result['largest_template_percentage']:.2f}%")
+        print(f"Weighted average wildcards: {weighted_average_wildcards:.3f}")
 
         print("Top 3 templates:")
         for item in top_templates[:3]:
-            print(
-                f"  {item['count']:,} records | "
-                f"{item['template']}"
-            )
+            print(f"  {item['count']:,} records | {item['template']}")
 
     report = {
         "dataset": "LogHub BGL",

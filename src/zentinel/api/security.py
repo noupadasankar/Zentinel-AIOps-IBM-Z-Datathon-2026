@@ -51,9 +51,7 @@ class SecurityManager:
         rate_limit_burst: int = 200,
     ):
         self.api_keys_config = (
-            api_keys_config
-            if api_keys_config is not None
-            else os.getenv("ZENTINEL_API_KEY_SHA256", "")
+            api_keys_config if api_keys_config is not None else os.getenv("ZENTINEL_API_KEY_SHA256", "")
         )
         self.rate_limiter = TokenBucketRateLimiter(
             rps=rate_limit_rps,

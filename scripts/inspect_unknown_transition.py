@@ -1,4 +1,3 @@
-
 """Compare training matches with unknown messages in the later test period."""
 
 from pathlib import Path
@@ -33,10 +32,7 @@ def show_record(record):
         f"Split: {record['split']} | "
         f"Label: {record['label']}"
     )
-    print(
-        f"Metadata: {record['event_type']} / "
-        f"{record['component']} / {record['severity']}"
-    )
+    print(f"Metadata: {record['event_type']} / {record['component']} / {record['severity']}")
     print(f"Match status: {record['template_match_status']}")
     print(f"Event ID: {record['frozen_event_id']}")
     print(f"Message: {(record['message'] or '')[:240]}")
@@ -72,9 +68,7 @@ def main():
             status = record["template_match_status"]
 
             is_ras_kernel_info = (
-                record["event_type"] == "RAS"
-                and record["component"] == "KERNEL"
-                and record["severity"] == "INFO"
+                record["event_type"] == "RAS" and record["component"] == "KERNEL" and record["severity"] == "INFO"
             )
 
             if (
@@ -97,10 +91,7 @@ def main():
                     if is_ras_kernel_info:
                         counts["late_ras_kernel_info_unknown"] += 1
 
-                        if (
-                            len(unknown_late_ras_kernel_info)
-                            < SAMPLE_COUNT
-                        ):
+                        if len(unknown_late_ras_kernel_info) < SAMPLE_COUNT:
                             unknown_late_ras_kernel_info.append(record)
 
                 elif len(matched_late_examples) < SAMPLE_COUNT:

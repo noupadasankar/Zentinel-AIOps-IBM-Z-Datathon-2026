@@ -11,9 +11,7 @@ from zentinel.models.evaluation import run_full_walk_forward_evaluation
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Run walk-forward evaluation across 4 test slices."
-    )
+    parser = argparse.ArgumentParser(description="Run walk-forward evaluation across 4 test slices.")
     parser.add_argument(
         "--output",
         type=Path,

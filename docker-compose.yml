@@ -51,9 +51,21 @@ services:
     image: zentinel-aiops:latest
     container_name: zentinel-watcher
     restart: unless-stopped
-    command: ["python", "-m", "zentinel.ingestion.watcher", "/app/data/raw/sample_replay.log", "http://api:8000/api/v1/live/ingest"]
+    command:
+      [
+        "python",
+        "-m",
+        "zentinel.ingestion.watcher",
+        "/app/data/raw/sample_replay.log",
+        "--api-url",
+        "http://api:8000",
+        "--from-start",
+        "--poll-interval",
+        "0.25",
+      ]
     environment:
       - PYTHONPATH=/app/src
+      - ZENTINEL_API_KEY=${ZENTINEL_API_KEY:-}
     volumes:
       - ./data/raw:/app/data/raw:ro
       - zentinel_data:/app/data/processed

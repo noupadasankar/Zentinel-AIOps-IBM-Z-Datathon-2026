@@ -87,6 +87,12 @@ async def lifespan(app: FastAPI):
         RECENT_WINDOWS.clear()
         RECENT_WINDOWS.extend(restored["recent_windows"])
 
+    # Restore incident numbering so restarted processes never replay incident IDs
+    INCIDENT_POLICY.incident_counter = max(
+        INCIDENT_POLICY.incident_counter,
+        STORE.get_last_incident_sequence(),
+    )
+
     # Register default active model in model registry
     STORE.register_model(
         model_id="lstm_next_event_v1",
@@ -322,11 +328,7 @@ def root():
 @app.get("/health", tags=["System"])
 def health():
     """Health check endpoint: open to public monitoring without auth."""
-    vocab_size = (
-        int(ENGINE.vocab.get("vocabulary_size", 0))
-        if ENGINE._is_loaded and ENGINE.vocab
-        else 616
-    )
+    vocab_size = int(ENGINE.vocab.get("vocabulary_size", 0)) if ENGINE._is_loaded and ENGINE.vocab else 616
     return {
         "status": "ok",
         "mode": "live_ingestion",
@@ -364,9 +366,7 @@ def ingest_log(
                 if record["payload_sha256"] != payload_sha256:
                     raise HTTPException(
                         status_code=409,
-                        detail=(
-                            "Idempotency key collision: key already used with different payload"
-                        ),
+                        detail=("Idempotency key collision: key already used with different payload"),
                     )
                 cached = dict(record["response"])
                 cached["idempotency_replayed"] = True
@@ -439,9 +439,7 @@ def ingest_log(
                 window_result,
                 model=ENGINE.model,
             )
-            incident, action = INCIDENT_POLICY.process_window(
-                window_result, evidence=evidence
-            )
+            incident, action = INCIDENT_POLICY.process_window(window_result, evidence=evidence)
             if incident is not None:
                 store.save_or_update_alert(incident.to_dict())
                 window_result["incident_id"] = incident.incident_id
@@ -529,11 +527,13 @@ def ingest_batch(
 @app.get("/api/v1/live/status", tags=["Live Ingestion"])
 def live_status(role: str = Depends(require_read)):
     """Return live ingestion counters, window state, and persistence details."""
+    store = STORE
+    open_alerts = 0
+    if store is not None:
+        open_alerts = len(store.get_alerts(status="OPEN", severity=None, limit=200, offset=0))
+
     with STATE_LOCK:
-        current_unknown = sum(
-            event["token"] == UNKNOWN_TOKEN
-            for event in CURRENT_WINDOW
-        )
+        current_unknown = sum(event["token"] == UNKNOWN_TOKEN for event in CURRENT_WINDOW)
 
         return {
             "mode": "live_ingestion",
@@ -542,36 +542,110 @@ def live_status(role: str = Depends(require_read)):
             "unknown_events_received": int(STATE["unknown_events_received"]),
             "current_window_size": len(CURRENT_WINDOW),
             "current_window_unknown_count": int(current_unknown),
-            "current_window_unknown_rate": (
-                float(current_unknown / len(CURRENT_WINDOW))
-                if CURRENT_WINDOW else 0.0
-            ),
+            "current_window_unknown_rate": (float(current_unknown / len(CURRENT_WINDOW)) if CURRENT_WINDOW else 0.0),
             "window_size": WINDOW_SIZE,
             "recent_windows_retained": len(RECENT_WINDOWS),
+            "open_alerts": int(open_alerts),
             "persistence": "sqlite",
             "database": str(CONFIG.db_path),
             "active_incident": (
-                INCIDENT_POLICY.current_incident.to_dict()
-                if INCIDENT_POLICY.current_incident
-                else None
+                INCIDENT_POLICY.current_incident.to_dict() if INCIDENT_POLICY.current_incident else None
             ),
         }
 
 
 @app.get("/api/v1/live/windows", tags=["Live Ingestion"])
 def recent_windows(
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=20, ge=1, le=500),
+    decision: str | None = Query(
+        default=None,
+        description="Filter by decision (ANOMALY_ALERT, NO_ANOMALY_DETECTED, NOVELTY_DRIFT_REVIEW)",
+    ),
+    offset: int = Query(default=0, ge=0),
     role: str = Depends(require_read),
 ):
-    """Retrieve recently completed window decisions."""
-    with STATE_LOCK:
-        items = list(RECENT_WINDOWS)[-limit:]
-        items.reverse()
+    """Retrieve persisted window decisions, newest first, with optional filtering."""
+    store = STORE
+    if store is None:
+        # Fallback to in-memory ring before the store is wired (e.g. early startup)
+        with STATE_LOCK:
+            items = list(RECENT_WINDOWS)[-limit:]
+            items.reverse()
+    else:
+        items = store.get_windows_page(decision=decision, limit=limit, offset=offset)
 
-        return {
-            "count": len(items),
-            "items": items,
-        }
+    return {
+        "count": len(items),
+        "limit": limit,
+        "offset": offset,
+        "decision": decision,
+        "items": items,
+    }
+
+
+@app.get("/api/v1/dashboards/summary", tags=["Live Ingestion"])
+def dashboard_summary(role: str = Depends(require_read)):
+    """
+    Single aggregated feed for the operations dashboard:
+    counters, KPIs, decision distribution, incidents, drift, and thresholds.
+    """
+    store = STORE
+    with STATE_LOCK:
+        logs_total = int(STATE["logs_received"])
+        windows_total = int(STATE["windows_completed"])
+        unknown_total = int(STATE["unknown_events_received"])
+        current_unknown = sum(e["token"] == UNKNOWN_TOKEN for e in CURRENT_WINDOW)
+        current_window_size = len(CURRENT_WINDOW)
+        current_unknown_rate = (current_unknown / current_window_size) if current_window_size else 0.0
+
+    decision_counts_recent: dict[str, int] = {}
+    decision_counts_all: dict[str, int] = {}
+    review_count = 0
+    open_alerts = 0
+    recent_alerts: list[dict[str, Any]] = []
+
+    if store is not None:
+        decision_counts_recent = store.get_decision_distribution(recent_limit=100)
+        decision_counts_all = store.get_decision_distribution()
+        review_count = len(store.get_review_windows(limit=200))
+        alerts_page = store.get_alerts(status="OPEN", severity=None, limit=200, offset=0)
+        open_alerts = len(alerts_page)
+        recent_alerts = store.get_alerts(status=None, severity=None, limit=10, offset=0)
+
+    anomaly_count = decision_counts_recent.get("ANOMALY_ALERT", 0)
+    recent_total = sum(decision_counts_recent.values())
+    anomaly_rate_recent = (anomaly_count / recent_total) if recent_total else 0.0
+
+    return {
+        "counters": {
+            "logs_received": logs_total,
+            "windows_completed": windows_total,
+            "unknown_events_received": unknown_total,
+        },
+        "window_state": {
+            "window_size": WINDOW_SIZE,
+            "current_window_size": current_window_size,
+            "current_window_unknown_rate": current_unknown_rate,
+        },
+        "kpis": {
+            "anomaly_rate_recent_100": anomaly_rate_recent,
+            "anomaly_windows_recent_100": anomaly_count,
+            "recent_windows_sampled": recent_total,
+            "open_alerts": open_alerts,
+            "review_windows_total": review_count,
+        },
+        "decisions": {
+            "recent_100": decision_counts_recent,
+            "all_time": decision_counts_all,
+        },
+        "active_incident": (INCIDENT_POLICY.current_incident.to_dict() if INCIDENT_POLICY.current_incident else None),
+        "recent_alerts": recent_alerts,
+        "thresholds": {
+            "lstm_threshold": ENGINE.lstm_threshold,
+            "hysteresis_threshold": ENGINE.lstm_threshold * 0.70,
+            "novelty_threshold": ENGINE.novelty_threshold,
+        },
+    }
 
 
 # --- Alert Management Endpoints ---
@@ -650,10 +724,7 @@ def close_alert(
     )
 
     # If policy has this as current incident, reset it
-    if (
-        INCIDENT_POLICY.current_incident
-        and INCIDENT_POLICY.current_incident.incident_id == alert.get("incident_id")
-    ):
+    if INCIDENT_POLICY.current_incident and INCIDENT_POLICY.current_incident.incident_id == alert.get("incident_id"):
         INCIDENT_POLICY.current_incident = None
 
     return updated
@@ -678,31 +749,35 @@ def review_queue(
     if format == "csv":
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow([
-            "window_id",
-            "first_line_number",
-            "last_line_number",
-            "decision",
-            "decision_reason",
-            "unknown_event_rate",
-            "unknown_event_count",
-            "known_transitions_scored",
-            "lstm_anomaly_score",
-            "persisted_at",
-        ])
+        writer.writerow(
+            [
+                "window_id",
+                "first_line_number",
+                "last_line_number",
+                "decision",
+                "decision_reason",
+                "unknown_event_rate",
+                "unknown_event_count",
+                "known_transitions_scored",
+                "lstm_anomaly_score",
+                "persisted_at",
+            ]
+        )
         for w in windows:
-            writer.writerow([
-                w.get("window_id"),
-                w.get("first_line_number"),
-                w.get("last_line_number"),
-                w.get("decision"),
-                w.get("decision_reason"),
-                w.get("unknown_event_rate"),
-                w.get("unknown_event_count"),
-                w.get("known_transitions_scored"),
-                w.get("lstm_anomaly_score"),
-                w.get("persisted_at"),
-            ])
+            writer.writerow(
+                [
+                    w.get("window_id"),
+                    w.get("first_line_number"),
+                    w.get("last_line_number"),
+                    w.get("decision"),
+                    w.get("decision_reason"),
+                    w.get("unknown_event_rate"),
+                    w.get("unknown_event_count"),
+                    w.get("known_transitions_scored"),
+                    w.get("lstm_anomaly_score"),
+                    w.get("persisted_at"),
+                ]
+            )
         csv_content = output.getvalue()
         return Response(
             content=csv_content,

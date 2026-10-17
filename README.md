@@ -10,6 +10,18 @@
 
 ---
 
+## Concepts and Data Flow
+
+```
+log file (BGL line) ──▶ FILE WATCHER ──▶ POST /api/v1/live/ingest ──▶ Drain3 frozen matcher
+     (tail + cursor)        (X-API-Key)         (idempotency)          └─▶ token ─┐
+                                                                                  ▼
+ dashboard ◀── GET /api/v1/dashboards/summary ◀── SQLite WAL store ◀── known-run LSTM scoring
+ (live UI)        (single aggregated feed)          (transactions)     └─▶ three-way decision
+```
+
+---
+
 ## 5-Command Quick Start
 
 Spin up the complete platform (Live FastAPI Engine, Dark-Theme Operations Dashboard, and Log Watcher) in under 2 minutes:
@@ -37,6 +49,14 @@ pip install -r requirements.lock
 pytest -ra
 python -m uvicorn zentinel.api.live_api:app --host 127.0.0.1 --port 8000 --workers 1
 streamlit run dashboard/app.py --server.port 8501
+```
+
+*Optional — tail a log file through the live ingestion pipeline (same command the Docker watcher uses):*
+```bash
+python -m zentinel.ingestion.watcher data/raw/sample_replay.log \
+    --api-url http://127.0.0.1:8000 \
+    --api-key your-ingest-key \
+    --from-start
 ```
 
 ---

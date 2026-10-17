@@ -1,4 +1,3 @@
-
 """Stream the complete BGL dataset through Drain3 and write Parquet."""
 
 import json
@@ -28,24 +27,26 @@ BATCH_SIZE = 10_000
 PROGRESS_INTERVAL = 100_000
 
 
-SCHEMA = pa.schema([
-    pa.field("line_number", pa.int64(), nullable=False),
-    pa.field("label", pa.string(), nullable=False),
-    pa.field("timestamp", pa.int64(), nullable=False),
-    pa.field("date", pa.string(), nullable=False),
-    pa.field("node", pa.string(), nullable=False),
-    pa.field("event_time", pa.string(), nullable=False),
-    pa.field("node_repeat", pa.string()),
-    pa.field("event_type", pa.string()),
-    pa.field("component", pa.string()),
-    pa.field("severity", pa.string()),
-    pa.field("message", pa.string(), nullable=False),
-    pa.field("parse_status", pa.string(), nullable=False),
-    pa.field("raw_line", pa.string(), nullable=False),
-    pa.field("event_id", pa.int64(), nullable=False),
-    pa.field("event_template", pa.string(), nullable=False),
-    pa.field("template_change_type", pa.string(), nullable=False),
-])
+SCHEMA = pa.schema(
+    [
+        pa.field("line_number", pa.int64(), nullable=False),
+        pa.field("label", pa.string(), nullable=False),
+        pa.field("timestamp", pa.int64(), nullable=False),
+        pa.field("date", pa.string(), nullable=False),
+        pa.field("node", pa.string(), nullable=False),
+        pa.field("event_time", pa.string(), nullable=False),
+        pa.field("node_repeat", pa.string()),
+        pa.field("event_type", pa.string()),
+        pa.field("component", pa.string()),
+        pa.field("severity", pa.string()),
+        pa.field("message", pa.string(), nullable=False),
+        pa.field("parse_status", pa.string(), nullable=False),
+        pa.field("raw_line", pa.string(), nullable=False),
+        pa.field("event_id", pa.int64(), nullable=False),
+        pa.field("event_template", pa.string(), nullable=False),
+        pa.field("template_change_type", pa.string(), nullable=False),
+    ]
+)
 
 
 def main() -> None:
@@ -53,10 +54,7 @@ def main() -> None:
         raise FileNotFoundError(f"BGL input not found: {INPUT_PATH}")
 
     # Never silently reuse a previous run's model state or partial output.
-    existing = [
-        path for path in (OUTPUT_PATH, TEMP_PATH, STATE_PATH)
-        if path.exists()
-    ]
+    existing = [path for path in (OUTPUT_PATH, TEMP_PATH, STATE_PATH) if path.exists()]
     if existing:
         paths = "\n".join(str(path) for path in existing)
         raise SystemExit(
@@ -154,24 +152,26 @@ def main() -> None:
 
                 row = record.to_dict()
 
-                batch.append({
-                    "line_number": row["line_number"],
-                    "label": row["label"],
-                    "timestamp": row["timestamp"],
-                    "date": row["date"],
-                    "node": row["node"],
-                    "event_time": row["event_time"],
-                    "node_repeat": row["node_repeat"],
-                    "event_type": row["event_type"],
-                    "component": row["component"],
-                    "severity": row["severity"],
-                    "message": row["message"],
-                    "parse_status": row["parse_status"],
-                    "raw_line": raw_line,
-                    "event_id": event_id,
-                    "event_template": event_template,
-                    "template_change_type": change_type,
-                })
+                batch.append(
+                    {
+                        "line_number": row["line_number"],
+                        "label": row["label"],
+                        "timestamp": row["timestamp"],
+                        "date": row["date"],
+                        "node": row["node"],
+                        "event_time": row["event_time"],
+                        "node_repeat": row["node_repeat"],
+                        "event_type": row["event_type"],
+                        "component": row["component"],
+                        "severity": row["severity"],
+                        "message": row["message"],
+                        "parse_status": row["parse_status"],
+                        "raw_line": raw_line,
+                        "event_id": event_id,
+                        "event_template": event_template,
+                        "template_change_type": change_type,
+                    }
+                )
 
                 if len(batch) >= BATCH_SIZE:
                     table = pa.Table.from_pylist(batch, schema=SCHEMA)
@@ -224,10 +224,7 @@ def main() -> None:
         "normal_label": "-",
         "normal_label_lines": normal_count,
         "alert_label_lines": alert_count,
-        "alert_label_percentage": (
-            round(alert_count * 100 / processed, 4)
-            if processed else 0.0
-        ),
+        "alert_label_percentage": (round(alert_count * 100 / processed, 4) if processed else 0.0),
         "empty_message_lines": empty_messages,
         "parse_status_counts": dict(parse_statuses),
         "severity_counts": dict(severities.most_common()),
@@ -259,10 +256,7 @@ def main() -> None:
 
     print("\nTop 10 templates:")
     for item in top_templates[:10]:
-        print(
-            f"  ID {item['event_id']}: {item['count']:,} records | "
-            f"{item['template']}"
-        )
+        print(f"  ID {item['event_id']}: {item['count']:,} records | {item['template']}")
 
     print(f"\nParquet output: {OUTPUT_PATH}")
     print(f"Drain3 state: {STATE_PATH}")

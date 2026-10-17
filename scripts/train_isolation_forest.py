@@ -1,4 +1,3 @@
-
 """Train and validate the Isolation Forest anomaly detection baseline."""
 
 import json
@@ -27,9 +26,7 @@ MANIFEST_PATH = ROOT / "reports" / "window_feature_columns.json"
 MODEL_PATH = ROOT / "artifacts" / "isolation_forest_baseline.joblib"
 THRESHOLD_PATH = ROOT / "artifacts" / "isolation_forest_threshold.json"
 
-VALIDATION_SCORES_PATH = (
-    ROOT / "data" / "processed" / "isolation_forest_validation_scores.parquet"
-)
+VALIDATION_SCORES_PATH = ROOT / "data" / "processed" / "isolation_forest_validation_scores.parquet"
 REPORT_PATH = ROOT / "reports" / "isolation_forest_validation_report.json"
 
 RANDOM_STATE = 42
@@ -68,27 +65,13 @@ def evaluate_scores(y_true, scores, threshold):
         "false_positives": int(fp),
         "true_negatives": int(tn),
         "false_negatives": int(fn),
-        "precision": float(
-            precision_score(y_true, predictions, zero_division=0)
-        ),
-        "recall": float(
-            recall_score(y_true, predictions, zero_division=0)
-        ),
-        "f1": float(
-            f1_score(y_true, predictions, zero_division=0)
-        ),
-        "false_positive_rate": float(
-            fp / (fp + tn) if (fp + tn) else 0.0
-        ),
-        "false_positive_windows_per_1000_normal_windows": float(
-            fp / (fp + tn) * 1000 if (fp + tn) else 0.0
-        ),
-        "average_precision_pr_auc": float(
-            average_precision_score(y_true, scores)
-        ),
-        "roc_auc": float(
-            roc_auc_score(y_true, scores)
-        ),
+        "precision": float(precision_score(y_true, predictions, zero_division=0)),
+        "recall": float(recall_score(y_true, predictions, zero_division=0)),
+        "f1": float(f1_score(y_true, predictions, zero_division=0)),
+        "false_positive_rate": float(fp / (fp + tn) if (fp + tn) else 0.0),
+        "false_positive_windows_per_1000_normal_windows": float(fp / (fp + tn) * 1000 if (fp + tn) else 0.0),
+        "average_precision_pr_auc": float(average_precision_score(y_true, scores)),
+        "roc_auc": float(roc_auc_score(y_true, scores)),
         "score_min": float(np.min(scores)),
         "score_median": float(np.median(scores)),
         "score_max": float(np.max(scores)),
@@ -111,8 +94,7 @@ def main():
     if existing:
         raise SystemExit(
             "Existing model or report files found. Inspect them before "
-            "deciding whether to rerun; outputs will not be overwritten:\n"
-            + "\n".join(existing)
+            "deciding whether to rerun; outputs will not be overwritten:\n" + "\n".join(existing)
         )
 
     with MANIFEST_PATH.open("r", encoding="utf-8") as file:
@@ -133,10 +115,7 @@ def main():
 
     accidental_leakage = forbidden_columns.intersection(feature_columns)
     if accidental_leakage:
-        raise ValueError(
-            f"Metadata/target columns appear in model features: "
-            f"{sorted(accidental_leakage)}"
-        )
+        raise ValueError(f"Metadata/target columns appear in model features: {sorted(accidental_leakage)}")
 
     columns_to_read = METADATA_COLUMNS + feature_columns
 
@@ -156,10 +135,7 @@ def main():
     feature_data = data[feature_columns].astype(np.float32)
 
     if not np.isfinite(feature_data.to_numpy()).all():
-        raise ValueError(
-            "NaN or infinite feature values found. Fix the feature data "
-            "before training."
-        )
+        raise ValueError("NaN or infinite feature values found. Fix the feature data before training.")
 
     train_mask = data["split"].eq("train")
     validation_mask = data["split"].eq("validation")
@@ -172,19 +148,14 @@ def main():
 
     X_train = feature_data.loc[train_normal_mask]
     X_validation = feature_data.loc[validation_mask]
-    y_validation = data.loc[
-        validation_mask, "target_anomaly"
-    ].to_numpy(dtype=np.int8)
+    y_validation = data.loc[validation_mask, "target_anomaly"].to_numpy(dtype=np.int8)
 
     if len(np.unique(y_validation)) != 2:
-        raise ValueError(
-            "Validation must contain both normal and anomalous windows."
-        )
+        raise ValueError("Validation must contain both normal and anomalous windows.")
 
     print(f"Training windows available: {int(train_mask.sum()):,}")
     print(f"Normal training windows used: {len(X_train):,}")
-    print(f"Anomalous training windows excluded: "
-          f"{int((train_mask & data['target_anomaly'].eq(1)).sum()):,}")
+    print(f"Anomalous training windows excluded: {int((train_mask & data['target_anomaly'].eq(1)).sum()):,}")
     print(f"Validation windows: {len(X_validation):,}")
     print(f"Validation anomalous windows: {int(y_validation.sum()):,}")
 
@@ -211,18 +182,13 @@ def main():
     if len(thresholds) == 0:
         raise RuntimeError("Could not derive a validation threshold.")
 
-    f1_values = (
-        2 * precisions[:-1] * recalls[:-1]
-        / (precisions[:-1] + recalls[:-1] + 1e-12)
-    )
+    f1_values = 2 * precisions[:-1] * recalls[:-1] / (precisions[:-1] + recalls[:-1] + 1e-12)
 
     best_f1 = float(np.max(f1_values))
 
     # Prefer higher precision, then the higher threshold if the maximum
     # F1 is tied. This keeps the selection deterministic.
-    candidate_indices = np.flatnonzero(
-        np.isclose(f1_values, best_f1, rtol=1e-10, atol=1e-12)
-    )
+    candidate_indices = np.flatnonzero(np.isclose(f1_values, best_f1, rtol=1e-10, atol=1e-12))
 
     best_index = max(
         candidate_indices,
@@ -249,9 +215,7 @@ def main():
         "selection_method": "Maximum validation F1; ties prefer higher precision, then higher threshold",
         "validation_only": True,
         "test_used_for_threshold_selection": False,
-        "feature_manifest": str(
-            MANIFEST_PATH.relative_to(ROOT)
-        ),
+        "feature_manifest": str(MANIFEST_PATH.relative_to(ROOT)),
     }
 
     with THRESHOLD_PATH.open("w", encoding="utf-8") as file:
@@ -259,9 +223,7 @@ def main():
 
     scored_validation = data.loc[validation_mask, METADATA_COLUMNS].copy()
     scored_validation["anomaly_score"] = validation_scores
-    scored_validation["predicted_anomaly"] = (
-        validation_scores >= selected_threshold
-    ).astype(np.int8)
+    scored_validation["predicted_anomaly"] = (validation_scores >= selected_threshold).astype(np.int8)
 
     pq.write_table(
         pa.Table.from_pandas(
@@ -280,18 +242,14 @@ def main():
         "feature_count": len(feature_columns),
         "training_windows_total": int(train_mask.sum()),
         "normal_training_windows_used": int(train_normal_mask.sum()),
-        "anomalous_training_windows_excluded": int(
-            (train_mask & data["target_anomaly"].eq(1)).sum()
-        ),
+        "anomalous_training_windows_excluded": int((train_mask & data["target_anomaly"].eq(1)).sum()),
         "validation_metrics_at_selected_threshold": validation_metrics,
         "threshold_selection": threshold_info,
         "test_split_evaluated": False,
         "outputs": {
             "model": str(MODEL_PATH.relative_to(ROOT)),
             "threshold": str(THRESHOLD_PATH.relative_to(ROOT)),
-            "validation_scores": str(
-                VALIDATION_SCORES_PATH.relative_to(ROOT)
-            ),
+            "validation_scores": str(VALIDATION_SCORES_PATH.relative_to(ROOT)),
         },
     }
 
@@ -321,4 +279,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

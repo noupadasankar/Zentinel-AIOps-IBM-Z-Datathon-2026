@@ -1,4 +1,3 @@
-
 """Evaluate saved Isolation Forest and LSTM on the chronological test set."""
 
 import json
@@ -27,9 +26,7 @@ MANIFEST_PATH = ROOT / "reports" / "window_feature_columns.json"
 
 IF_MODEL_PATH = ROOT / "artifacts" / "isolation_forest_baseline.joblib"
 IF_THRESHOLD_PATH = ROOT / "artifacts" / "isolation_forest_threshold.json"
-IF_VALIDATION_REPORT = (
-    ROOT / "reports" / "isolation_forest_validation_report.json"
-)
+IF_VALIDATION_REPORT = ROOT / "reports" / "isolation_forest_validation_report.json"
 
 SEQUENCE_PATH = ROOT / "data" / "processed" / "bgl_event_sequences_v2.npz"
 VOCAB_PATH = ROOT / "artifacts" / "event_token_vocabulary_v2.json"
@@ -94,7 +91,7 @@ def score_sequences(model, sequences, lengths, indices):
 
     with torch.no_grad():
         for offset in range(0, len(indices), BATCH_SIZE):
-            selected = indices[offset:offset + BATCH_SIZE]
+            selected = indices[offset : offset + BATCH_SIZE]
 
             tokens = torch.as_tensor(
                 sequences[selected],
@@ -159,32 +156,18 @@ def calculate_metrics(y_true, scores, threshold, elapsed_seconds):
         "false_positives": int(fp),
         "true_negatives": int(tn),
         "false_negatives": int(fn),
-        "precision": float(
-            precision_score(y_true, predictions, zero_division=0)
-        ),
-        "recall": float(
-            recall_score(y_true, predictions, zero_division=0)
-        ),
-        "f1": float(
-            f1_score(y_true, predictions, zero_division=0)
-        ),
-        "false_positive_rate": float(
-            fp / (fp + tn) if (fp + tn) else 0.0
-        ),
-        "false_positive_windows_per_1000_normal_windows": float(
-            fp / normal_count * 1000 if normal_count else 0.0
-        ),
-        "average_precision_pr_auc": float(
-            average_precision_score(y_true, scores)
-        ),
+        "precision": float(precision_score(y_true, predictions, zero_division=0)),
+        "recall": float(recall_score(y_true, predictions, zero_division=0)),
+        "f1": float(f1_score(y_true, predictions, zero_division=0)),
+        "false_positive_rate": float(fp / (fp + tn) if (fp + tn) else 0.0),
+        "false_positive_windows_per_1000_normal_windows": float(fp / normal_count * 1000 if normal_count else 0.0),
+        "average_precision_pr_auc": float(average_precision_score(y_true, scores)),
         "roc_auc": float(roc_auc_score(y_true, scores)),
         "score_min": float(scores.min()),
         "score_median": float(np.median(scores)),
         "score_max": float(scores.max()),
         "scoring_seconds": float(elapsed_seconds),
-        "scoring_windows_per_second": float(
-            len(y_true) / elapsed_seconds if elapsed_seconds > 0 else 0.0
-        ),
+        "scoring_windows_per_second": float(len(y_true) / elapsed_seconds if elapsed_seconds > 0 else 0.0),
     }
 
 
@@ -208,8 +191,7 @@ def main():
 
     if OUTPUT_PATH.exists() or REPORT_PATH.exists():
         raise SystemExit(
-            "Test evaluation output already exists. Inspect it before "
-            "rerunning to avoid overwriting results."
+            "Test evaluation output already exists. Inspect it before rerunning to avoid overwriting results."
         )
 
     with MANIFEST_PATH.open("r", encoding="utf-8") as file:
@@ -244,11 +226,7 @@ def main():
     )
     feature_data = feature_table.to_pandas()
 
-    test_frame = (
-        feature_data.loc[feature_data["split"] == "test"]
-        .sort_values("window_id")
-        .reset_index(drop=True)
-    )
+    test_frame = feature_data.loc[feature_data["split"] == "test"].sort_values("window_id").reset_index(drop=True)
 
     if test_frame.empty:
         raise RuntimeError("No test windows found in feature dataset.")
@@ -316,14 +294,10 @@ def main():
     observed_window_ids = test_frame["window_id"].to_numpy()
 
     if not np.array_equal(expected_window_ids, observed_window_ids):
-        raise RuntimeError(
-            "LSTM test sequences and feature test windows do not align."
-        )
+        raise RuntimeError("LSTM test sequences and feature test windows do not align.")
 
     if not np.array_equal(targets[test_indices], y_test):
-        raise RuntimeError(
-            "Test targets disagree between the sequence and feature datasets."
-        )
+        raise RuntimeError("Test targets disagree between the sequence and feature datasets.")
 
     start = time.perf_counter()
     lstm_scores = score_sequences(
@@ -347,14 +321,10 @@ def main():
     results = test_frame[METADATA_COLUMNS].copy()
 
     results["isolation_forest_score"] = if_scores
-    results["isolation_forest_prediction"] = (
-        if_scores >= if_threshold
-    ).astype(np.int8)
+    results["isolation_forest_prediction"] = (if_scores >= if_threshold).astype(np.int8)
 
     results["lstm_score"] = lstm_scores
-    results["lstm_prediction"] = (
-        lstm_scores >= lstm_threshold
-    ).astype(np.int8)
+    results["lstm_prediction"] = (lstm_scores >= lstm_threshold).astype(np.int8)
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
@@ -375,16 +345,12 @@ def main():
         "test_anomalous_windows": int(y_test.sum()),
         "isolation_forest": {
             "selected_validation_threshold": if_threshold,
-            "previous_validation_metrics": (
-                if_validation_report["validation_metrics_at_selected_threshold"]
-            ),
+            "previous_validation_metrics": (if_validation_report["validation_metrics_at_selected_threshold"]),
             "test_metrics": if_metrics,
         },
         "lstm_next_event": {
             "selected_validation_threshold": lstm_threshold,
-            "previous_validation_metrics": (
-                lstm_validation_report["validation_metrics"]
-            ),
+            "previous_validation_metrics": (lstm_validation_report["validation_metrics"]),
             "test_metrics": lstm_metrics,
         },
         "scored_test_windows_file": str(OUTPUT_PATH.relative_to(ROOT)),
@@ -411,10 +377,7 @@ def main():
             "False-positive windows per 1,000 normal windows: "
             f"{metrics['false_positive_windows_per_1000_normal_windows']:.2f}"
         )
-        print(
-            f"Scoring throughput: "
-            f"{metrics['scoring_windows_per_second']:.2f} windows/second"
-        )
+        print(f"Scoring throughput: {metrics['scoring_windows_per_second']:.2f} windows/second")
 
     print(f"\nComparison dataset: {OUTPUT_PATH}")
     print(f"Report: {REPORT_PATH}")

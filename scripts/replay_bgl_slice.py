@@ -1,4 +1,4 @@
-﻿import argparse
+import argparse
 from collections import Counter
 from itertools import islice
 from pathlib import Path
@@ -10,9 +10,7 @@ LOG_PATH = ROOT / "data/raw/BGL.log"
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Replay a bounded slice of the BGL dataset into Zentinel."
-    )
+    parser = argparse.ArgumentParser(description="Replay a bounded slice of the BGL dataset into Zentinel.")
     parser.add_argument("--start-line", type=int, default=4400001)
     parser.add_argument("--count", type=int, default=200)
     parser.add_argument("--url", default="http://127.0.0.1:8001")
@@ -34,18 +32,13 @@ def main():
         encoding="utf-8",
         errors="replace",
     ) as file:
-        selected = list(
-            islice(file, args.start_line - 1, args.start_line - 1 + args.count)
-        )
+        selected = list(islice(file, args.start_line - 1, args.start_line - 1 + args.count))
 
     if not selected:
         raise ValueError("No lines found at the requested starting position.")
 
     if len(selected) < args.count:
-        print(
-            f"WARNING: Only {len(selected)} lines are available "
-            "from this starting position."
-        )
+        print(f"WARNING: Only {len(selected)} lines are available from this starting position.")
 
     event_statuses = Counter()
     decisions = Counter()

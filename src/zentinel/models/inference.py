@@ -93,17 +93,11 @@ class InferenceEngine:
         self.vocab = json.loads(self.vocab_path.read_text(encoding="utf-8"))
         self.original_id_to_token = self.vocab["original_event_id_to_token"]
 
-        threshold_config = json.loads(
-            self.model_threshold_path.read_text(encoding="utf-8")
-        )
+        threshold_config = json.loads(self.model_threshold_path.read_text(encoding="utf-8"))
         self.lstm_threshold = float(threshold_config["threshold"])
 
-        decision_report = json.loads(
-            self.decision_report_path.read_text(encoding="utf-8")
-        )
-        self.novelty_threshold = float(
-            decision_report["novelty_unknown_rate_threshold"]
-        )
+        decision_report = json.loads(self.decision_report_path.read_text(encoding="utf-8"))
+        self.novelty_threshold = float(decision_report["novelty_unknown_rate_threshold"])
 
         if int(self.vocab["padding_token"]) != PAD_TOKEN:
             raise ValueError("Unexpected padding-token ID.")
@@ -260,11 +254,7 @@ class InferenceEngine:
         lstm_score, transition_count = self.score_known_runs(tokens)
         scorable = lstm_score is not None
 
-        lstm_would_alert = (
-            bool(lstm_score >= self.lstm_threshold)
-            if scorable
-            else None
-        )
+        lstm_would_alert = bool(lstm_score >= self.lstm_threshold) if scorable else None
 
         high_unknown_rate = unknown_rate > self.novelty_threshold
 
@@ -287,9 +277,7 @@ class InferenceEngine:
             "unknown_event_rate": float(unknown_rate),
             "known_transitions_scored": int(transition_count),
             "model_scorable": bool(scorable),
-            "lstm_anomaly_score": (
-                float(lstm_score) if scorable else None
-            ),
+            "lstm_anomaly_score": (float(lstm_score) if scorable else None),
             "lstm_would_alert": lstm_would_alert,
             "high_unknown_rate": bool(high_unknown_rate),
             "decision": decision,

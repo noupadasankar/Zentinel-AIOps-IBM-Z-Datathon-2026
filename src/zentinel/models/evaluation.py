@@ -49,9 +49,7 @@ def compute_slice_metrics(
 
     # Overall recall over all anomalies (including those routed to review)
     total_anomalies = int((df["target_anomaly"] == 1).sum())
-    recall_over_all_anomalies = (
-        float(tp / total_anomalies) if total_anomalies > 0 else 0.0
-    )
+    recall_over_all_anomalies = float(tp / total_anomalies) if total_anomalies > 0 else 0.0
 
     # Time-based metrics: False alerts per hour
     false_alerts_per_hour = None
@@ -108,18 +106,22 @@ def compute_detection_delays(
             current_ep.append(row.to_dict())
         else:
             if in_episode and current_ep:
-                episodes.append({
-                    "start_ts": current_ep[0]["start_timestamp"],
-                    "windows": current_ep,
-                })
+                episodes.append(
+                    {
+                        "start_ts": current_ep[0]["start_timestamp"],
+                        "windows": current_ep,
+                    }
+                )
                 current_ep = []
             in_episode = False
 
     if in_episode and current_ep:
-        episodes.append({
-            "start_ts": current_ep[0]["start_timestamp"],
-            "windows": current_ep,
-        })
+        episodes.append(
+            {
+                "start_ts": current_ep[0]["start_timestamp"],
+                "windows": current_ep,
+            }
+        )
 
     if not episodes:
         return {

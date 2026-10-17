@@ -1,4 +1,3 @@
-
 """Create fixed-size numerical log-window features without label leakage."""
 
 import json
@@ -51,10 +50,7 @@ def slug(value: str) -> str:
 def collect_training_vocabulary(parquet):
     """Learn feature vocabularies using training records only."""
     template_ids = set()
-    category_counts = {
-        field: Counter()
-        for field in CATEGORY_FIELDS
-    }
+    category_counts = {field: Counter() for field in CATEGORY_FIELDS}
 
     columns = [
         "split",
@@ -92,10 +88,7 @@ def collect_training_vocabulary(parquet):
     if not template_ids:
         raise RuntimeError("No known training templates were found.")
 
-    vocabularies = {
-        field: sorted(category_counts[field].keys())
-        for field in CATEGORY_FIELDS
-    }
+    vocabularies = {field: sorted(category_counts[field].keys()) for field in CATEGORY_FIELDS}
 
     print(f"Training records inspected: {rows_seen:,}")
     print(f"Known training templates: {len(template_ids):,}")
@@ -140,8 +133,7 @@ def main():
 
     if OUTPUT_PATH.exists() or TEMP_PATH.exists():
         raise SystemExit(
-            "Feature output already exists. Inspect it before rerunning "
-            "to avoid overwriting previous results."
+            "Feature output already exists. Inspect it before rerunning to avoid overwriting previous results."
         )
 
     parquet = pq.ParquetFile(INPUT_PATH)
@@ -149,18 +141,11 @@ def main():
 
     template_ids, vocabularies = collect_training_vocabulary(parquet)
 
-    template_columns = [
-        f"template_{event_id}_count"
-        for event_id in template_ids
-    ]
+    template_columns = [f"template_{event_id}_count" for event_id in template_ids]
 
     category_maps, category_columns = build_category_columns(vocabularies)
 
-    count_features = (
-        template_columns
-        + COUNT_BASE_FEATURES
-        + category_columns
-    )
+    count_features = template_columns + COUNT_BASE_FEATURES + category_columns
 
     feature_columns = [
         *count_features,
@@ -232,9 +217,7 @@ def main():
         )
 
         # This records temporal throughput, not incident severity.
-        counts["unique_known_template_count"] = len(
-            window["seen_known_ids"]
-        )
+        counts["unique_known_template_count"] = len(window["seen_known_ids"])
         counts["unique_event_ids_count"] = len(window["seen_ids"])
 
         row = {
@@ -246,14 +229,9 @@ def main():
             "end_timestamp": window["end_timestamp"],
             "target_anomaly": window["target_anomaly"],
             **counts,
-            "unknown_event_rate": (
-                unknown_count / log_count if log_count else 0.0
-            ),
+            "unknown_event_rate": (unknown_count / log_count if log_count else 0.0),
             "window_duration_seconds": float(duration),
-            "logs_per_second": (
-                log_count / max(duration, 1)
-                if log_count else 0.0
-            ),
+            "logs_per_second": (log_count / max(duration, 1) if log_count else 0.0),
         }
 
         # Guard against accidental omission of any numerical feature.
@@ -269,9 +247,7 @@ def main():
         stats["records"] += log_count
         stats["anomalous_windows"] += window["target_anomaly"]
         stats["unknown_windows"] += int(unknown_count > 0)
-        stats["windows_with_empty_messages"] += int(
-            counts["empty_message_count"] > 0
-        )
+        stats["windows_with_empty_messages"] += int(counts["empty_message_count"] > 0)
 
     def write_pending_windows():
         if not pending_windows:
@@ -318,9 +294,7 @@ def main():
                 window_id = int(row["window_id"])
 
                 if window_id < previous_window_id:
-                    raise RuntimeError(
-                        "Window IDs are not in chronological order."
-                    )
+                    raise RuntimeError("Window IDs are not in chronological order.")
 
                 if current is None:
                     current = start_window(row)
@@ -336,9 +310,7 @@ def main():
                 previous_window_id = window_id
 
                 if row["split"] != current["split"]:
-                    raise RuntimeError(
-                        f"Window {window_id} crosses split boundaries."
-                    )
+                    raise RuntimeError(f"Window {window_id} crosses split boundaries.")
 
                 current["end_line"] = int(row["line_number"])
                 current["end_timestamp"] = int(row["timestamp"])
@@ -357,11 +329,7 @@ def main():
                     or int(row["frozen_event_id"]) not in set(template_ids)
                 )
 
-                event_id = (
-                    int(row["frozen_event_id"])
-                    if not is_unknown
-                    else -1
-                )
+                event_id = int(row["frozen_event_id"]) if not is_unknown else -1
 
                 if is_unknown:
                     counts["unknown_event_count"] += 1
@@ -408,17 +376,11 @@ def main():
         if writer is not None:
             writer.close()
 
-        print(
-            "\nERROR: Feature generation failed. A partial output may "
-            "remain; inspect it before rerunning."
-        )
+        print("\nERROR: Feature generation failed. A partial output may remain; inspect it before rerunning.")
         raise
 
     if input_rows_seen != total_input_rows:
-        raise RuntimeError(
-            f"Read {input_rows_seen:,} input rows; "
-            f"expected {total_input_rows:,}."
-        )
+        raise RuntimeError(f"Read {input_rows_seen:,} input rows; expected {total_input_rows:,}.")
 
     feature_manifest = {
         "feature_columns": feature_columns,
@@ -447,15 +409,9 @@ def main():
         "windows_created": output_window_count,
         "model_feature_count": len(feature_columns),
         "training_template_count": len(template_ids),
-        "target_definition": (
-            "1 if any log in the window has a BGL label other than '-'; "
-            "0 otherwise"
-        ),
+        "target_definition": ("1 if any log in the window has a BGL label other than '-'; 0 otherwise"),
         "labels_used_as_model_features": False,
-        "statistics_by_split": {
-            split: dict(stats)
-            for split, stats in window_summary.items()
-        },
+        "statistics_by_split": {split: dict(stats) for split, stats in window_summary.items()},
         "output_file": str(OUTPUT_PATH.relative_to(ROOT)),
         "feature_manifest": str(FEATURE_COLUMNS_PATH.relative_to(ROOT)),
     }

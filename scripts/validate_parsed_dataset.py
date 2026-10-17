@@ -1,4 +1,3 @@
-
 """Validate full BGL Parquet output against the original log file."""
 
 import json
@@ -86,12 +85,14 @@ def main() -> None:
                     raw_mismatches += 1
 
                     if len(report_samples) < 10:
-                        report_samples.append({
-                            "row": total,
-                            "issue": "Raw line mismatch",
-                            "original": original[:200],
-                            "saved": (saved or "")[:200],
-                        })
+                        report_samples.append(
+                            {
+                                "row": total,
+                                "issue": "Raw line mismatch",
+                                "original": original[:200],
+                                "saved": (saved or "")[:200],
+                            }
+                        )
 
                 tokens = original.split(maxsplit=2)
 
@@ -133,22 +134,11 @@ def main() -> None:
                 timestamp = row["timestamp"]
 
                 if timestamp is not None:
-                    min_timestamp = (
-                        timestamp
-                        if min_timestamp is None
-                        else min(min_timestamp, timestamp)
-                    )
-                    max_timestamp = (
-                        timestamp
-                        if max_timestamp is None
-                        else max(max_timestamp, timestamp)
-                    )
+                    min_timestamp = timestamp if min_timestamp is None else min(min_timestamp, timestamp)
+                    max_timestamp = timestamp if max_timestamp is None else max(max_timestamp, timestamp)
 
                 if total % 500_000 == 0:
-                    print(
-                        f"Checked {total:,} records | "
-                        f"raw mismatches={raw_mismatches:,}"
-                    )
+                    print(f"Checked {total:,} records | raw mismatches={raw_mismatches:,}")
 
         # Check that the original file has no unprocessed trailing lines.
         extra_source_line = source.readline() != ""
@@ -160,9 +150,7 @@ def main() -> None:
         "expected_rows": EXPECTED_ROWS,
         "parquet_rows": parquet_rows,
         "validated_rows": total,
-        "row_count_matches_expected": (
-            parquet_rows == EXPECTED_ROWS == total
-        ),
+        "row_count_matches_expected": (parquet_rows == EXPECTED_ROWS == total),
         "source_has_extra_lines": extra_source_line,
         "source_ended_early": source_ended_early,
         "raw_line_mismatches": raw_mismatches,

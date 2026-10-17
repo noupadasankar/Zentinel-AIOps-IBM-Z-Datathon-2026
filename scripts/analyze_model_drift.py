@@ -1,4 +1,3 @@
-
 """Analyze model scores against unknown-event rates and temporal drift."""
 
 import json
@@ -18,16 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 FEATURES = ROOT / "data" / "processed" / "bgl_window_features.parquet"
 
-IF_VALIDATION = (
-    ROOT / "data" / "processed" / "isolation_forest_validation_scores.parquet"
-)
-LSTM_VALIDATION = (
-    ROOT / "data" / "processed" / "lstm_validation_scores.parquet"
-)
+IF_VALIDATION = ROOT / "data" / "processed" / "isolation_forest_validation_scores.parquet"
+LSTM_VALIDATION = ROOT / "data" / "processed" / "lstm_validation_scores.parquet"
 
-TEST_SCORES = (
-    ROOT / "data" / "processed" / "test_model_comparison.parquet"
-)
+TEST_SCORES = ROOT / "data" / "processed" / "test_model_comparison.parquet"
 
 IF_THRESHOLD_FILE = ROOT / "artifacts" / "isolation_forest_threshold.json"
 LSTM_THRESHOLD_FILE = ROOT / "artifacts" / "lstm_threshold.json"
@@ -47,9 +40,7 @@ CHUNK_SIZE_WINDOWS = 500
 def require_files(paths):
     missing = [str(path) for path in paths if not path.is_file()]
     if missing:
-        raise FileNotFoundError(
-            "Required files are missing:\n" + "\n".join(missing)
-        )
+        raise FileNotFoundError("Required files are missing:\n" + "\n".join(missing))
 
 
 def get_metrics(frame, score_column, prediction_column):
@@ -64,22 +55,14 @@ def get_metrics(frame, score_column, prediction_column):
     result = {
         "windows": len(frame),
         "unknown_windows": int((frame["unknown_event_rate"] > 0).sum()),
-        "unknown_window_percentage": float(
-            100 * (frame["unknown_event_rate"] > 0).mean()
-        ),
-        "mean_unknown_event_rate": float(
-            frame["unknown_event_rate"].mean()
-        ),
+        "unknown_window_percentage": float(100 * (frame["unknown_event_rate"] > 0).mean()),
+        "mean_unknown_event_rate": float(frame["unknown_event_rate"].mean()),
         "actual_anomaly_percentage": float(100 * y.mean()),
         "predicted_anomalies": int(predictions.sum()),
         "false_positives": int(((y == 0) & (predictions == 1)).sum()),
         "false_negatives": int(((y == 1) & (predictions == 0)).sum()),
-        "precision": float(
-            precision_score(y, predictions, zero_division=0)
-        ),
-        "recall": float(
-            recall_score(y, predictions, zero_division=0)
-        ),
+        "precision": float(precision_score(y, predictions, zero_division=0)),
+        "recall": float(recall_score(y, predictions, zero_division=0)),
         "f1": float(f1_score(y, predictions, zero_division=0)),
         "mean_score": float(scores.mean()),
         "median_score": float(np.median(scores)),
@@ -96,12 +79,8 @@ def get_metrics(frame, score_column, prediction_column):
             frame["unknown_event_rate"].to_numpy(),
             scores,
         )
-        result["score_unknown_rate_spearman"] = (
-            float(correlation) if np.isfinite(correlation) else None
-        )
-        result["spearman_p_value"] = (
-            float(p_value) if np.isfinite(p_value) else None
-        )
+        result["score_unknown_rate_spearman"] = float(correlation) if np.isfinite(correlation) else None
+        result["spearman_p_value"] = float(p_value) if np.isfinite(p_value) else None
     else:
         result["score_unknown_rate_spearman"] = None
         result["spearman_p_value"] = None
@@ -110,14 +89,16 @@ def get_metrics(frame, score_column, prediction_column):
 
 
 def main():
-    require_files([
-        FEATURES,
-        IF_VALIDATION,
-        LSTM_VALIDATION,
-        TEST_SCORES,
-        IF_THRESHOLD_FILE,
-        LSTM_THRESHOLD_FILE,
-    ])
+    require_files(
+        [
+            FEATURES,
+            IF_VALIDATION,
+            LSTM_VALIDATION,
+            TEST_SCORES,
+            IF_THRESHOLD_FILE,
+            LSTM_THRESHOLD_FILE,
+        ]
+    )
 
     with IF_THRESHOLD_FILE.open("r", encoding="utf-8") as file:
         if_threshold = float(json.load(file)["threshold"])
@@ -132,54 +113,56 @@ def main():
         columns=FEATURE_COLUMNS,
     ).to_pandas()
 
-    if_val = pq.read_table(
-        IF_VALIDATION,
-        columns=["window_id", "anomaly_score"],
-    ).to_pandas().rename(
-        columns={"anomaly_score": "if_score"}
+    if_val = (
+        pq.read_table(
+            IF_VALIDATION,
+            columns=["window_id", "anomaly_score"],
+        )
+        .to_pandas()
+        .rename(columns={"anomaly_score": "if_score"})
     )
 
-    lstm_val = pq.read_table(
-        LSTM_VALIDATION,
-        columns=["window_id", "anomaly_score"],
-    ).to_pandas().rename(
-        columns={"anomaly_score": "lstm_score"}
+    lstm_val = (
+        pq.read_table(
+            LSTM_VALIDATION,
+            columns=["window_id", "anomaly_score"],
+        )
+        .to_pandas()
+        .rename(columns={"anomaly_score": "lstm_score"})
     )
 
     test_scores = pq.read_table(TEST_SCORES).to_pandas()
 
-    validation = feature_frame.loc[
-        feature_frame["split"] == "validation"
-    ].merge(if_val, on="window_id", validate="one_to_one").merge(
-        lstm_val, on="window_id", validate="one_to_one"
+    validation = (
+        feature_frame.loc[feature_frame["split"] == "validation"]
+        .merge(if_val, on="window_id", validate="one_to_one")
+        .merge(lstm_val, on="window_id", validate="one_to_one")
     )
 
-    validation["if_prediction"] = (
-        validation["if_score"] >= if_threshold
-    ).astype(np.int8)
+    validation["if_prediction"] = (validation["if_score"] >= if_threshold).astype(np.int8)
 
-    validation["lstm_prediction"] = (
-        validation["lstm_score"] >= lstm_threshold
-    ).astype(np.int8)
+    validation["lstm_prediction"] = (validation["lstm_score"] >= lstm_threshold).astype(np.int8)
 
-    test = feature_frame.loc[
-        feature_frame["split"] == "test"
-    ].merge(
-        test_scores[[
-            "window_id",
-            "isolation_forest_score",
-            "isolation_forest_prediction",
-            "lstm_score",
-            "lstm_prediction",
-        ]],
+    test = feature_frame.loc[feature_frame["split"] == "test"].merge(
+        test_scores[
+            [
+                "window_id",
+                "isolation_forest_score",
+                "isolation_forest_prediction",
+                "lstm_score",
+                "lstm_prediction",
+            ]
+        ],
         on="window_id",
         validate="one_to_one",
     )
 
-    test = test.rename(columns={
-        "isolation_forest_score": "if_score",
-        "isolation_forest_prediction": "if_prediction",
-    })
+    test = test.rename(
+        columns={
+            "isolation_forest_score": "if_score",
+            "isolation_forest_prediction": "if_prediction",
+        }
+    )
 
     split_frames = {
         "validation": validation,
@@ -204,12 +187,8 @@ def main():
         print(f"\n========== {split_name.upper()} ==========")
 
         report["score_diagnostics"][split_name] = {
-            "isolation_forest": get_metrics(
-                frame, "if_score", "if_prediction"
-            ),
-            "lstm": get_metrics(
-                frame, "lstm_score", "lstm_prediction"
-            ),
+            "isolation_forest": get_metrics(frame, "if_score", "if_prediction"),
+            "lstm": get_metrics(frame, "lstm_score", "lstm_prediction"),
         }
 
         report["unknown_vs_known_windows"][split_name] = {}
@@ -221,64 +200,44 @@ def main():
             group = frame.loc[mask]
 
             report["unknown_vs_known_windows"][split_name][group_name] = {
-                "isolation_forest": get_metrics(
-                    group, "if_score", "if_prediction"
-                ),
-                "lstm": get_metrics(
-                    group, "lstm_score", "lstm_prediction"
-                ),
+                "isolation_forest": get_metrics(group, "if_score", "if_prediction"),
+                "lstm": get_metrics(group, "lstm_score", "lstm_prediction"),
             }
 
         for model_name, metrics in report["score_diagnostics"][split_name].items():
             print(f"\n{model_name.upper()}")
             print(f"  Windows: {metrics['windows']:,}")
-            print(
-                "  Windows containing unknown events: "
-                f"{metrics['unknown_window_percentage']:.2f}%"
-            )
+            print(f"  Windows containing unknown events: {metrics['unknown_window_percentage']:.2f}%")
             print(f"  Mean unknown-event rate: {metrics['mean_unknown_event_rate']:.4f}")
             print(f"  F1: {metrics['f1']:.4f}")
             print(f"  False positives: {metrics['false_positives']:,}")
-            print(
-                "  Score/unknown-rate Spearman correlation: "
-                f"{metrics['score_unknown_rate_spearman']}"
-            )
+            print(f"  Score/unknown-rate Spearman correlation: {metrics['score_unknown_rate_spearman']}")
 
     # Compare the later test period in contiguous blocks.
     chunk_reports = []
 
     for split_name, frame in split_frames.items():
         chunk_frame = frame.copy()
-        chunk_frame["chunk_id"] = (
-            chunk_frame["window_id"] // CHUNK_SIZE_WINDOWS
-        )
+        chunk_frame["chunk_id"] = chunk_frame["window_id"] // CHUNK_SIZE_WINDOWS
 
         for chunk_id, group in chunk_frame.groupby("chunk_id", sort=True):
-            chunk_reports.append({
-                "split": split_name,
-                "chunk_id": int(chunk_id),
-                "start_window": int(group["window_id"].min()),
-                "end_window": int(group["window_id"].max()),
-                "unknown_window_percentage": float(
-                    100 * (group["unknown_event_rate"] > 0).mean()
-                ),
-                "mean_unknown_event_rate": float(
-                    group["unknown_event_rate"].mean()
-                ),
-                "alert_window_percentage": float(
-                    100 * group["target_anomaly"].mean()
-                ),
-                "if_mean_score": float(group["if_score"].mean()),
-                "lstm_mean_score": float(group["lstm_score"].mean()),
-                "if_false_positives": int((
-                    (group["target_anomaly"] == 0)
-                    & (group["if_prediction"] == 1)
-                ).sum()),
-                "lstm_false_positives": int((
-                    (group["target_anomaly"] == 0)
-                    & (group["lstm_prediction"] == 1)
-                ).sum()),
-            })
+            chunk_reports.append(
+                {
+                    "split": split_name,
+                    "chunk_id": int(chunk_id),
+                    "start_window": int(group["window_id"].min()),
+                    "end_window": int(group["window_id"].max()),
+                    "unknown_window_percentage": float(100 * (group["unknown_event_rate"] > 0).mean()),
+                    "mean_unknown_event_rate": float(group["unknown_event_rate"].mean()),
+                    "alert_window_percentage": float(100 * group["target_anomaly"].mean()),
+                    "if_mean_score": float(group["if_score"].mean()),
+                    "lstm_mean_score": float(group["lstm_score"].mean()),
+                    "if_false_positives": int(((group["target_anomaly"] == 0) & (group["if_prediction"] == 1)).sum()),
+                    "lstm_false_positives": int(
+                        ((group["target_anomaly"] == 0) & (group["lstm_prediction"] == 1)).sum()
+                    ),
+                }
+            )
 
     report["temporal_chunks"] = chunk_reports
 
@@ -305,9 +264,7 @@ def main():
                 )
 
     high_unknown_chunks = [
-        chunk for chunk in chunk_reports
-        if chunk["split"] == "test"
-        and chunk["unknown_window_percentage"] >= 20
+        chunk for chunk in chunk_reports if chunk["split"] == "test" and chunk["unknown_window_percentage"] >= 20
     ]
 
     print("\nTest chunks with >=20% of windows containing unknown events:")

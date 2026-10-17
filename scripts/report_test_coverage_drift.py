@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +12,7 @@ FROZEN_EVENTS_PATH = ROOT / "data/processed/bgl_frozen_events.parquet"
 
 OUTPUT_PATH = ROOT / "reports/test_coverage_drift_report.json"
 WINDOW_SIZE = 100
+
 
 def main():
     data = np.load(SEQUENCE_PATH)
@@ -32,41 +33,29 @@ def main():
         known_count = int(np.sum(seq >= 2))
         unknown_count = int(np.sum(seq == 1))
         non_padding_count = int(np.sum(seq != 0))
-        unknown_rate = (
-            unknown_count / non_padding_count
-            if non_padding_count else 0.0
+        unknown_rate = unknown_count / non_padding_count if non_padding_count else 0.0
+        unknown_rate_by_window.append(
+            {
+                "window_index": int(index),
+                "unknown_count": unknown_count,
+                "known_count": known_count,
+                "unknown_rate": float(unknown_rate),
+                "target_anomaly": int(targets[index]),
+                "scorable": int(index in scored_indices),
+            }
         )
-        unknown_rate_by_window.append({
-            "window_index": int(index),
-            "unknown_count": unknown_count,
-            "known_count": known_count,
-            "unknown_rate": float(unknown_rate),
-            "target_anomaly": int(targets[index]),
-            "scorable": int(index in scored_indices),
-        })
 
     df = pd.DataFrame(unknown_rate_by_window)
     scored_df = scores.copy()
     unscorable_df = df[~df["scorable"].astype(bool)]
 
-    scored_anomalous = int(
-        (scored_df["target_anomaly"] == 1).sum()
-    )
-    scored_normal = int(
-        (scored_df["target_anomaly"] == 0).sum()
-    )
-    unscorable_anomalous = int(
-        (unscorable_df["target_anomaly"] == 1).sum()
-    )
-    unscorable_normal = int(
-        (unscorable_df["target_anomaly"] == 0).sum()
-    )
+    scored_anomalous = int((scored_df["target_anomaly"] == 1).sum())
+    scored_normal = int((scored_df["target_anomaly"] == 0).sum())
+    unscorable_anomalous = int((unscorable_df["target_anomaly"] == 1).sum())
+    unscorable_normal = int((unscorable_df["target_anomaly"] == 0).sum())
 
     report = {
-        "purpose": (
-            "Quantify scoring coverage and unknown-event prevalence "
-            "for the exploratory test period."
-        ),
+        "purpose": ("Quantify scoring coverage and unknown-event prevalence for the exploratory test period."),
         "test_windows": len(test_indices),
         "scorable_windows": len(scored_df),
         "unscorable_windows": len(unscorable_df),
@@ -78,12 +67,8 @@ def main():
         "unscorable_normal_windows": unscorable_normal,
         "mean_unknown_rate_all_test_windows": float(df["unknown_rate"].mean()),
         "median_unknown_rate_all_test_windows": float(df["unknown_rate"].median()),
-        "mean_unknown_rate_scorable_windows": float(
-            df.loc[df["scorable"] == 1, "unknown_rate"].mean()
-        ),
-        "mean_unknown_rate_unscorable_windows": float(
-            df.loc[df["scorable"] == 0, "unknown_rate"].mean()
-        ),
+        "mean_unknown_rate_scorable_windows": float(df.loc[df["scorable"] == 1, "unknown_rate"].mean()),
+        "mean_unknown_rate_unscorable_windows": float(df.loc[df["scorable"] == 0, "unknown_rate"].mean()),
         "interpretation": (
             "Unscorable windows require a separate novelty/drift review. "
             "Do not classify them as normal merely because the LSTM "
@@ -96,14 +81,13 @@ def main():
     }
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(
-        json.dumps(report, indent=2), encoding="utf-8"
-    )
+    OUTPUT_PATH.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     print("========== TEST COVERAGE AND DRIFT ==========")
     for key, value in report.items():
         print(f"{key}: {value}")
     print(f"\nReport saved: {OUTPUT_PATH}")
+
 
 if __name__ == "__main__":
     main()

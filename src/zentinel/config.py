@@ -45,9 +45,7 @@ def verify_manifest(
     base_dir = root_dir or ROOT_DIR
 
     if not manifest_file.is_file():
-        raise FileNotFoundError(
-            f"Artifact manifest missing at {manifest_file}. Cannot verify system integrity."
-        )
+        raise FileNotFoundError(f"Artifact manifest missing at {manifest_file}. Cannot verify system integrity.")
 
     try:
         data = json.loads(manifest_file.read_text(encoding="utf-8"))
@@ -63,9 +61,7 @@ def verify_manifest(
         target_path = base_dir / rel_path
 
         if not target_path.is_file():
-            raise FileNotFoundError(
-                f"Required artifact missing: {target_path} (from manifest {rel_path})"
-            )
+            raise FileNotFoundError(f"Required artifact missing: {target_path} (from manifest {rel_path})")
 
         hasher = hashlib.sha256()
         with target_path.open("rb") as f:
@@ -75,8 +71,7 @@ def verify_manifest(
 
         if actual_sha != expected_sha:
             raise RuntimeError(
-                f"Artifact integrity mismatch for {rel_path}: "
-                f"expected {expected_sha}, found {actual_sha}."
+                f"Artifact integrity mismatch for {rel_path}: expected {expected_sha}, found {actual_sha}."
             )
 
 
@@ -87,7 +82,7 @@ class ZentinelConfig:
         self.root_dir = ROOT_DIR
         self.web_concurrency = int(os.getenv("WEB_CONCURRENCY", "1"))
         self.host = os.getenv("ZENTINEL_HOST", "127.0.0.1")
-        self.port = int(os.getenv("ZENTINEL_PORT", "8001"))
+        self.port = int(os.getenv("ZENTINEL_PORT", "8000"))
         self.db_path = Path(
             os.getenv(
                 "ZENTINEL_DB_PATH",
@@ -103,21 +98,13 @@ class ZentinelConfig:
             "ZENTINEL_CORS_ORIGINS",
             "http://localhost:8501,http://127.0.0.1:8501,http://localhost:8502,http://127.0.0.1:8502",
         )
-        self.cors_origins = [
-            origin.strip()
-            for origin in cors_raw.split(",")
-            if origin.strip()
-        ]
+        self.cors_origins = [origin.strip() for origin in cors_raw.split(",") if origin.strip()]
         self.rate_limit_rps = float(os.getenv("ZENTINEL_RATE_LIMIT_RPS", "100.0"))
         self.rate_limit_burst = int(os.getenv("ZENTINEL_RATE_LIMIT_BURST", "200"))
 
         # Retention
-        self.idempotency_retention_days = int(
-            os.getenv("ZENTINEL_IDEMPOTENCY_RETENTION_DAYS", "7")
-        )
-        self.event_retention_days = int(
-            os.getenv("ZENTINEL_EVENT_RETENTION_DAYS", "30")
-        )
+        self.idempotency_retention_days = int(os.getenv("ZENTINEL_IDEMPOTENCY_RETENTION_DAYS", "7"))
+        self.event_retention_days = int(os.getenv("ZENTINEL_EVENT_RETENTION_DAYS", "30"))
 
         # Windowing
         self.window_size = WINDOW_SIZE

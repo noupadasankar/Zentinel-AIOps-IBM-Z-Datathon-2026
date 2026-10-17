@@ -33,8 +33,7 @@ def setup_test_environment(tmp_path):
     store = LiveStateStore(db_path)
 
     # Reset in-memory state
-    with patch("zentinel.api.live_api.STORE", store), \
-         patch("zentinel.api.live_api.CONFIG.db_path", db_path):
+    with patch("zentinel.api.live_api.STORE", store), patch("zentinel.api.live_api.CONFIG.db_path", db_path):
         STATE.clear()
         STATE.update({"logs_received": 0, "windows_completed": 0, "unknown_events_received": 0})
         CURRENT_WINDOW.clear()
@@ -170,11 +169,14 @@ def test_db_failure_rolls_back_and_prevents_state_divergence(setup_test_environm
         assert len(CURRENT_WINDOW) == 0
 
         # Simulate database failure during save_event_and_state
-        with patch.object(
-            store,
-            "save_event_and_state",
-            side_effect=RuntimeError("Simulated DB Disk Full"),
-        ), patch("zentinel.api.live_api.STORE", store):
+        with (
+            patch.object(
+                store,
+                "save_event_and_state",
+                side_effect=RuntimeError("Simulated DB Disk Full"),
+            ),
+            patch("zentinel.api.live_api.STORE", store),
+        ):
             resp = client.post(
                 "/api/v1/live/ingest",
                 json={"raw_line": VALID_BGL_LINE},

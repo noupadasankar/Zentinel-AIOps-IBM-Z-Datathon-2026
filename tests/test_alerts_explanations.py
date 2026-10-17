@@ -20,9 +20,27 @@ class MockModel(nn.Module):
 
 def test_generate_incident_evidence():
     events = [
-        {"line_number": 1, "timestamp": 1000, "token": 2, "template": "RAS KERNEL INFO normal", "event_status": "matched"},
-        {"line_number": 2, "timestamp": 1001, "token": 5, "template": "RAS KERNEL FATAL memory error", "event_status": "matched"},
-        {"line_number": 3, "timestamp": 1002, "token": UNKNOWN_TOKEN, "template": "CUSTOM UNMATCHED LOG", "event_status": "unknown_template"},
+        {
+            "line_number": 1,
+            "timestamp": 1000,
+            "token": 2,
+            "template": "RAS KERNEL INFO normal",
+            "event_status": "matched",
+        },
+        {
+            "line_number": 2,
+            "timestamp": 1001,
+            "token": 5,
+            "template": "RAS KERNEL FATAL memory error",
+            "event_status": "matched",
+        },
+        {
+            "line_number": 3,
+            "timestamp": 1002,
+            "token": UNKNOWN_TOKEN,
+            "template": "CUSTOM UNMATCHED LOG",
+            "event_status": "unknown_template",
+        },
     ]
 
     window_decision = {

@@ -1,4 +1,3 @@
-﻿
 import json
 import sys
 from collections import Counter
@@ -84,14 +83,13 @@ def main() -> None:
                 malformed_lines += 1
 
                 if len(malformed_samples) < 10:
-                    malformed_samples.append({
-                        "line_number": line_number,
-                        "reason": (
-                            f"Expected 9 or 10 fields; "
-                            f"found {len(parts)}"
-                        ),
-                        "sample": line[:250],
-                    })
+                    malformed_samples.append(
+                        {
+                            "line_number": line_number,
+                            "reason": (f"Expected 9 or 10 fields; found {len(parts)}"),
+                            "sample": line[:250],
+                        }
+                    )
                 continue
 
             (
@@ -114,11 +112,13 @@ def main() -> None:
                 malformed_lines += 1
 
                 if len(malformed_samples) < 10:
-                    malformed_samples.append({
-                        "line_number": line_number,
-                        "reason": "Invalid Unix timestamp",
-                        "sample": line[:250],
-                    })
+                    malformed_samples.append(
+                        {
+                            "line_number": line_number,
+                            "reason": "Invalid Unix timestamp",
+                            "sample": line[:250],
+                        }
+                    )
                 continue
 
             valid_lines += 1
@@ -134,45 +134,37 @@ def main() -> None:
                 unexpected_level_counts[level] += 1
 
                 if len(unexpected_level_samples) < 10:
-                    unexpected_level_samples.append({
-                        "line_number": line_number,
-                        "level": level,
-                        "event_type": event_type,
-                        "component": component,
-                        "sample": line[:250],
-                    })
+                    unexpected_level_samples.append(
+                        {
+                            "line_number": line_number,
+                            "level": level,
+                            "event_type": event_type,
+                            "component": component,
+                            "sample": line[:250],
+                        }
+                    )
 
-            min_timestamp = (
-                timestamp
-                if min_timestamp is None
-                else min(min_timestamp, timestamp)
-            )
-            max_timestamp = (
-                timestamp
-                if max_timestamp is None
-                else max(max_timestamp, timestamp)
-            )
+            min_timestamp = timestamp if min_timestamp is None else min(min_timestamp, timestamp)
+            max_timestamp = timestamp if max_timestamp is None else max(max_timestamp, timestamp)
 
             if len(sample_records) < 5:
-                sample_records.append({
-                    "label": label,
-                    "timestamp": timestamp,
-                    "date": date,
-                    "node": node,
-                    "time": precise_time,
-                    "node_repeat": node_repeat,
-                    "type": event_type,
-                    "component": component,
-                    "level": level,
-                    "content": content[:180],
-                })
+                sample_records.append(
+                    {
+                        "label": label,
+                        "timestamp": timestamp,
+                        "date": date,
+                        "node": node,
+                        "time": precise_time,
+                        "node_repeat": node_repeat,
+                        "type": event_type,
+                        "component": component,
+                        "level": level,
+                        "content": content[:180],
+                    }
+                )
 
             if total_lines % 500_000 == 0:
-                print(
-                    f"Processed {total_lines:,} lines; "
-                    f"valid={valid_lines:,}; "
-                    f"malformed={malformed_lines:,}"
-                )
+                print(f"Processed {total_lines:,} lines; valid={valid_lines:,}; malformed={malformed_lines:,}")
 
     normal_lines = label_counts.get("-", 0)
     alert_lines = valid_lines - normal_lines
@@ -183,12 +175,8 @@ def main() -> None:
         timestamp_range = {
             "min_unix": min_timestamp,
             "max_unix": max_timestamp,
-            "min_utc": datetime.fromtimestamp(
-                min_timestamp, UTC
-            ).isoformat(),
-            "max_utc": datetime.fromtimestamp(
-                max_timestamp, UTC
-            ).isoformat(),
+            "min_utc": datetime.fromtimestamp(min_timestamp, UTC).isoformat(),
+            "max_utc": datetime.fromtimestamp(max_timestamp, UTC).isoformat(),
         }
 
     report = {
@@ -202,11 +190,7 @@ def main() -> None:
         "normal_label": "-",
         "normal_lines": normal_lines,
         "alert_label_lines": alert_lines,
-        "alert_percentage": (
-            round(alert_lines * 100 / valid_lines, 4)
-            if valid_lines
-            else 0.0
-        ),
+        "alert_percentage": (round(alert_lines * 100 / valid_lines, 4) if valid_lines else 0.0),
         "unique_labels": len(label_counts),
         "label_counts": dict(
             sorted(
@@ -216,18 +200,12 @@ def main() -> None:
         ),
         "top_alert_labels": dict(
             sorted(
-                (
-                    (label, count)
-                    for label, count in label_counts.items()
-                    if label != "-"
-                ),
+                ((label, count) for label, count in label_counts.items() if label != "-"),
                 key=lambda item: (-item[1], item[0]),
             )[:15]
         ),
         "severity_counts": dict(level_counts.most_common()),
-        "unexpected_severity_counts": dict(
-            unexpected_level_counts.most_common()
-        ),
+        "unexpected_severity_counts": dict(unexpected_level_counts.most_common()),
         "unexpected_severity_samples": unexpected_level_samples,
         "top_event_types": dict(type_counts.most_common(10)),
         "top_components": dict(component_counts.most_common(10)),
@@ -277,20 +255,12 @@ def main() -> None:
     print(f"\nFull report saved to: {REPORT_PATH}")
 
     if malformed_lines:
-        print(
-            "\nWARNING: Inspect malformed_samples in the JSON report."
-        )
+        print("\nWARNING: Inspect malformed_samples in the JSON report.")
     else:
-        print(
-            "\nSUCCESS: All records passed the basic structural "
-            "and timestamp checks."
-        )
+        print("\nSUCCESS: All records passed the basic structural and timestamp checks.")
 
     if unexpected_level_counts:
-        print(
-            "NOTE: Unusual severity values were retained for "
-            "investigation; they were not automatically discarded."
-        )
+        print("NOTE: Unusual severity values were retained for investigation; they were not automatically discarded.")
 
 
 if __name__ == "__main__":

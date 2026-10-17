@@ -1,4 +1,3 @@
-
 """Build event sequences with separate PAD and UNK tokens."""
 
 import json
@@ -39,10 +38,7 @@ def main():
     existing = [str(path) for path in outputs if path.exists()]
 
     if existing:
-        raise SystemExit(
-            "Version-2 output already exists. Inspect it before rerunning:\n"
-            + "\n".join(existing)
-        )
+        raise SystemExit("Version-2 output already exists. Inspect it before rerunning:\n" + "\n".join(existing))
 
     parquet = pq.ParquetFile(INPUT_PATH)
     total_rows = parquet.metadata.num_rows
@@ -62,12 +58,7 @@ def main():
         statuses = batch.column("template_match_status").to_pylist()
 
         for split, event_id, status in zip(splits, event_ids, statuses):
-            if (
-                split == "train"
-                and status == "matched"
-                and event_id is not None
-                and int(event_id) >= 0
-            ):
+            if split == "train" and status == "matched" and event_id is not None and int(event_id) >= 0:
                 training_event_ids.add(int(event_id))
 
     if not training_event_ids:
@@ -132,16 +123,12 @@ def main():
             split = row["split"]
 
             if line_number != previous_line + 1:
-                raise RuntimeError(
-                    f"Non-contiguous source order at line {line_number:,}"
-                )
+                raise RuntimeError(f"Non-contiguous source order at line {line_number:,}")
             previous_line = line_number
 
             expected_window = (line_number - 1) // WINDOW_SIZE
             if window_id != expected_window:
-                raise RuntimeError(
-                    f"Unexpected window ID at line {line_number:,}"
-                )
+                raise RuntimeError(f"Unexpected window ID at line {line_number:,}")
 
             if split not in SPLIT_CODES:
                 raise ValueError(f"Invalid split: {split!r}")
@@ -158,9 +145,7 @@ def main():
                 start_lines[window_id] = line_number
                 start_timestamps[window_id] = int(row["timestamp"])
             elif int(split_codes[window_id]) != code:
-                raise RuntimeError(
-                    f"Window {window_id} crosses split boundaries."
-                )
+                raise RuntimeError(f"Window {window_id} crosses split boundaries.")
 
             original_id = row["frozen_event_id"]
 
@@ -187,15 +172,10 @@ def main():
                 targets[window_id] = 1
 
             if input_rows_seen % 500_000 == 0:
-                print(
-                    f"Processed {input_rows_seen:,} records | "
-                    f"unknown records={sum(unknown_counts.values()):,}"
-                )
+                print(f"Processed {input_rows_seen:,} records | unknown records={sum(unknown_counts.values()):,}")
 
     if input_rows_seen != total_rows:
-        raise RuntimeError(
-            f"Expected {total_rows:,} records but read {input_rows_seen:,}."
-        )
+        raise RuntimeError(f"Expected {total_rows:,} records but read {input_rows_seen:,}.")
 
     if np.any(lengths == 0):
         raise RuntimeError("Empty sequences were found.")
@@ -229,14 +209,8 @@ def main():
         "unknown_token": UNKNOWN_TOKEN,
         "known_template_count": len(event_to_token),
         "vocabulary_size": vocabulary_size,
-        "token_to_original_event_id": {
-            str(token): event_id
-            for event_id, token in event_to_token.items()
-        },
-        "original_event_id_to_token": {
-            str(event_id): token
-            for event_id, token in event_to_token.items()
-        },
+        "token_to_original_event_id": {str(token): event_id for event_id, token in event_to_token.items()},
+        "original_event_id_to_token": {str(event_id): token for event_id, token in event_to_token.items()},
         "source": "Frozen Drain3 training-only vocabulary",
     }
 
@@ -259,10 +233,10 @@ def main():
             "unknown_record_percentage": round(
                 unknown_counts[split] * 100 / split_records,
                 4,
-            ) if split_records else 0.0,
-            "windows_with_unknown_events": len(
-                unknown_window_ids[split]
-            ),
+            )
+            if split_records
+            else 0.0,
+            "windows_with_unknown_events": len(unknown_window_ids[split]),
         }
 
     report = {
@@ -298,10 +272,7 @@ def main():
         print(f"  Windows: {stats['windows']:,}")
         print(f"  Anomalous windows: {stats['anomalous_windows']:,}")
         print(f"  Unknown records: {stats['unknown_records']:,}")
-        print(
-            "  Unknown percentage: "
-            f"{stats['unknown_record_percentage']:.4f}%"
-        )
+        print(f"  Unknown percentage: {stats['unknown_record_percentage']:.4f}%")
 
     print(f"\nSequences: {SEQUENCE_PATH}")
     print(f"Vocabulary: {VOCAB_PATH}")

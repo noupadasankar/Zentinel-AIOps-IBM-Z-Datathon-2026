@@ -1,4 +1,4 @@
-﻿import sqlite3
+import sqlite3
 from pathlib import Path
 
 db_path = Path("data/processed/zentinel_live.sqlite3")
@@ -12,9 +12,7 @@ if not db_path.exists():
 with sqlite3.connect(str(db_path)) as connection:
     connection.row_factory = sqlite3.Row
 
-    integrity = connection.execute(
-        "PRAGMA integrity_check"
-    ).fetchone()[0]
+    integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
 
     print(f"SQLite integrity: {integrity}")
 
@@ -31,13 +29,9 @@ with sqlite3.connect(str(db_path)) as connection:
     if state is None:
         raise SystemExit("ERROR: Persistent service state not found.")
 
-    event_count = connection.execute(
-        "SELECT COUNT(*) FROM ingested_events"
-    ).fetchone()[0]
+    event_count = connection.execute("SELECT COUNT(*) FROM ingested_events").fetchone()[0]
 
-    window_count = connection.execute(
-        "SELECT COUNT(*) FROM live_windows"
-    ).fetchone()[0]
+    window_count = connection.execute("SELECT COUNT(*) FROM live_windows").fetchone()[0]
 
     print(f"Stored log counter: {state['logs_received']}")
     print(f"Stored completed-window counter: {state['windows_completed']}")
@@ -46,6 +40,7 @@ with sqlite3.connect(str(db_path)) as connection:
     print(f"Completed-window rows in SQLite: {window_count}")
 
     import json
+
     pending = json.loads(state["current_window_json"])
     print(f"Persisted unfinished-window lines: {len(pending)}")
     print(f"Last state update: {state['updated_at']}")

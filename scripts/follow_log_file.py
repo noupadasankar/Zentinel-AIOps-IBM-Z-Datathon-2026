@@ -5,9 +5,7 @@ from zentinel.ingestion.watcher import DEFAULT_FILE, LogFileWatcher
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Watch an appended log file and send new lines to Zentinel."
-    )
+    parser = argparse.ArgumentParser(description="Watch an appended log file and send new lines to Zentinel.")
     parser.add_argument(
         "--file",
         type=Path,

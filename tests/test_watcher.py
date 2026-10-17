@@ -2,10 +2,14 @@ import hashlib
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from zentinel.ingestion.watcher import (
     LogFileWatcher,
+    _build_arg_parser,
     compute_file_id,
     generate_idempotency_key,
+    main,
 )
 
 
@@ -176,3 +180,78 @@ def test_successful_ingest_advances_cursor_and_resets_backoff(tmp_path):
     assert watcher.offset == log_file.stat().st_size
     assert watcher.current_backoff == 0.1  # reset to initial
     assert len(decisions) == 1
+
+
+def test_bounded_run_processes_max_lines_then_stops(tmp_path):
+    """start(max_lines=N) ingests exactly N lines and returns instead of looping forever."""
+    line = "valid log line\n"
+    log_file = tmp_path / "stream.log"
+    log_file.write_text(line * 50, encoding="utf-8")
+    cursor_file = tmp_path / "cursor.json"
+
+    watcher = LogFileWatcher(
+        file_path=log_file,
+        cursor_path=cursor_file,
+        from_start=True,
+        initial_backoff=0.1,
+    )
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"window_completed": False}
+    mock_client = MagicMock()
+    mock_client.post.return_value = mock_resp
+    mock_client.__enter__.return_value = mock_client
+    with patch("zentinel.ingestion.watcher.httpx.Client", return_value=mock_client):
+        watcher.start(max_lines=7)
+
+    assert mock_client.post.call_count == 7
+    assert watcher.offset > 0
+
+
+def test_start_exits_cleanly_when_file_missing(tmp_path):
+    watcher = LogFileWatcher(
+        file_path=tmp_path / "does_not_exist.log",
+        cursor_path=tmp_path / "cursor.json",
+    )
+    with pytest.raises(SystemExit) as exc_info:
+        watcher.start()
+    assert exc_info.value.code == 1
+
+
+def test_cli_parser_defaults():
+    parser = _build_arg_parser()
+    args = parser.parse_args([])
+    assert args.api_url is not None
+    assert args.from_start is False
+    assert args.max_lines is None
+    assert args.poll_interval > 0
+
+
+def test_cli_main_invokes_watcher_start(monkeypatch, tmp_path):
+    log_file = tmp_path / "argcli.log"
+    log_file.write_text("line one\n", encoding="utf-8")
+
+    captured = {}
+
+    class FakeWatcher:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def start(self, max_lines=None):
+            captured["max_lines"] = max_lines
+
+    monkeypatch.setattr("zentinel.ingestion.watcher.LogFileWatcher", FakeWatcher)
+    main(
+        [
+            str(log_file),
+            "--api-url",
+            "http://127.0.0.1:9999",
+            "--from-start",
+            "--max-lines",
+            "5",
+        ]
+    )
+    assert captured["api_url"] == "http://127.0.0.1:9999"
+    assert captured["from_start"] is True
+    assert captured["max_lines"] == 5

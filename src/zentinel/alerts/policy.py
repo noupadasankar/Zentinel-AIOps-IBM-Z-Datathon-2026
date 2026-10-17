@@ -18,12 +18,8 @@ class Incident:
     last_line_number: int
     window_count: int = 1
     consecutive_normal_count: int = 0
-    created_at: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
-    updated_at: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     closed_at: str | None = None
     summary: str = ""
     evidence: dict[str, Any] = field(default_factory=dict)
@@ -108,10 +104,7 @@ class IncidentPolicy:
         last_line = int(window.get("last_line_number", 0))
         now_iso = datetime.now(UTC).isoformat()
 
-        is_anomalous = (
-            decision == "ANOMALY_ALERT"
-            or (score is not None and score >= self.threshold)
-        )
+        is_anomalous = decision == "ANOMALY_ALERT" or (score is not None and score >= self.threshold)
 
         if is_anomalous:
             score_val = float(score if score is not None else self.threshold)
@@ -177,7 +170,9 @@ class IncidentPolicy:
 
         if self.current_incident is not None and self.current_incident.status != "CLOSED":
             # Check hysteresis threshold: score strictly below 0.7 * threshold
-            if (score is not None and score < self.hysteresis_threshold) or (decision == "NO_ANOMALY_DETECTED" and score is None):
+            if (score is not None and score < self.hysteresis_threshold) or (
+                decision == "NO_ANOMALY_DETECTED" and score is None
+            ):
                 self.current_incident.consecutive_normal_count += 1
             else:
                 # Score still in indeterminate band between 0.7*threshold and threshold,

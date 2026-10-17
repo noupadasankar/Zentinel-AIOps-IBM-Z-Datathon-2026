@@ -1,17 +1,18 @@
-
 """Structured parser for LogHub BGL records."""
 
 from dataclasses import asdict, dataclass
 
-KNOWN_SEVERITIES = frozenset({
-    "INFO",
-    "FATAL",
-    "ERROR",
-    "WARNING",
-    "SEVERE",
-    "FAILURE",
-    "Kill",
-})
+KNOWN_SEVERITIES = frozenset(
+    {
+        "INFO",
+        "FATAL",
+        "ERROR",
+        "WARNING",
+        "SEVERE",
+        "FAILURE",
+        "Kill",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -54,9 +55,7 @@ def parse_bgl_line(raw_line: str, line_number: int = 0) -> BGLRecord:
     parts = line.split(maxsplit=5)
 
     if len(parts) < 5:
-        raise ValueError(
-            f"Line {line_number}: fewer than five fixed-prefix fields"
-        )
+        raise ValueError(f"Line {line_number}: fewer than five fixed-prefix fields")
 
     label, timestamp_text, date, node, event_time = parts[:5]
     tail = parts[5] if len(parts) == 6 else ""
@@ -64,19 +63,13 @@ def parse_bgl_line(raw_line: str, line_number: int = 0) -> BGLRecord:
     try:
         timestamp = int(timestamp_text)
     except ValueError as exc:
-        raise ValueError(
-            f"Line {line_number}: invalid Unix timestamp "
-            f"{timestamp_text!r}"
-        ) from exc
+        raise ValueError(f"Line {line_number}: invalid Unix timestamp {timestamp_text!r}") from exc
 
     tail_fields = tail.split(maxsplit=4)
 
     # Only parse metadata when the recognized severity occupies
     # the expected fourth position in the metadata tail.
-    standard_layout = (
-        len(tail_fields) >= 4
-        and tail_fields[3] in KNOWN_SEVERITIES
-    )
+    standard_layout = len(tail_fields) >= 4 and tail_fields[3] in KNOWN_SEVERITIES
 
     if standard_layout:
         node_repeat, event_type, component, severity = tail_fields[:4]

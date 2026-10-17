@@ -37,7 +37,7 @@ def smoke_test():
                 json={"raw_line": sample_bgl, "idempotency_key": f"smoke-key-{i}"},
             )
             if r.status_code != 200:
-                print(f"FAILED: /api/v1/live/ingest line {i+1} returned {r.status_code}: {r.text}")
+                print(f"FAILED: /api/v1/live/ingest line {i + 1} returned {r.status_code}: {r.text}")
                 sys.exit(1)
             body = r.json()
             if body.get("window_completed"):
@@ -47,8 +47,10 @@ def smoke_test():
             print("FAILED: 100th line did not complete a window.")
             sys.exit(1)
 
-        print(f"PASS: 100 lines ingested. Window decision: {decision['decision']} "
-              f"(score={decision['lstm_anomaly_score']:.4f})")
+        print(
+            f"PASS: 100 lines ingested. Window decision: {decision['decision']} "
+            f"(score={decision['lstm_anomaly_score']:.4f})"
+        )
 
         # 3. Status check
         status_res = client.get("/api/v1/live/status")

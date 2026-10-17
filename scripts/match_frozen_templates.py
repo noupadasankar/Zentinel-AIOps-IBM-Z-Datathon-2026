@@ -1,4 +1,3 @@
-
 """Match all BGL logs against frozen training-only Drain3 templates."""
 
 import json
@@ -45,26 +44,28 @@ INPUT_COLUMNS = [
     "raw_line",
 ]
 
-SCHEMA = pa.schema([
-    pa.field("line_number", pa.int64(), nullable=False),
-    pa.field("label", pa.string(), nullable=False),
-    pa.field("timestamp", pa.int64(), nullable=False),
-    pa.field("date", pa.string(), nullable=False),
-    pa.field("node", pa.string(), nullable=False),
-    pa.field("event_time", pa.string(), nullable=False),
-    pa.field("node_repeat", pa.string()),
-    pa.field("event_type", pa.string()),
-    pa.field("component", pa.string()),
-    pa.field("severity", pa.string()),
-    pa.field("message", pa.string(), nullable=False),
-    pa.field("parse_status", pa.string(), nullable=False),
-    pa.field("raw_line", pa.string(), nullable=False),
-    pa.field("window_id", pa.int64(), nullable=False),
-    pa.field("split", pa.string(), nullable=False),
-    pa.field("frozen_event_id", pa.int64(), nullable=False),
-    pa.field("frozen_template", pa.string(), nullable=False),
-    pa.field("template_match_status", pa.string(), nullable=False),
-])
+SCHEMA = pa.schema(
+    [
+        pa.field("line_number", pa.int64(), nullable=False),
+        pa.field("label", pa.string(), nullable=False),
+        pa.field("timestamp", pa.int64(), nullable=False),
+        pa.field("date", pa.string(), nullable=False),
+        pa.field("node", pa.string(), nullable=False),
+        pa.field("event_time", pa.string(), nullable=False),
+        pa.field("node_repeat", pa.string()),
+        pa.field("event_type", pa.string()),
+        pa.field("component", pa.string()),
+        pa.field("severity", pa.string()),
+        pa.field("message", pa.string(), nullable=False),
+        pa.field("parse_status", pa.string(), nullable=False),
+        pa.field("raw_line", pa.string(), nullable=False),
+        pa.field("window_id", pa.int64(), nullable=False),
+        pa.field("split", pa.string(), nullable=False),
+        pa.field("frozen_event_id", pa.int64(), nullable=False),
+        pa.field("frozen_template", pa.string(), nullable=False),
+        pa.field("template_match_status", pa.string(), nullable=False),
+    ]
+)
 
 
 def build_template_input(row: dict) -> str:
@@ -75,9 +76,7 @@ def build_template_input(row: dict) -> str:
         row["severity"],
         row["message"],
     ]
-    return " ".join(value for value in values if value) or (
-        "[EMPTY_LOG_MESSAGE]"
-    )
+    return " ".join(value for value in values if value) or ("[EMPTY_LOG_MESSAGE]")
 
 
 def get_split(line_number: int, train_end: int, validation_end: int) -> str:
@@ -102,8 +101,7 @@ def main() -> None:
 
     if OUTPUT_PATH.exists() or TEMP_PATH.exists():
         raise SystemExit(
-            "An output or partial output already exists.\n"
-            "Inspect the existing files before starting another run."
+            "An output or partial output already exists.\nInspect the existing files before starting another run."
         )
 
     with TRAIN_REPORT_PATH.open("r", encoding="utf-8") as file:
@@ -153,10 +151,7 @@ def main() -> None:
         for name in ("train", "validation", "test")
     }
 
-    labels_by_split = {
-        name: Counter()
-        for name in ("train", "validation", "test")
-    }
+    labels_by_split = {name: Counter() for name in ("train", "validation", "test")}
 
     matched_event_counts = Counter()
     matched_event_templates = {}
@@ -217,26 +212,28 @@ def main() -> None:
                 else:
                     section["alert_label_records"] += 1
 
-                output_rows.append({
-                    "line_number": line_number,
-                    "label": label,
-                    "timestamp": row["timestamp"],
-                    "date": row["date"],
-                    "node": row["node"],
-                    "event_time": row["event_time"],
-                    "node_repeat": row["node_repeat"],
-                    "event_type": row["event_type"],
-                    "component": row["component"],
-                    "severity": row["severity"],
-                    "message": row["message"],
-                    "parse_status": row["parse_status"],
-                    "raw_line": row["raw_line"],
-                    "window_id": (line_number - 1) // 100,
-                    "split": split,
-                    "frozen_event_id": event_id,
-                    "frozen_template": template,
-                    "template_match_status": status,
-                })
+                output_rows.append(
+                    {
+                        "line_number": line_number,
+                        "label": label,
+                        "timestamp": row["timestamp"],
+                        "date": row["date"],
+                        "node": row["node"],
+                        "event_time": row["event_time"],
+                        "node_repeat": row["node_repeat"],
+                        "event_type": row["event_type"],
+                        "component": row["component"],
+                        "severity": row["severity"],
+                        "message": row["message"],
+                        "parse_status": row["parse_status"],
+                        "raw_line": row["raw_line"],
+                        "window_id": (line_number - 1) // 100,
+                        "split": split,
+                        "frozen_event_id": event_id,
+                        "frozen_template": template,
+                        "template_match_status": status,
+                    }
+                )
 
             if output_rows:
                 table = pa.Table.from_pylist(
@@ -246,10 +243,7 @@ def main() -> None:
                 writer.write_table(table)
 
             if processed % PROGRESS_INTERVAL == 0:
-                print(
-                    f"Processed {processed:,} rows | "
-                    f"unknown={sum(s['unknown'] for s in per_split.values()):,}"
-                )
+                print(f"Processed {processed:,} rows | unknown={sum(s['unknown'] for s in per_split.values()):,}")
 
         writer.close()
         writer = None
@@ -261,10 +255,7 @@ def main() -> None:
         if writer is not None:
             writer.close()
 
-        print(
-            "\nERROR: Matching did not complete. A partial file may remain. "
-            "Inspect it before retrying."
-        )
+        print("\nERROR: Matching did not complete. A partial file may remain. Inspect it before retrying.")
         raise
 
     total_matched = sum(section["matched"] for section in per_split.values())
@@ -279,12 +270,8 @@ def main() -> None:
             "records": records,
             "matched": section["matched"],
             "unknown": section["unknown"],
-            "match_percentage": round(
-                section["matched"] * 100 / records, 4
-            ) if records else 0.0,
-            "unknown_percentage": round(
-                section["unknown"] * 100 / records, 4
-            ) if records else 0.0,
+            "match_percentage": round(section["matched"] * 100 / records, 4) if records else 0.0,
+            "unknown_percentage": round(section["unknown"] * 100 / records, 4) if records else 0.0,
             "normal_label_records": section["normal_label_records"],
             "alert_label_records": section["alert_label_records"],
             "unique_event_ids_including_unknown": len(section["event_ids"]),
@@ -310,12 +297,8 @@ def main() -> None:
         "total_processed": processed,
         "total_matched": total_matched,
         "total_unknown": total_unknown,
-        "total_match_percentage": round(
-            total_matched * 100 / processed, 4
-        ) if processed else 0.0,
-        "total_unknown_percentage": round(
-            total_unknown * 100 / processed, 4
-        ) if processed else 0.0,
+        "total_match_percentage": round(total_matched * 100 / processed, 4) if processed else 0.0,
+        "total_unknown_percentage": round(total_unknown * 100 / processed, 4) if processed else 0.0,
         "split_summary": split_summary,
         "top_matched_templates": top_templates,
         "output_file": str(OUTPUT_PATH.relative_to(ROOT)),

@@ -40,7 +40,9 @@ TEST_START_LINE = 4035801  # Exact start of chronological test split
 BUFFER_LINES = 150000
 
 
-def load_test_lines(log_path: Path = RAW_LOG_PATH, start_line: int = TEST_START_LINE, count: int = BUFFER_LINES) -> list[str]:
+def load_test_lines(
+    log_path: Path = RAW_LOG_PATH, start_line: int = TEST_START_LINE, count: int = BUFFER_LINES
+) -> list[str]:
     """Load test-period log lines into memory to isolate engine performance from disk bottlenecks."""
     if not log_path.is_file():
         raise FileNotFoundError(f"Source log file missing: {log_path}")
@@ -234,11 +236,13 @@ def main() -> None:
             print(f"\n[Trial {r}/{repeats}] Running SEQUENTIAL benchmark (60s)...")
             trial_res = run_benchmark_trial(client, lines, concurrency=1, duration_seconds=duration)
             seq_trials.append(trial_res)
-            print(f"   -> Throughput: {trial_res['events_per_second']:.2f} events/s | "
-                  f"Latency: p50={trial_res['latency_ms']['p50']:.2f}ms, "
-                  f"p95={trial_res['latency_ms']['p95']:.2f}ms, "
-                  f"p99={trial_res['latency_ms']['p99']:.2f}ms | "
-                  f"CPU: {trial_res['resources']['cpu_percent_mean']:.1f}%")
+            print(
+                f"   -> Throughput: {trial_res['events_per_second']:.2f} events/s | "
+                f"Latency: p50={trial_res['latency_ms']['p50']:.2f}ms, "
+                f"p95={trial_res['latency_ms']['p95']:.2f}ms, "
+                f"p99={trial_res['latency_ms']['p99']:.2f}ms | "
+                f"CPU: {trial_res['resources']['cpu_percent_mean']:.1f}%"
+            )
 
         benchmark_results["sequential"] = aggregate_repeats(seq_trials)
 
@@ -248,11 +252,13 @@ def main() -> None:
             print(f"\n[Trial {r}/{repeats}] Running 8-WAY CONCURRENT benchmark (60s)...")
             trial_res = run_benchmark_trial(client, lines, concurrency=8, duration_seconds=duration)
             concur_trials.append(trial_res)
-            print(f"   -> Throughput: {trial_res['events_per_second']:.2f} events/s | "
-                  f"Latency: p50={trial_res['latency_ms']['p50']:.2f}ms, "
-                  f"p95={trial_res['latency_ms']['p95']:.2f}ms, "
-                  f"p99={trial_res['latency_ms']['p99']:.2f}ms | "
-                  f"CPU: {trial_res['resources']['cpu_percent_mean']:.1f}%")
+            print(
+                f"   -> Throughput: {trial_res['events_per_second']:.2f} events/s | "
+                f"Latency: p50={trial_res['latency_ms']['p50']:.2f}ms, "
+                f"p95={trial_res['latency_ms']['p95']:.2f}ms, "
+                f"p99={trial_res['latency_ms']['p99']:.2f}ms | "
+                f"CPU: {trial_res['resources']['cpu_percent_mean']:.1f}%"
+            )
 
         benchmark_results["concurrent_8"] = aggregate_repeats(concur_trials)
 
@@ -301,12 +307,20 @@ def main() -> None:
     seq_res = benchmark_results["sequential"]
     con_res = benchmark_results["concurrent_8"]
 
-    print(f"Sequential (1 worker):     {seq_res['events_per_second_mean']} +/- {seq_res['events_per_second_std']} events/s")
-    print(f"  Latency: p50={seq_res['latency_ms_p50_mean']}ms | p95={seq_res['latency_ms_p95_mean']}ms | p99={seq_res['latency_ms_p99_mean']}ms")
+    print(
+        f"Sequential (1 worker):     {seq_res['events_per_second_mean']} +/- {seq_res['events_per_second_std']} events/s"
+    )
+    print(
+        f"  Latency: p50={seq_res['latency_ms_p50_mean']}ms | p95={seq_res['latency_ms_p95_mean']}ms | p99={seq_res['latency_ms_p99_mean']}ms"
+    )
     print(f"  Resource: CPU={seq_res['cpu_percent_mean']}% | Peak RAM={seq_res['memory_rss_mb_peak_mean']} MB")
     print("-------------------------------------------------------")
-    print(f"Concurrent (8 workers):    {con_res['events_per_second_mean']} +/- {con_res['events_per_second_std']} events/s")
-    print(f"  Latency: p50={con_res['latency_ms_p50_mean']}ms | p95={con_res['latency_ms_p95_mean']}ms | p99={con_res['latency_ms_p99_mean']}ms")
+    print(
+        f"Concurrent (8 workers):    {con_res['events_per_second_mean']} +/- {con_res['events_per_second_std']} events/s"
+    )
+    print(
+        f"  Latency: p50={con_res['latency_ms_p50_mean']}ms | p95={con_res['latency_ms_p95_mean']}ms | p99={con_res['latency_ms_p99_mean']}ms"
+    )
     print(f"  Resource: CPU={con_res['cpu_percent_mean']}% | Peak RAM={con_res['memory_rss_mb_peak_mean']} MB")
     print("-------------------------------------------------------")
     print(f"Report saved to: {args.output}")

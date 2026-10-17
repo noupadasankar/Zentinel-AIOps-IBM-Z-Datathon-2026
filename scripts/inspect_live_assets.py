@@ -1,4 +1,4 @@
-﻿import ast
+import ast
 import json
 from pathlib import Path
 

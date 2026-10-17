@@ -1,4 +1,4 @@
-﻿import inspect
+import inspect
 import json
 from pathlib import Path
 
@@ -79,9 +79,7 @@ def inspect_vocabulary_and_examples():
     print("\n================ VOCABULARY ================")
 
     vocabulary_path = ROOT / "artifacts/event_token_vocabulary_v2.json"
-    vocabulary = json.loads(
-        vocabulary_path.read_text(encoding="utf-8")
-    )
+    vocabulary = json.loads(vocabulary_path.read_text(encoding="utf-8"))
 
     original_to_token = vocabulary["original_event_id_to_token"]
     print("Padding token:", vocabulary["padding_token"])
@@ -97,7 +95,8 @@ def inspect_vocabulary_and_examples():
     df = pd.read_parquet(path)
 
     columns = [
-        c for c in [
+        c
+        for c in [
             "line_number",
             "label",
             "message",
@@ -113,9 +112,7 @@ def inspect_vocabulary_and_examples():
         print("Match-status counts:")
         print(df["template_match_status"].value_counts(dropna=False).to_string())
 
-        for status, group in df.groupby(
-            "template_match_status", dropna=False
-        ):
+        for status, group in df.groupby("template_match_status", dropna=False):
             print(f"\nExamples for status {status!r}:")
             print(group[columns].head(3).to_string(index=False))
     else:

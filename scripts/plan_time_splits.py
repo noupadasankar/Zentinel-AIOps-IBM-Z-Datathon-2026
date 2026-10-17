@@ -1,4 +1,3 @@
-
 """Plan chronological train, validation, and test splits for BGL."""
 
 import json
@@ -29,9 +28,7 @@ def main() -> None:
     test_windows = total_windows - train_windows - validation_windows
 
     train_end_line = train_windows * WINDOW_SIZE
-    validation_end_line = (
-        train_windows + validation_windows
-    ) * WINDOW_SIZE
+    validation_end_line = (train_windows + validation_windows) * WINDOW_SIZE
 
     boundaries = [
         ("train", 0, train_windows),
@@ -116,20 +113,26 @@ def main() -> None:
     finish_window()
 
     if row_index != total_rows:
-        raise RuntimeError(
-            f"Read {row_index:,} rows but expected {total_rows:,}"
-        )
+        raise RuntimeError(f"Read {row_index:,} rows but expected {total_rows:,}")
 
     for name, section in stats.items():
-        section["alert_line_percentage"] = round(
-            section["alert_lines"] * 100 / section["log_lines"],
-            4,
-        ) if section["log_lines"] else 0.0
+        section["alert_line_percentage"] = (
+            round(
+                section["alert_lines"] * 100 / section["log_lines"],
+                4,
+            )
+            if section["log_lines"]
+            else 0.0
+        )
 
-        section["alert_window_percentage"] = round(
-            section["alert_windows"] * 100 / section["windows"],
-            4,
-        ) if section["windows"] else 0.0
+        section["alert_window_percentage"] = (
+            round(
+                section["alert_windows"] * 100 / section["windows"],
+                4,
+            )
+            if section["windows"]
+            else 0.0
+        )
 
     split_report = {
         "dataset": "LogHub BGL",
@@ -184,16 +187,10 @@ def main() -> None:
         print(f"  Log lines:             {section['log_lines']:,}")
         print(f"  Normal-labelled logs:  {section['normal_lines']:,}")
         print(f"  Alert-labelled logs:   {section['alert_lines']:,}")
-        print(
-            f"  Alert-labelled lines:  "
-            f"{section['alert_line_percentage']:.4f}%"
-        )
+        print(f"  Alert-labelled lines:  {section['alert_line_percentage']:.4f}%")
         print(f"  Normal windows:        {section['normal_windows']:,}")
         print(f"  Alert windows:         {section['alert_windows']:,}")
-        print(
-            f"  Alert windows:         "
-            f"{section['alert_window_percentage']:.4f}%"
-        )
+        print(f"  Alert windows:         {section['alert_window_percentage']:.4f}%")
 
     print(f"\nDetailed report: {REPORT_PATH}")
 

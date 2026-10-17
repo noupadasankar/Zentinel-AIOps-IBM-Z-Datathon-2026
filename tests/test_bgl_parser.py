@@ -24,13 +24,7 @@ def test_standard_bgl_record():
 
 
 def test_empty_message_is_preserved():
-    raw = (
-        "- 1120866514 2005.07.08 "
-        "R02-M1-N8-C:J13-U01 "
-        "2005-07-08-16.48.34.004234 "
-        "R02-M1-N8-C:J13-U01 "
-        "RAS KERNEL FATAL"
-    )
+    raw = "- 1120866514 2005.07.08 R02-M1-N8-C:J13-U01 2005-07-08-16.48.34.004234 R02-M1-N8-C:J13-U01 RAS KERNEL FATAL"
 
     record = parse_bgl_line(raw, line_number=2)
 

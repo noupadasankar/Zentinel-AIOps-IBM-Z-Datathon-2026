@@ -41,14 +41,10 @@ app = FastAPI(
 )
 
 if not DATA_PATH.exists():
-    raise FileNotFoundError(
-        f"Decision dataset not found: {DATA_PATH}"
-    )
+    raise FileNotFoundError(f"Decision dataset not found: {DATA_PATH}")
 
 if not REPORT_PATH.exists():
-    raise FileNotFoundError(
-        f"Decision report not found: {REPORT_PATH}"
-    )
+    raise FileNotFoundError(f"Decision report not found: {REPORT_PATH}")
 
 DECISIONS = pd.read_parquet(DATA_PATH)
 
@@ -59,9 +55,7 @@ required_columns = set([*PUBLIC_COLUMNS, "target_anomaly"])
 missing_columns = required_columns - set(DECISIONS.columns)
 
 if missing_columns:
-    raise ValueError(
-        f"Decision dataset is missing columns: {sorted(missing_columns)}"
-    )
+    raise ValueError(f"Decision dataset is missing columns: {sorted(missing_columns)}")
 
 if DECISIONS["window_index"].duplicated().any():
     raise ValueError("Duplicate window_index values found.")
@@ -97,10 +91,7 @@ def json_safe(value):
 
 def public_record(row):
     """Expose decisions without leaking evaluation labels to consumers."""
-    return {
-        column: json_safe(row[column])
-        for column in PUBLIC_COLUMNS
-    }
+    return {column: json_safe(row[column]) for column in PUBLIC_COLUMNS}
 
 
 @app.get("/", tags=["System"])
@@ -125,35 +116,18 @@ def health():
 
 @app.get("/api/v1/summary", tags=["Decisions"])
 def summary():
-    counts = (
-        DECISIONS["decision"]
-        .value_counts()
-        .to_dict()
-    )
+    counts = DECISIONS["decision"].value_counts().to_dict()
 
     return {
         "service": "Zentinel AIOps",
         "mode": "offline_replay",
         "total_windows": len(DECISIONS),
-        "decisions": {
-            decision: int(counts.get(decision, 0))
-            for decision in sorted(ALLOWED_DECISIONS)
-        },
-        "automatic_decision_coverage": float(
-            (DECISIONS["decision"] != "NOVELTY_DRIFT_REVIEW").mean()
-        ),
-        "review_rate": float(
-            (DECISIONS["decision"] == "NOVELTY_DRIFT_REVIEW").mean()
-        ),
-        "lstm_threshold": EVALUATION_REPORT.get(
-            "lstm_validation_threshold"
-        ),
-        "novelty_threshold": EVALUATION_REPORT.get(
-            "novelty_unknown_rate_threshold"
-        ),
-        "warning": (
-            "These are historical evaluation results, not live predictions."
-        ),
+        "decisions": {decision: int(counts.get(decision, 0)) for decision in sorted(ALLOWED_DECISIONS)},
+        "automatic_decision_coverage": float((DECISIONS["decision"] != "NOVELTY_DRIFT_REVIEW").mean()),
+        "review_rate": float((DECISIONS["decision"] == "NOVELTY_DRIFT_REVIEW").mean()),
+        "lstm_threshold": EVALUATION_REPORT.get("lstm_validation_threshold"),
+        "novelty_threshold": EVALUATION_REPORT.get("novelty_unknown_rate_threshold"),
+        "warning": ("These are historical evaluation results, not live predictions."),
     }
 
 
@@ -181,7 +155,7 @@ def list_decisions(
         filtered = filtered[filtered["decision"] == decision]
 
     total = len(filtered)
-    page = filtered.iloc[offset:offset + limit]
+    page = filtered.iloc[offset : offset + limit]
 
     return {
         "mode": "offline_replay",
@@ -189,18 +163,13 @@ def list_decisions(
         "offset": offset,
         "limit": limit,
         "returned": len(page),
-        "items": [
-            public_record(row)
-            for _, row in page.iterrows()
-        ],
+        "items": [public_record(row) for _, row in page.iterrows()],
     }
 
 
 @app.get("/api/v1/decisions/{window_index}", tags=["Decisions"])
 def get_decision(window_index: int):
-    matches = DECISIONS[
-        DECISIONS["window_index"] == window_index
-    ]
+    matches = DECISIONS[DECISIONS["window_index"] == window_index]
 
     if matches.empty:
         raise HTTPException(
@@ -219,19 +188,11 @@ def evaluation():
         "metrics": {
             "alert_precision": EVALUATION_REPORT.get("alert_precision"),
             "alert_recall_over_all_test_labelled_anomalies": (
-                EVALUATION_REPORT.get(
-                    "alert_recall_over_all_test_labelled_anomalies"
-                )
+                EVALUATION_REPORT.get("alert_recall_over_all_test_labelled_anomalies")
             ),
-            "alert_true_positives": EVALUATION_REPORT.get(
-                "alert_true_positives"
-            ),
-            "alert_false_positives": EVALUATION_REPORT.get(
-                "alert_false_positives"
-            ),
-            "review_labelled_anomalies": EVALUATION_REPORT.get(
-                "review_labelled_anomalies"
-            ),
+            "alert_true_positives": EVALUATION_REPORT.get("alert_true_positives"),
+            "alert_false_positives": EVALUATION_REPORT.get("alert_false_positives"),
+            "review_labelled_anomalies": EVALUATION_REPORT.get("review_labelled_anomalies"),
         },
         "caveat": EVALUATION_REPORT.get("caveat"),
     }

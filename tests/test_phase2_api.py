@@ -37,8 +37,7 @@ def setup_phase2_env(tmp_path):
     db_path = tmp_path / "test_phase2.sqlite3"
     store = LiveStateStore(db_path)
 
-    with patch("zentinel.api.live_api.STORE", store), \
-         patch("zentinel.api.live_api.CONFIG.db_path", db_path):
+    with patch("zentinel.api.live_api.STORE", store), patch("zentinel.api.live_api.CONFIG.db_path", db_path):
         STATE.clear()
         STATE.update({"logs_received": 0, "windows_completed": 0, "unknown_events_received": 0})
         CURRENT_WINDOW.clear()
@@ -59,20 +58,22 @@ def setup_phase2_env(tmp_path):
 def test_alerts_crud_and_actions(setup_phase2_env):
     store = setup_phase2_env
     # Seed an alert
-    store.save_or_update_alert({
-        "incident_id": "INC-0001",
-        "status": "OPEN",
-        "severity": "HIGH",
-        "score": 6.8,
-        "threshold": 3.4791,
-        "first_window_id": 1,
-        "last_window_id": 3,
-        "first_line_number": 1,
-        "last_line_number": 300,
-        "window_count": 3,
-        "summary": "HIGH Severity Anomaly: 3 windows",
-        "evidence": {"top_k_templates_by_loss": []},
-    })
+    store.save_or_update_alert(
+        {
+            "incident_id": "INC-0001",
+            "status": "OPEN",
+            "severity": "HIGH",
+            "score": 6.8,
+            "threshold": 3.4791,
+            "first_window_id": 1,
+            "last_window_id": 3,
+            "first_line_number": 1,
+            "last_line_number": 300,
+            "window_count": 3,
+            "summary": "HIGH Severity Anomaly: 3 windows",
+            "evidence": {"top_k_templates_by_loss": []},
+        }
+    )
 
     with TestClient(app) as client:
         # 1. List alerts
@@ -144,7 +145,15 @@ def test_review_queue_json_and_csv(setup_phase2_env):
         "lstm_anomaly_score": None,
     }
     store.save_event_and_state(
-        event={"line_number": 1, "timestamp": 1000, "parse_status": "standard", "token": 1, "event_status": "unknown_template", "matched_event_id": None, "template": None},
+        event={
+            "line_number": 1,
+            "timestamp": 1000,
+            "parse_status": "standard",
+            "token": 1,
+            "event_status": "unknown_template",
+            "matched_event_id": None,
+            "template": None,
+        },
         state={"logs_received": 100, "windows_completed": 1, "unknown_events_received": 15},
         current_window=[],
         window_result=review_window,

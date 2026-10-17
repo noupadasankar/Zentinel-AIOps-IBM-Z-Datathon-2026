@@ -1,4 +1,3 @@
-
 """Verify source-order timestamps before chronological model evaluation."""
 
 import json
@@ -14,9 +13,7 @@ REPORT_PATH = ROOT / "reports" / "temporal_order_report.json"
 EXPECTED_ROWS = 4_747_963
 BATCH_SIZE = 100_000
 
-EVENT_TIME_PATTERN = re.compile(
-    r"^\d{4}-\d{2}-\d{2}-\d{2}\.\d{2}\.\d{2}\.\d{6}$"
-)
+EVENT_TIME_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{2}\.\d{2}\.\d{2}\.\d{6}$")
 
 
 def main() -> None:
@@ -46,23 +43,20 @@ def main() -> None:
         line_numbers = batch.column("line_number").to_pylist()
         event_times = batch.column("event_time").to_pylist()
 
-        for line_number, event_time in zip(
-            line_numbers, event_times
-        ):
+        for line_number, event_time in zip(line_numbers, event_times):
             total += 1
 
-            if (
-                not isinstance(event_time, str)
-                or not EVENT_TIME_PATTERN.fullmatch(event_time)
-            ):
+            if not isinstance(event_time, str) or not EVENT_TIME_PATTERN.fullmatch(event_time):
                 invalid_timestamps += 1
 
                 if len(examples) < 10:
-                    examples.append({
-                        "line_number": line_number,
-                        "issue": "Invalid event_time format",
-                        "event_time": event_time,
-                    })
+                    examples.append(
+                        {
+                            "line_number": line_number,
+                            "issue": "Invalid event_time format",
+                            "event_time": event_time,
+                        }
+                    )
 
                 continue
 
@@ -74,29 +68,25 @@ def main() -> None:
 
             # The fixed-width event-time format sorts lexicographically
             # in the same order as its chronological components.
-            if (
-                previous_time is not None
-                and event_time < previous_time
-            ):
+            if previous_time is not None and event_time < previous_time:
                 decreasing_pairs += 1
 
                 if len(examples) < 10:
-                    examples.append({
-                        "line_number": line_number,
-                        "issue": "Event time moved backwards",
-                        "previous_line_number": previous_line,
-                        "previous_event_time": previous_time,
-                        "current_event_time": event_time,
-                    })
+                    examples.append(
+                        {
+                            "line_number": line_number,
+                            "issue": "Event time moved backwards",
+                            "previous_line_number": previous_line,
+                            "previous_event_time": previous_time,
+                            "current_event_time": event_time,
+                        }
+                    )
 
             previous_time = event_time
             previous_line = line_number
 
         if total % 500_000 == 0:
-            print(
-                f"Checked {total:,} rows | "
-                f"backwards transitions={decreasing_pairs:,}"
-            )
+            print(f"Checked {total:,} rows | backwards transitions={decreasing_pairs:,}")
 
     report = {
         "expected_rows": EXPECTED_ROWS,
@@ -107,11 +97,7 @@ def main() -> None:
         "minimum_event_time": minimum_time,
         "maximum_event_time": maximum_time,
         "examples": examples,
-        "source_order_is_nondecreasing": (
-            total == EXPECTED_ROWS
-            and decreasing_pairs == 0
-            and invalid_timestamps == 0
-        ),
+        "source_order_is_nondecreasing": (total == EXPECTED_ROWS and decreasing_pairs == 0 and invalid_timestamps == 0),
     }
 
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -134,10 +120,7 @@ def main() -> None:
     if report["source_order_is_nondecreasing"]:
         print("\nSUCCESS: Source order is temporally nondecreasing.")
     else:
-        print(
-            "\nWARNING: Review the report before using source order "
-            "for chronological splits."
-        )
+        print("\nWARNING: Review the report before using source order for chronological splits.")
 
 
 if __name__ == "__main__":

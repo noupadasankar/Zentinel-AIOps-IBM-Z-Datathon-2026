@@ -1,4 +1,3 @@
-
 """Train Drain3 on the training period only; do not see future logs."""
 
 import json
@@ -99,16 +98,10 @@ def main() -> None:
             records_processed += 1
 
             if records_processed % PROGRESS_INTERVAL == 0:
-                print(
-                    f"Trained on {records_processed:,} records | "
-                    f"clusters={len(miner.drain.clusters):,}"
-                )
+                print(f"Trained on {records_processed:,} records | clusters={len(miner.drain.clusters):,}")
 
     if records_processed != train_end:
-        raise RuntimeError(
-            f"Expected {train_end:,} training records, "
-            f"processed {records_processed:,}."
-        )
+        raise RuntimeError(f"Expected {train_end:,} training records, processed {records_processed:,}.")
 
     # Persist only once training has finished.
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -164,10 +157,7 @@ def main() -> None:
 
     print("\nTop 10 training templates:")
     for item in top_templates[:10]:
-        print(
-            f"  ID {item['event_id']}: "
-            f"{item['training_count']:,} logs | {item['template']}"
-        )
+        print(f"  ID {item['event_id']}: {item['training_count']:,} logs | {item['template']}")
 
     print(f"\nSaved Drain3 state: {STATE_PATH}")
     print(f"Summary report: {REPORT_PATH}")

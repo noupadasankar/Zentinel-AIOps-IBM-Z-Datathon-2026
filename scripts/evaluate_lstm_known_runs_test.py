@@ -1,4 +1,4 @@
-﻿import json
+import json
 import re
 from pathlib import Path
 
@@ -37,9 +37,7 @@ def load_threshold(path):
     def search(obj):
         if isinstance(obj, dict):
             for key, value in obj.items():
-                if "threshold" in key.lower() and isinstance(
-                    value, (int, float)
-                ):
+                if "threshold" in key.lower() and isinstance(value, (int, float)):
                     return float(value)
 
             for value in obj.values():
@@ -51,10 +49,7 @@ def load_threshold(path):
 
     value = search(data)
     if value is None:
-        raise ValueError(
-            f"Could not find a numeric threshold in {path}. "
-            f"Found keys: {list(data.keys())}"
-        )
+        raise ValueError(f"Could not find a numeric threshold in {path}. Found keys: {list(data.keys())}")
     return value
 
 
@@ -68,24 +63,18 @@ def load_state_dict(path):
     if isinstance(checkpoint, dict):
         for key in ("model_state_dict", "state_dict", "model"):
             value = checkpoint.get(key)
-            if isinstance(value, dict) and any(
-                torch.is_tensor(v) for v in value.values()
-            ):
+            if isinstance(value, dict) and any(torch.is_tensor(v) for v in value.values()):
                 checkpoint = value
                 break
 
     if not isinstance(checkpoint, dict):
         raise TypeError("Checkpoint does not contain a model state dictionary.")
 
-    state = {
-        k: v
-        for k, v in checkpoint.items()
-        if torch.is_tensor(v)
-    }
+    state = {k: v for k, v in checkpoint.items() if torch.is_tensor(v)}
 
     # Remove the common DataParallel prefix if present.
     if state and all(k.startswith("module.") for k in state):
-        state = {k[len("module."):]: v for k, v in state.items()}
+        state = {k[len("module.") :]: v for k, v in state.items()}
 
     return state
 
@@ -96,18 +85,11 @@ class ReconstructedLSTM(nn.Module):
     def __init__(self, state):
         super().__init__()
 
-        lstm_ih_key = next(
-            (k for k in state if k.endswith("weight_ih_l0")), None
-        )
-        lstm_hh_key = next(
-            (k for k in state if k.endswith("weight_hh_l0")), None
-        )
+        lstm_ih_key = next((k for k in state if k.endswith("weight_ih_l0")), None)
+        lstm_hh_key = next((k for k in state if k.endswith("weight_hh_l0")), None)
 
         if not lstm_ih_key or not lstm_hh_key:
-            raise ValueError(
-                "Could not identify standard LSTM weights. "
-                f"Checkpoint keys: {list(state.keys())}"
-            )
+            raise ValueError(f"Could not identify standard LSTM weights. Checkpoint keys: {list(state.keys())}")
 
         lstm_prefix = lstm_ih_key.rsplit(".", 1)[0]
         lstm_weight_ih = state[lstm_ih_key]
@@ -128,9 +110,7 @@ class ReconstructedLSTM(nn.Module):
                 vocab_candidates.append((key, tensor))
 
         if not vocab_candidates:
-            raise ValueError(
-                "Could not identify the embedding matrix in the checkpoint."
-            )
+            raise ValueError("Could not identify the embedding matrix in the checkpoint.")
 
         # The embedding matrix has shape [vocabulary size, embedding size].
         embedding_key, embedding_weight = vocab_candidates[0]
@@ -138,9 +118,7 @@ class ReconstructedLSTM(nn.Module):
         vocab_size = int(embedding_weight.shape[0])
         embedding_dim = int(embedding_weight.shape[1])
 
-        reverse = any(
-            k.endswith("weight_ih_l0_reverse") for k in state
-        )
+        reverse = any(k.endswith("weight_ih_l0_reverse") for k in state)
         directions = 2 if reverse else 1
 
         layer_ids = []
@@ -161,10 +139,7 @@ class ReconstructedLSTM(nn.Module):
         ]
 
         if not projection_candidates:
-            raise ValueError(
-                "Could not identify the output projection layer. "
-                "Please share the checkpoint-key error."
-            )
+            raise ValueError("Could not identify the output projection layer. Please share the checkpoint-key error.")
 
         projection_key = projection_candidates[-1]
         projection_prefix = projection_key.rsplit(".", 1)[0]
@@ -177,8 +152,7 @@ class ReconstructedLSTM(nn.Module):
         ]
         if len(set(names)) != 3:
             raise ValueError(
-                "The checkpoint uses overlapping module names; "
-                "the architecture needs manual reconstruction."
+                "The checkpoint uses overlapping module names; the architecture needs manual reconstruction."
             )
 
         self.embedding_name = names[0]
@@ -220,9 +194,7 @@ def collect_known_runs(sequence_rows, global_indices):
 
         def save_run():
             if len(current) >= 2:
-                runs.append(
-                    (int(global_index), np.asarray(current, dtype=np.int64))
-                )
+                runs.append((int(global_index), np.asarray(current, dtype=np.int64)))
 
         for token in sequence:
             token = int(token)
@@ -278,26 +250,14 @@ def main():
     with torch.inference_mode():
         total_batches = (len(runs) + BATCH_SIZE - 1) // BATCH_SIZE
 
-        for batch_number, offset in enumerate(
-            range(0, len(runs), BATCH_SIZE), start=1
-        ):
-            batch = runs[offset:offset + BATCH_SIZE]
+        for batch_number, offset in enumerate(range(0, len(runs), BATCH_SIZE), start=1):
+            batch = runs[offset : offset + BATCH_SIZE]
 
-            inputs = [
-                torch.tensor(run[:-1], dtype=torch.long)
-                for _, run in batch
-            ]
-            targets = [
-                torch.tensor(run[1:], dtype=torch.long)
-                for _, run in batch
-            ]
+            inputs = [torch.tensor(run[:-1], dtype=torch.long) for _, run in batch]
+            targets = [torch.tensor(run[1:], dtype=torch.long) for _, run in batch]
 
-            padded_inputs = pad_sequence(
-                inputs, batch_first=True, padding_value=PADDING_TOKEN
-            )
-            padded_targets = pad_sequence(
-                targets, batch_first=True, padding_value=PADDING_TOKEN
-            )
+            padded_inputs = pad_sequence(inputs, batch_first=True, padding_value=PADDING_TOKEN)
+            padded_targets = pad_sequence(targets, batch_first=True, padding_value=PADDING_TOKEN)
 
             logits = model(padded_inputs)
             vocab_size = logits.shape[-1]
@@ -310,22 +270,15 @@ def main():
             ).reshape_as(padded_targets)
 
             batch_loss_sums = token_losses.sum(dim=1).cpu().numpy()
-            batch_counts = (
-                padded_targets.ne(PADDING_TOKEN).sum(dim=1).cpu().numpy()
-            )
+            batch_counts = padded_targets.ne(PADDING_TOKEN).sum(dim=1).cpu().numpy()
 
             for i, (window_index, _) in enumerate(batch):
                 count = int(batch_counts[i])
                 if count == 0:
                     continue
 
-                score_sums[window_index] = (
-                    score_sums.get(window_index, 0.0)
-                    + float(batch_loss_sums[i])
-                )
-                transition_counts[window_index] = (
-                    transition_counts.get(window_index, 0) + count
-                )
+                score_sums[window_index] = score_sums.get(window_index, 0.0) + float(batch_loss_sums[i])
+                transition_counts[window_index] = transition_counts.get(window_index, 0) + count
 
             if batch_number % 10 == 0 or batch_number == total_batches:
                 print(f"Scored batches: {batch_number}/{total_batches}")
@@ -335,16 +288,16 @@ def main():
         if global_index not in transition_counts:
             continue
 
-        score = (
-            score_sums[global_index] / transition_counts[global_index]
+        score = score_sums[global_index] / transition_counts[global_index]
+        rows.append(
+            {
+                "window_index": int(global_index),
+                "target_anomaly": int(label),
+                "anomaly_score": float(score),
+                "predicted_anomaly": int(score >= threshold),
+                "scored_transitions": int(transition_counts[global_index]),
+            }
         )
-        rows.append({
-            "window_index": int(global_index),
-            "target_anomaly": int(label),
-            "anomaly_score": float(score),
-            "predicted_anomaly": int(score >= threshold),
-            "scored_transitions": int(transition_counts[global_index]),
-        })
 
     result = pd.DataFrame(rows)
     if result.empty:
@@ -354,9 +307,7 @@ def main():
     y_score = result["anomaly_score"].to_numpy()
     y_pred = result["predicted_anomaly"].to_numpy()
 
-    tn, fp, fn, tp = confusion_matrix(
-        y_true, y_pred, labels=[0, 1]
-    ).ravel()
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
 
     report = {
         "evaluation": "exploratory_temporal_test",
@@ -376,26 +327,16 @@ def main():
         "unscorable_windows": int(len(test_indices) - len(result)),
         "scorable_coverage": float(len(result) / len(test_indices)),
         "unscorable_anomalous_windows": int(
-            np.sum(test_labels[
-                ~np.isin(test_indices, result["window_index"].to_numpy())
-            ] == 1)
+            np.sum(test_labels[~np.isin(test_indices, result["window_index"].to_numpy())] == 1)
         ),
         "unscorable_normal_windows": int(
-            np.sum(test_labels[
-                ~np.isin(test_indices, result["window_index"].to_numpy())
-            ] == 0)
+            np.sum(test_labels[~np.isin(test_indices, result["window_index"].to_numpy())] == 0)
         ),
         "scorable_anomalous_windows": int(np.sum(y_true == 1)),
         "scorable_normal_windows": int(np.sum(y_true == 0)),
-        "precision": float(precision_score(
-            y_true, y_pred, zero_division=0
-        )),
-        "recall": float(recall_score(
-            y_true, y_pred, zero_division=0
-        )),
-        "f1_score": float(f1_score(
-            y_true, y_pred, zero_division=0
-        )),
+        "precision": float(precision_score(y_true, y_pred, zero_division=0)),
+        "recall": float(recall_score(y_true, y_pred, zero_division=0)),
+        "f1_score": float(f1_score(y_true, y_pred, zero_division=0)),
         "pr_auc": float(average_precision_score(y_true, y_score)),
         "roc_auc": float(roc_auc_score(y_true, y_score)),
         "true_positives": int(tp),
@@ -408,9 +349,7 @@ def main():
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     result.to_parquet(OUTPUT_PATH, index=False)
-    REPORT_PATH.write_text(
-        json.dumps(report, indent=2), encoding="utf-8"
-    )
+    REPORT_PATH.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     print("\n========== KNOWN-RUN TEST RESULTS ==========")
     print(f"Total test windows: {report['total_test_windows']:,}")

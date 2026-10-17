@@ -1,4 +1,3 @@
-
 """Score LSTM sequences using only contiguous runs of known events.
 
 Unknown-event novelty is measured separately. Sequences without a
@@ -29,9 +28,7 @@ SEQUENCE_PATH = ROOT / "data" / "processed" / "bgl_event_sequences_v2.npz"
 VOCAB_PATH = ROOT / "artifacts" / "event_token_vocabulary_v2.json"
 MODEL_PATH = ROOT / "artifacts" / "lstm_next_event.pt"
 
-OUTPUT_PATH = (
-    ROOT / "data" / "processed" / "lstm_known_run_validation_scores.parquet"
-)
+OUTPUT_PATH = ROOT / "data" / "processed" / "lstm_known_run_validation_scores.parquet"
 THRESHOLD_PATH = ROOT / "artifacts" / "lstm_known_run_threshold.json"
 REPORT_PATH = ROOT / "reports" / "lstm_known_run_validation_report.json"
 
@@ -86,10 +83,7 @@ def collect_known_runs(sequences, lengths, window_indices):
         start = None
 
         for position in range(length + 1):
-            is_known = (
-                position < length
-                and int(sequence[position]) >= 2
-            )
+            is_known = position < length and int(sequence[position]) >= 2
 
             if is_known and start is None:
                 start = position
@@ -125,8 +119,8 @@ def score_known_runs(model, runs, run_windows, total_windows):
             range(0, len(runs), BATCH_SIZE),
             start=1,
         ):
-            batch_runs = runs[offset:offset + BATCH_SIZE]
-            batch_windows = run_windows[offset:offset + BATCH_SIZE]
+            batch_runs = runs[offset : offset + BATCH_SIZE]
+            batch_windows = run_windows[offset : offset + BATCH_SIZE]
 
             max_steps = max(len(run) - 1 for run in batch_runs)
             batch_size = len(batch_runs)
@@ -139,8 +133,8 @@ def score_known_runs(model, runs, run_windows, total_windows):
             valid_lengths = np.zeros(batch_size, dtype=np.int64)
 
             for row_index, run in enumerate(batch_runs):
-                inputs[row_index, :len(run) - 1] = run[:-1]
-                targets[row_index, :len(run) - 1] = run[1:]
+                inputs[row_index, : len(run) - 1] = run[:-1]
+                targets[row_index, : len(run) - 1] = run[1:]
                 valid_lengths[row_index] = len(run) - 1
 
             input_tensor = torch.as_tensor(inputs, device=DEVICE)
@@ -171,16 +165,12 @@ def score_known_runs(model, runs, run_windows, total_windows):
                 transition_counts[window_index] += valid_lengths[row_index]
 
             if batch_number % 10 == 0 or batch_number == total_batches:
-                print(
-                    f"Scored batch {batch_number:,}/{total_batches:,}"
-                )
+                print(f"Scored batch {batch_number:,}/{total_batches:,}")
 
     scores = np.full(total_windows, np.nan, dtype=np.float64)
 
     scorable = transition_counts > 0
-    scores[scorable] = (
-        score_sums[scorable] / transition_counts[scorable]
-    )
+    scores[scorable] = score_sums[scorable] / transition_counts[scorable]
 
     return scores, transition_counts
 
@@ -205,24 +195,12 @@ def evaluate_at_threshold(y_true, scores, threshold):
         "false_positives": int(fp),
         "true_negatives": int(tn),
         "false_negatives": int(fn),
-        "precision": float(
-            precision_score(y_true, predictions, zero_division=0)
-        ),
-        "recall": float(
-            recall_score(y_true, predictions, zero_division=0)
-        ),
-        "f1": float(
-            f1_score(y_true, predictions, zero_division=0)
-        ),
-        "false_positive_rate": float(
-            fp / (fp + tn) if (fp + tn) else 0.0
-        ),
-        "false_positives_per_1000_normal_windows": float(
-            fp / normal_count * 1000 if normal_count else 0.0
-        ),
-        "pr_auc_average_precision": float(
-            average_precision_score(y_true, scores)
-        ),
+        "precision": float(precision_score(y_true, predictions, zero_division=0)),
+        "recall": float(recall_score(y_true, predictions, zero_division=0)),
+        "f1": float(f1_score(y_true, predictions, zero_division=0)),
+        "false_positive_rate": float(fp / (fp + tn) if (fp + tn) else 0.0),
+        "false_positives_per_1000_normal_windows": float(fp / normal_count * 1000 if normal_count else 0.0),
+        "pr_auc_average_precision": float(average_precision_score(y_true, scores)),
         "roc_auc": float(roc_auc_score(y_true, scores)),
         "score_min": float(scores.min()),
         "score_median": float(np.median(scores)),
@@ -235,9 +213,7 @@ def main():
     missing = [str(path) for path in required_files if not path.is_file()]
 
     if missing:
-        raise FileNotFoundError(
-            "Required model/data files missing:\n" + "\n".join(missing)
-        )
+        raise FileNotFoundError("Required model/data files missing:\n" + "\n".join(missing))
 
     outputs = [OUTPUT_PATH, THRESHOLD_PATH, REPORT_PATH]
     existing = [str(path) for path in outputs if path.exists()]
@@ -284,9 +260,7 @@ def main():
 
     model.load_state_dict(checkpoint["model_state_dict"])
 
-    validation_indices = np.flatnonzero(
-        split_codes == VALIDATION_CODE
-    )
+    validation_indices = np.flatnonzero(split_codes == VALIDATION_CODE)
 
     if len(validation_indices) == 0:
         raise RuntimeError("No validation windows found.")
@@ -309,22 +283,16 @@ def main():
         len(sequences),
     )
 
-    validation_scorable = validation_indices[
-        transition_counts[validation_indices] > 0
-    ]
+    validation_scorable = validation_indices[transition_counts[validation_indices] > 0]
 
-    validation_unscorable = validation_indices[
-        transition_counts[validation_indices] == 0
-    ]
+    validation_unscorable = validation_indices[transition_counts[validation_indices] == 0]
 
     y_all = targets[validation_indices].astype(np.int8)
     y_scored = targets[validation_scorable].astype(np.int8)
     scored_values = scores[validation_scorable]
 
     if len(np.unique(y_scored)) != 2:
-        raise RuntimeError(
-            "Scored validation windows must include both target classes."
-        )
+        raise RuntimeError("Scored validation windows must include both target classes.")
 
     precisions, recalls, thresholds = precision_recall_curve(
         y_scored,
@@ -334,16 +302,11 @@ def main():
     if len(thresholds) == 0:
         raise RuntimeError("No validation thresholds were produced.")
 
-    f1_values = (
-        2 * precisions[:-1] * recalls[:-1]
-        / (precisions[:-1] + recalls[:-1] + 1e-12)
-    )
+    f1_values = 2 * precisions[:-1] * recalls[:-1] / (precisions[:-1] + recalls[:-1] + 1e-12)
 
     best_f1 = float(f1_values.max())
 
-    tied = np.flatnonzero(
-        np.isclose(f1_values, best_f1, rtol=1e-10, atol=1e-12)
-    )
+    tied = np.flatnonzero(np.isclose(f1_values, best_f1, rtol=1e-10, atol=1e-12))
 
     best_index = max(
         tied,
@@ -361,27 +324,25 @@ def main():
     normal_total = int((targets[validation_indices] == 0).sum())
     anomaly_total = int((targets[validation_indices] == 1).sum())
 
-    normal_unscorable = int(
-        (targets[validation_unscorable] == 0).sum()
-    )
-    anomaly_unscorable = int(
-        (targets[validation_unscorable] == 1).sum()
-    )
+    normal_unscorable = int((targets[validation_unscorable] == 0).sum())
+    anomaly_unscorable = int((targets[validation_unscorable] == 1).sum())
 
     predictions = (scored_values >= threshold).astype(np.int8)
 
-    result_table = pa.table({
-        "window_id": window_ids[validation_scorable],
-        "split": ["validation"] * len(validation_scorable),
-        "start_line": start_lines[validation_scorable],
-        "end_line": end_lines[validation_scorable],
-        "start_timestamp": start_timestamps[validation_scorable],
-        "end_timestamp": end_timestamps[validation_scorable],
-        "target_anomaly": y_scored,
-        "known_transition_count": transition_counts[validation_scorable],
-        "anomaly_score": scored_values,
-        "predicted_anomaly": predictions,
-    })
+    result_table = pa.table(
+        {
+            "window_id": window_ids[validation_scorable],
+            "split": ["validation"] * len(validation_scorable),
+            "start_line": start_lines[validation_scorable],
+            "end_line": end_lines[validation_scorable],
+            "start_timestamp": start_timestamps[validation_scorable],
+            "end_timestamp": end_timestamps[validation_scorable],
+            "target_anomaly": y_scored,
+            "known_transition_count": transition_counts[validation_scorable],
+            "anomaly_score": scored_values,
+            "predicted_anomaly": predictions,
+        }
+    )
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     THRESHOLD_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -393,14 +354,12 @@ def main():
         "model": "LSTMNextEventKnownRuns",
         "threshold": threshold,
         "scoring_method": (
-            "Average next-event cross-entropy across contiguous runs "
-            "of known training-vocabulary events only"
+            "Average next-event cross-entropy across contiguous runs of known training-vocabulary events only"
         ),
         "unknown_token_scored": False,
         "transitions_touching_unknown_events_scored": False,
         "unscorable_window_policy": (
-            "Mark unscorable and route to separate novelty/drift monitoring; "
-            "do not classify as normal"
+            "Mark unscorable and route to separate novelty/drift monitoring; do not classify as normal"
         ),
         "selected_using_validation_only": True,
         "test_used_for_threshold_selection": False,
@@ -440,10 +399,7 @@ def main():
     print(f"Validation windows: {len(validation_indices):,}")
     print(f"Scorable windows: {len(validation_scorable):,}")
     print(f"Unscorable windows: {len(validation_unscorable):,}")
-    print(
-        f"Scorable coverage: "
-        f"{report['scorable_window_percentage']:.2f}%"
-    )
+    print(f"Scorable coverage: {report['scorable_window_percentage']:.2f}%")
     print(f"Unscorable anomalous windows: {anomaly_unscorable:,}")
     print(f"Unscorable normal windows: {normal_unscorable:,}")
 

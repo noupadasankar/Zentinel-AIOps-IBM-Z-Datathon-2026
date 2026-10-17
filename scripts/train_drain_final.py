@@ -1,4 +1,3 @@
-
 """Train the selected Drain3 configuration on training data only."""
 
 import json
@@ -33,9 +32,7 @@ def build_template_input(record) -> str:
         record.severity,
         record.message,
     ]
-    return " ".join(value for value in values if value) or (
-        "[EMPTY_LOG_MESSAGE]"
-    )
+    return " ".join(value for value in values if value) or ("[EMPTY_LOG_MESSAGE]")
 
 
 def main() -> None:
@@ -45,8 +42,7 @@ def main() -> None:
 
     if STATE_PATH.exists():
         raise SystemExit(
-            f"Model state already exists: {STATE_PATH}\n"
-            "Do not overwrite a previously trained model blindly."
+            f"Model state already exists: {STATE_PATH}\nDo not overwrite a previously trained model blindly."
         )
 
     with SPLIT_PATH.open("r", encoding="utf-8") as file:
@@ -91,16 +87,10 @@ def main() -> None:
             processed += 1
 
             if processed % PROGRESS_INTERVAL == 0:
-                print(
-                    f"Processed {processed:,} records | "
-                    f"templates={len(miner.drain.clusters):,}"
-                )
+                print(f"Processed {processed:,} records | templates={len(miner.drain.clusters):,}")
 
     if processed != train_end:
-        raise RuntimeError(
-            f"Expected {train_end:,} training records; "
-            f"processed {processed:,}."
-        )
+        raise RuntimeError(f"Expected {train_end:,} training records; processed {processed:,}.")
 
     # Save the frozen training vocabulary once fitting is complete.
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -150,11 +140,7 @@ def main() -> None:
 
     print("\nTop 10 templates:")
     for item in top_templates[:10]:
-        print(
-            f"  ID {item['event_id']}: "
-            f"{item['training_count']:,} records | "
-            f"{item['template']}"
-        )
+        print(f"  ID {item['event_id']}: {item['training_count']:,} records | {item['template']}")
 
     print(f"\nSaved model: {STATE_PATH}")
     print(f"Report: {REPORT_PATH}")
@@ -163,4 +149,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
