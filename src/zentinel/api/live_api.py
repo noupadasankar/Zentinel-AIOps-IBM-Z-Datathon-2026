@@ -2,6 +2,7 @@ import csv
 import hashlib
 import io
 import os
+import sqlite3
 import threading
 import uuid
 from collections import deque
@@ -339,6 +340,32 @@ def health():
         "lstm_threshold": ENGINE.lstm_threshold,
         "novelty_threshold": ENGINE.novelty_threshold,
     }
+
+
+@app.get("/ready", tags=["System"])
+def readiness():
+    """
+    Readiness probe: model engine loaded and persistence reachable.
+    Public for orchestrators; intentionally exposes no sensitive system info.
+    """
+    engine_ready = bool(ENGINE._is_loaded and ENGINE.model is not None and ENGINE.miner is not None)
+    try:
+        store_ready = STORE is not None
+        if store_ready:
+            with STORE._lock:
+                STORE._connection.execute("SELECT 1").fetchone()
+    except sqlite3.Error:
+        store_ready = False
+
+    ready = engine_ready and store_ready
+    return JSONResponse(
+        status_code=200 if ready else 503,
+        content={
+            "ready": ready,
+            "engine": engine_ready,
+            "persistence": store_ready,
+        },
+    )
 
 
 @app.post("/api/v1/live/ingest", tags=["Live Ingestion"])

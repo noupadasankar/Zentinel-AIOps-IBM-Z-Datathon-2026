@@ -1,4 +1,5 @@
 import hashlib
+import json
 from unittest.mock import patch
 
 import pytest
@@ -57,6 +58,19 @@ def test_health_endpoint_is_open_without_auth():
         data = response.json()
         assert data["status"] == "ok"
         assert "window_size" in data
+
+
+def test_readiness_endpoint_no_sensitive_info():
+    with TestClient(app) as client:
+        response = client.get("/ready")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["ready"] is True
+        assert data["engine"] is True
+        assert data["persistence"] is True
+        payload_text = json.dumps(data)
+        assert "database" not in payload_text
+        assert "ZENTINEL" not in payload_text
 
 
 def test_missing_api_key_returns_401():

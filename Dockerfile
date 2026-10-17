@@ -19,8 +19,15 @@ RUN groupadd -g 1000 zentinel && \
 WORKDIR /app
 
 # Install pinned dependencies
+# torch is pinned as 2.x.y+cpu (CPU local version) in requirements.lock; that
+# distribution lives only on the PyTorch CPU wheel index, so pass it explicitly.
+# NOTE (LinuxONE): download.pytorch.org does not publish s390x wheels; a
+# target-architecture build must be verified on device (docs/LINUXONE_DEPLOYMENT.md).
 COPY requirements.lock ./
-RUN pip install --no-cache-dir -r requirements.lock
+RUN pip install --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    --default-timeout=120 \
+    -r requirements.lock
 
 # Copy project files
 COPY pyproject.toml ./

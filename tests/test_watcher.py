@@ -149,6 +149,85 @@ def test_rate_limit_429_retries_without_advancing(tmp_path):
     assert watcher.current_backoff > 0.1
 
 
+def test_retry_after_header_honored(tmp_path):
+    """Numeric Retry-After must dominate the backoff schedule (capped at 60s)."""
+    import zentinel.ingestion.watcher as watcher_mod
+
+    log_file = tmp_path / "stream.log"
+    log_file.write_text("valid line\n", encoding="utf-8")
+    watcher = LogFileWatcher(
+        file_path=log_file,
+        cursor_path=tmp_path / "cursor.json",
+        from_start=True,
+        initial_backoff=8.0,
+    )
+    watcher.offset, watcher.file_id = watcher.load_cursor()
+
+    sleeps = []
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 503
+    mock_resp.headers = {"retry-after": "3"}
+    mock_client = MagicMock()
+    mock_client.post.return_value = mock_resp
+
+    with patch.object(watcher_mod.time, "sleep", side_effect=sleeps.append):
+        result = watcher.run_once(mock_client)
+
+    assert result is None
+    assert watcher.offset == 0  # cursor must not advance on transient failure
+    assert sleeps == [3.0]
+
+
+def test_retry_after_capped_at_60s(tmp_path):
+    import zentinel.ingestion.watcher as watcher_mod
+
+    log_file = tmp_path / "stream.log"
+    log_file.write_text("valid line\n", encoding="utf-8")
+    watcher = LogFileWatcher(
+        file_path=log_file,
+        cursor_path=tmp_path / "cursor.json",
+        from_start=True,
+    )
+    watcher.offset, watcher.file_id = watcher.load_cursor()
+
+    sleeps = []
+    mock_resp = MagicMock()
+    mock_resp.status_code = 429
+    mock_resp.headers = {"retry-after": "999"}
+    mock_client = MagicMock()
+    mock_client.post.return_value = mock_resp
+
+    with patch.object(watcher_mod.time, "sleep", side_effect=sleeps.append):
+        watcher.run_once(mock_client)
+    assert sleeps == [60.0]
+
+
+def test_backoff_escalation_still_deterministic(tmp_path):
+    """Escalation counter doubles regardless of jittered sleep duration."""
+    import zentinel.ingestion.watcher as watcher_mod
+
+    log_file = tmp_path / "stream.log"
+    log_file.write_text("valid line\n", encoding="utf-8")
+    watcher = LogFileWatcher(
+        file_path=log_file,
+        cursor_path=tmp_path / "cursor.json",
+        from_start=True,
+        initial_backoff=0.1,
+    )
+    watcher.offset, watcher.file_id = watcher.load_cursor()
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 503
+    mock_resp.headers = {}
+    mock_client = MagicMock()
+    mock_client.post.return_value = mock_resp
+
+    with patch.object(watcher_mod.time, "sleep"):
+        watcher.run_once(mock_client)
+    assert watcher.current_backoff == 0.2
+
+
 def test_successful_ingest_advances_cursor_and_resets_backoff(tmp_path):
     log_file = tmp_path / "stream.log"
     log_file.write_text("valid line\n", encoding="utf-8")

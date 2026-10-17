@@ -2,6 +2,7 @@ import argparse
 import hashlib
 import json
 import os
+import random
 import sys
 import time
 from collections.abc import Callable
@@ -155,6 +156,27 @@ class LogFileWatcher:
         with self.dead_letter_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
+    def _sleep_before_retry(self, response: httpx.Response | None = None) -> None:
+        """
+        Bounded exponential backoff for transient failures.
+
+        Honors a numeric Retry-After header when present (capped at 60s),
+        otherwise sleeps current_backoff scaled by multiplicative jitter.
+        The escalation counter (current_backoff) stays deterministic so tests
+        and operators can reason about the schedule.
+        """
+        retry_after = None
+        if response is not None:
+            retry_after = response.headers.get("retry-after")
+        if retry_after:
+            try:
+                time.sleep(min(float(retry_after), 60.0))
+                return
+            except ValueError:
+                pass  # non-numeric Retry-After: fall back to backoff
+        jittered = self.current_backoff * random.uniform(0.5, 1.5)
+        time.sleep(min(jittered, self.max_backoff))
+
     def run_once(
         self,
         client: httpx.Client,
@@ -212,7 +234,7 @@ class LogFileWatcher:
             )
         except httpx.RequestError:
             # Network failure: back off and retry
-            time.sleep(self.current_backoff)
+            self._sleep_before_retry()
             self.current_backoff = min(self.current_backoff * 2, self.max_backoff)
             return None
 
@@ -228,14 +250,14 @@ class LogFileWatcher:
             self.current_backoff = self.initial_backoff
             return {"status": "rejected", "code": response.status_code}
 
-        # Retry 408, 429, and 5xx with backoff
+        # Retry 408, 429, and 5xx with backoff (+ honor Retry-After when present)
         if response.status_code in (408, 429) or response.status_code >= 500:
-            time.sleep(self.current_backoff)
+            self._sleep_before_retry(response)
             self.current_backoff = min(self.current_backoff * 2, self.max_backoff)
             return None
 
         if response.status_code != 200:
-            time.sleep(self.current_backoff)
+            self._sleep_before_retry(response)
             self.current_backoff = min(self.current_backoff * 2, self.max_backoff)
             return None
 
