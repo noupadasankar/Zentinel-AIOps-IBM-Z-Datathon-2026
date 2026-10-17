@@ -19,3 +19,19 @@ ignore = ["E501", "B008", "RUF012", "B007", "RUF001", "B905"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-ra"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zentinel"
+version = "0.4.0"
+description = "Zentinel AIOps - real-time log anomaly detection and incident investigation platform (IBM Z Datathon 2026)"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

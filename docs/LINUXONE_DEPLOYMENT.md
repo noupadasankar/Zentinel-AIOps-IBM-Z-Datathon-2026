@@ -26,7 +26,7 @@ Nothing in the codebase uses x86-specific intrinsics, GPU/CUDA, or Telum/on-chip
 2. `pip install -r requirements.txt` — pin and record the resolved s390x wheels in the run manifest.
 3. Copy `data/` processed artifacts, `artifacts/` (incl. SHA-256 `manifest.json`), `notebooks/`, `scripts/`.
 4. Artifact manifest verification must pass before any inference is allowed (`python -c "from zentinel.config import verify_manifest; print(verify_manifest())"` — SHA-256 per `artifacts/manifest.json`); this guards bit-rot during file transfer.
-5. Smoke: `uvicorn zentinel.api.live_api:app --port 8000` then `GET /ready` (loads the frozen engine).
+5. Smoke: install the package (`pip install -e . --no-deps`) then `uvicorn zentinel.api.live_api:app --port 8000`; verify `GET /health` and `GET /ready`.
 6. Re-run on-device parity: execute `notebooks/05_lstm_next_event_model.ipynb` and `notebooks/10_onnx_export_and_parity.ipynb` with the pointer to the committed score files; the notebooks are self-checking (assertions), so a PASS printed on the target is the first legitimate s390x parity claim — attach that notebook output to `reports/` on the target host.
 
 ## Benchmarks to collect before making any performance claim

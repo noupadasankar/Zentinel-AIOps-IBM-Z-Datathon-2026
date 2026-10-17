@@ -43,9 +43,10 @@ curl -s http://127.0.0.1:8000/health
 # Navigate to: http://127.0.0.1:8501
 ```
 
-*To run natively on Python instead of Docker:*
+*To run natively on Python instead of Docker (the `zentinel` package is a `src/`-layout package — install it editable before starting the server):*
 ```bash
 pip install -r requirements.lock
+pip install -e . --no-deps        # installs the zentinel package from src/ (also done by `make install`)
 pytest -ra
 python -m uvicorn zentinel.api.live_api:app --host 127.0.0.1 --port 8000 --workers 1
 streamlit run dashboard/app.py --server.port 8501

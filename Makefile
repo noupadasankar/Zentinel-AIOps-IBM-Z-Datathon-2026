@@ -20,6 +20,7 @@ help:
 
 install:
 	$(PYTHON) -m pip install -r requirements.lock
+	$(PYTHON) -m pip install -e . --no-deps --quiet
 
 test:
 	$(PYTHON) -m pytest -ra -v

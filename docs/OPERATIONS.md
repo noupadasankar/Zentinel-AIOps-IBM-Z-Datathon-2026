@@ -59,6 +59,8 @@ docker compose down
 ```bash
 # 1. Install dependencies from lockfile
 pip install -r requirements.lock
+# 1b. Install the zentinel package itself (src/ layout) - REQUIRED before uvicorn
+pip install -e . --no-deps      # same as `make install`
 
 # 2. Start Live API in background or separate shell
 python -m uvicorn zentinel.api.live_api:app --host 127.0.0.1 --port 8000 --workers 1
