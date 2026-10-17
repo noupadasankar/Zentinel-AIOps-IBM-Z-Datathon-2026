@@ -236,7 +236,7 @@ st.sidebar.markdown(
 
 api_base_url = st.sidebar.text_input(
     "Live API Endpoint",
-    value=os.getenv("ZENTINEL_LIVE_API_URL", "http://127.0.0.1:8001"),
+    value=os.getenv("ZENTINEL_LIVE_API_URL") or os.getenv("API_BASE_URL") or "http://127.0.0.1:8000",
     help="FastAPI service URL. If unreachable, offline demo mode engages automatically.",
 )
 api_key_input = st.sidebar.text_input(
