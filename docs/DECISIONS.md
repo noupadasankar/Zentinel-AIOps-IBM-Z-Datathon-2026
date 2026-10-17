@@ -63,3 +63,54 @@ This document records architectural, ML, and engineering decisions made during t
 - **Context:** Machine learning inference depends on exact frozen weights, Drain cluster states, and vocabulary files. Any corruption or tampering must prevent the server from issuing untrustworthy anomaly decisions.
 - **Decision:** An `artifacts/manifest.json` file records cryptographic SHA-256 hashes of all required model artifacts and validation thresholds. At startup during the lifespan phase, each asset is validated. Any hash mismatch aborts server launch.
 - **Consequences:** Enforces Rule 2 (never modify frozen artifacts) with cryptographic verification.
+
+---
+
+## ADR-007: Incident Grouping Policy, Hysteresis, and Severity Bands
+- **Status:** Accepted
+- **Context:** A raw anomaly detector triggers an alert on every individual window above threshold, creating alert storms and notification fatigue for operators.
+- **Decision:**
+  1. Consecutive anomalous windows are coalesced into a single persistent incident (`Incident` object).
+  2. Hysteresis: Incidents open immediately upon reaching the threshold ($\tau = 3.4791$). They do not close until 3 consecutive windows fall strictly below $0.70 \times \tau = 2.4354$. Windows in the intermediate band keep the incident active.
+  3. Severity is mapped from score percentiles against the validation anomaly distribution:
+     - LOW: $\tau \le \text{score} < 1.35 \times \tau$
+     - MEDIUM: $1.35 \times \tau \le \text{score} < 2.2 \times \tau$
+     - HIGH: $\text{score} \ge 2.2 \times \tau$
+  4. Cooldown window mechanism suppresses fluttering re-triggering.
+- **Consequences:** Dramatically reduces alert noise and provides actionable lifecycle states (`OPEN`, `ACKNOWLEDGED`, `CLOSED`).
+
+---
+
+## ADR-008: Alert Explanations Grounded Exclusively in Measured Quantities
+- **Status:** Accepted
+- **Context:** Explanations in production AIOps often rely on unverified attribution approximations (like SHAP on non-linear sequential deep models) which hallucinate or fail reproducibility tests.
+- **Decision:** All incident evidence must be computed strictly from physical quantities measured during inference:
+  1. Top-$k$ templates ranked by mean cross-entropy loss over their constituent transitions.
+  2. First-seen / unmatched log patterns with exact counts.
+  3. Window unknown event rate contrasted with the 0.02 validation threshold.
+  4. Repeated high-severity keywords (`FATAL`, `SEVERE`, `ERROR`, `WARNING`).
+  5. Concrete line number references pointing directly to the responsible log events.
+- **Consequences:** Guarantees 100% auditability and compliance with Non-Negotiable Rule 1.
+
+---
+
+## ADR-009: Numbered Database Migrations and Audit Trail
+- **Status:** Accepted
+- **Context:** SQLite schema changes must be versioned, idempotent, and reversible without manual table manipulation.
+- **Decision:** Implemented a lightweight migration runner (`src/zentinel/api/migrations.py`) tracking applied versions in `schema_migrations`.
+  - Migration 001: Initial baseline schema.
+  - Migration 002: Add metadata columns (`payload_sha256`, `source_id`, `model_id`, `latency_ms`).
+  - Migration 003: Tables for `alerts`, `alert_actions` (audit log for ACK/CLOSE), `model_registry`, and `api_keys`.
+- **Consequences:** Seamless database upgrades across environments with immutable operator audit trails.
+
+---
+
+## ADR-010: Walk-Forward Temporal Evaluation and Block-Bootstrap CIs
+- **Status:** Accepted
+- **Context:** Standard k-fold cross validation leaks temporal order in log time series. Single test scores can mask localized distribution shifts and temporal autocorrelation.
+- **Decision:**
+  1. 4 consecutive temporal slices evaluate walk-forward performance over the exploratory test dataset.
+  2. Scoring coverage is reported alongside every metric (highlighting the drift surge in Slice 3 where novelty review properly captured 100% of drift).
+  3. Block-bootstrap resamplings (500 resamples, 50-window blocks) establish 95% confidence intervals while preserving autocorrelation.
+  4. Detection delay / lead time is measured in seconds from episode onset to first alert.
+- **Consequences:** Transparent, defensible evaluation adhering strictly to Rule 5 and Rule 6.

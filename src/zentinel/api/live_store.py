@@ -1,12 +1,15 @@
 import json
 import sqlite3
 import threading
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from zentinel.api.migrations import apply_migrations
+
 
 class LiveStateStore:
-    """Persistent SQLite store for Zentinel's live-ingestion state."""
+    """Persistent SQLite store for Zentinel's live-ingestion state, alerts, and audit trail."""
 
     def __init__(self, database_path: Path | str):
         self.database_path = Path(database_path)
@@ -29,78 +32,9 @@ class LiveStateStore:
             self._connection.execute("PRAGMA foreign_keys=ON")
             self._connection.execute("PRAGMA busy_timeout=5000")
 
-            self._connection.execute("""
-                CREATE TABLE IF NOT EXISTS live_service_state (
-                    singleton_id INTEGER PRIMARY KEY CHECK (singleton_id = 1),
-                    logs_received INTEGER NOT NULL DEFAULT 0,
-                    windows_completed INTEGER NOT NULL DEFAULT 0,
-                    unknown_events_received INTEGER NOT NULL DEFAULT 0,
-                    current_window_json TEXT NOT NULL DEFAULT '[]',
-                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-
-            self._connection.execute("""
-                CREATE TABLE IF NOT EXISTS ingested_events (
-                    line_number INTEGER PRIMARY KEY,
-                    timestamp INTEGER NOT NULL,
-                    parse_status TEXT NOT NULL,
-                    token INTEGER NOT NULL,
-                    event_status TEXT NOT NULL,
-                    matched_event_id INTEGER,
-                    template TEXT,
-                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-
-            self._connection.execute("""
-                CREATE TABLE IF NOT EXISTS live_windows (
-                    window_id INTEGER PRIMARY KEY,
-                    payload_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-
-            self._connection.execute("""
-                CREATE TABLE IF NOT EXISTS ingestion_idempotency (
-                    idempotency_key TEXT PRIMARY KEY,
-                    payload_sha256 TEXT NOT NULL DEFAULT '',
-                    response_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-
-            self._connection.execute("""
-                CREATE INDEX IF NOT EXISTS idx_events_status
-                ON ingested_events(event_status)
-            """)
-
-            self._connection.execute("""
-                CREATE INDEX IF NOT EXISTS idx_events_created_at
-                ON ingested_events(created_at)
-            """)
-
-            self._connection.execute("""
-                CREATE INDEX IF NOT EXISTS idx_idempotency_created_at
-                ON ingestion_idempotency(created_at)
-            """)
-
-            self._connection.execute("""
-                INSERT OR IGNORE INTO live_service_state(singleton_id)
-                VALUES (1)
-            """)
-
-        self._ensure_columns()
-
-    def _ensure_columns(self):
-        """Ensure backward-compatible schema evolutions."""
+        # Apply numbered schema migrations
         with self._lock:
-            cursor = self._connection.execute("PRAGMA table_info(ingestion_idempotency)")
-            columns = {row["name"] for row in cursor.fetchall()}
-            if "payload_sha256" not in columns:
-                self._connection.execute(
-                    "ALTER TABLE ingestion_idempotency ADD COLUMN payload_sha256 TEXT NOT NULL DEFAULT ''"
-                )
+            apply_migrations(self._connection)
 
     def load_state(self, recent_limit=500):
         """Restore counters, an unfinished window, and recent decisions."""
@@ -121,21 +55,23 @@ class LiveStateStore:
                 LIMIT ?
             """, (recent_limit,)).fetchall()
 
-        current_window = json.loads(state_row["current_window_json"])
+        current_window = json.loads(state_row["current_window_json"]) if state_row else []
 
         recent_windows = [
             json.loads(row["payload_json"])
             for row in reversed(recent_rows)
         ]
 
+        state = {
+            "logs_received": int(state_row["logs_received"]) if state_row else 0,
+            "windows_completed": int(state_row["windows_completed"]) if state_row else 0,
+            "unknown_events_received": int(
+                state_row["unknown_events_received"]
+            ) if state_row else 0,
+        }
+
         return {
-            "state": {
-                "logs_received": int(state_row["logs_received"]),
-                "windows_completed": int(state_row["windows_completed"]),
-                "unknown_events_received": int(
-                    state_row["unknown_events_received"]
-                ),
-            },
+            "state": state,
             "current_window": current_window,
             "recent_windows": recent_windows,
         }
@@ -176,6 +112,9 @@ class LiveStateStore:
         idempotency_key: str | None = None,
         payload_sha256: str | None = None,
         response: dict[str, Any] | None = None,
+        source_id: str = "default",
+        model_id: str = "lstm_v1",
+        latency_ms: float = 0.0,
     ) -> None:
         """
         Save an event, state, completed window, and idempotency response atomically.
@@ -195,8 +134,11 @@ class LiveStateStore:
                         token,
                         event_status,
                         matched_event_id,
-                        template
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        template,
+                        source_id,
+                        model_id,
+                        latency_ms
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                 int(event["line_number"]),
                 int(event["timestamp"]),
@@ -205,6 +147,9 @@ class LiveStateStore:
                 str(event["event_status"]),
                 event["matched_event_id"],
                 event["template"],
+                source_id,
+                model_id,
+                float(latency_ms),
             ))
 
             self._connection.execute("""
@@ -240,15 +185,302 @@ class LiveStateStore:
                 self._connection.execute("""
                         INSERT OR REPLACE INTO live_windows (
                             window_id,
-                            payload_json
-                        ) VALUES (?, ?)
+                            payload_json,
+                            source_id,
+                            model_id,
+                            latency_ms
+                        ) VALUES (?, ?, ?, ?, ?)
                     """, (
                     int(window_result["window_id"]),
                     json.dumps(
                         window_result,
                         ensure_ascii=False,
                     ),
+                    source_id,
+                    model_id,
+                    float(latency_ms),
                 ))
+
+    # --- Alerts and Incidents Persistence ---
+
+    def save_or_update_alert(self, incident_dict: dict[str, Any]) -> dict[str, Any]:
+        """Insert or update an alert/incident in the database."""
+        evidence_str = json.dumps(
+            incident_dict.get("evidence", {}), ensure_ascii=False
+        )
+
+        with self._lock, self._connection:
+            existing = self._connection.execute(
+                "SELECT alert_id FROM alerts WHERE incident_id = ?",
+                (incident_dict["incident_id"],),
+            ).fetchone()
+
+            if existing:
+                alert_id = int(existing["alert_id"])
+                self._connection.execute("""
+                        UPDATE alerts
+                        SET status = ?,
+                            severity = ?,
+                            score = ?,
+                            threshold = ?,
+                            last_window_id = ?,
+                            last_line_number = ?,
+                            window_count = ?,
+                            summary = ?,
+                            evidence_json = ?,
+                            updated_at = ?,
+                            closed_at = ?
+                        WHERE alert_id = ?
+                    """, (
+                    incident_dict["status"],
+                    incident_dict["severity"],
+                    float(incident_dict["score"]),
+                    float(incident_dict["threshold"]),
+                    int(incident_dict["last_window_id"]),
+                    int(incident_dict["last_line_number"]),
+                    int(incident_dict["window_count"]),
+                    incident_dict["summary"],
+                    evidence_str,
+                    incident_dict.get("updated_at") or datetime.now(UTC).isoformat(),
+                    incident_dict.get("closed_at"),
+                    alert_id,
+                ))
+            else:
+                cur = self._connection.execute("""
+                        INSERT INTO alerts (
+                            incident_id, status, severity, score, threshold,
+                            first_window_id, last_window_id, first_line_number,
+                            last_line_number, window_count, summary, evidence_json,
+                            created_at, updated_at, closed_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                    incident_dict["incident_id"],
+                    incident_dict["status"],
+                    incident_dict["severity"],
+                    float(incident_dict["score"]),
+                    float(incident_dict["threshold"]),
+                    int(incident_dict["first_window_id"]),
+                    int(incident_dict["last_window_id"]),
+                    int(incident_dict["first_line_number"]),
+                    int(incident_dict["last_line_number"]),
+                    int(incident_dict["window_count"]),
+                    incident_dict["summary"],
+                    evidence_str,
+                    incident_dict.get("created_at") or datetime.now(UTC).isoformat(),
+                    incident_dict.get("updated_at") or datetime.now(UTC).isoformat(),
+                    incident_dict.get("closed_at"),
+                ))
+                alert_id = cur.lastrowid
+
+        return self.get_alert(alert_id) or {}
+
+    def get_alerts(
+        self,
+        status: str | None = None,
+        severity: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        """Query alerts with filtering and pagination."""
+        query = "SELECT * FROM alerts WHERE 1=1"
+        params: list[Any] = []
+
+        if status:
+            query += " AND status = ?"
+            params.append(status.upper())
+        if severity:
+            query += " AND severity = ?"
+            params.append(severity.upper())
+
+        query += " ORDER BY alert_id DESC LIMIT ? OFFSET ?"
+        params.extend([int(limit), int(offset)])
+
+        with self._lock:
+            rows = self._connection.execute(query, params).fetchall()
+
+        results = []
+        for row in rows:
+            item = dict(row)
+            try:
+                item["evidence"] = json.loads(item.get("evidence_json", "{}"))
+            except (json.JSONDecodeError, TypeError):
+                item["evidence"] = {}
+            results.append(item)
+        return results
+
+    def get_alert(self, alert_id_or_incident_id: int | str) -> dict[str, Any] | None:
+        """Retrieve single alert with action history."""
+        with self._lock:
+            if isinstance(alert_id_or_incident_id, int) or str(alert_id_or_incident_id).isdigit():
+                row = self._connection.execute(
+                    "SELECT * FROM alerts WHERE alert_id = ?",
+                    (int(alert_id_or_incident_id),),
+                ).fetchone()
+            else:
+                row = self._connection.execute(
+                    "SELECT * FROM alerts WHERE incident_id = ?",
+                    (str(alert_id_or_incident_id),),
+                ).fetchone()
+
+            if row is None:
+                return None
+
+            alert = dict(row)
+            try:
+                alert["evidence"] = json.loads(alert.get("evidence_json", "{}"))
+            except (json.JSONDecodeError, TypeError):
+                alert["evidence"] = {}
+
+            # Fetch action audit trail
+            actions_rows = self._connection.execute(
+                """
+                SELECT action_id, alert_id, action_type, actor, comment, created_at
+                FROM alert_actions
+                WHERE alert_id = ?
+                ORDER BY action_id ASC
+                """,
+                (alert["alert_id"],),
+            ).fetchall()
+            alert["actions"] = [dict(a) for a in actions_rows]
+
+        return alert
+
+    def add_alert_action(
+        self,
+        alert_id: int,
+        action_type: str,
+        actor: str = "operator",
+        comment: str = "",
+    ) -> dict[str, Any]:
+        """Record an operator action on an alert."""
+        now_iso = datetime.now(UTC).isoformat()
+        with self._lock, self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO alert_actions (alert_id, action_type, actor, comment, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (alert_id, action_type.upper(), actor, comment, now_iso),
+            )
+            if action_type.upper() == "ACKNOWLEDGE":
+                self._connection.execute(
+                    "UPDATE alerts SET status = 'ACKNOWLEDGED', updated_at = ? WHERE alert_id = ?",
+                    (now_iso, alert_id),
+                )
+            elif action_type.upper() in ("CLOSE", "FALSE_POSITIVE", "RESOLVED"):
+                self._connection.execute(
+                    "UPDATE alerts SET status = 'CLOSED', closed_at = ?, updated_at = ? WHERE alert_id = ?",
+                    (now_iso, now_iso, alert_id),
+                )
+
+        return self.get_alert(alert_id) or {}
+
+    # --- Review Queue and Drift Summaries ---
+
+    def get_review_windows(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Retrieve windows routed to NOVELTY_DRIFT_REVIEW."""
+        with self._lock:
+            rows = self._connection.execute(
+                """
+                SELECT window_id, payload_json, created_at
+                FROM live_windows
+                WHERE payload_json LIKE '%NOVELTY_DRIFT_REVIEW%'
+                ORDER BY window_id DESC
+                LIMIT ?
+                """,
+                (int(limit),),
+            ).fetchall()
+
+        reviews = []
+        for row in rows:
+            try:
+                payload = json.loads(row["payload_json"])
+                payload["persisted_at"] = row["created_at"]
+                reviews.append(payload)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        return reviews
+
+    def get_drift_summary(self) -> dict[str, Any]:
+        """Aggregate template drift and unknown token metrics."""
+        with self._lock:
+            total_events = self._connection.execute(
+                "SELECT COUNT(*) FROM ingested_events"
+            ).fetchone()[0]
+
+            unknown_events = self._connection.execute(
+                "SELECT COUNT(*) FROM ingested_events WHERE token = 1"
+            ).fetchone()[0]
+
+            status_counts = dict(self._connection.execute(
+                "SELECT event_status, COUNT(*) FROM ingested_events GROUP BY event_status"
+            ).fetchall())
+
+            unmatched_samples = [
+                row[0]
+                for row in self._connection.execute(
+                    """
+                    SELECT template FROM ingested_events
+                    WHERE token = 1 AND template IS NOT NULL
+                    GROUP BY template ORDER BY COUNT(*) DESC LIMIT 10
+                    """
+                ).fetchall()
+            ]
+
+        unknown_rate = (unknown_events / total_events) if total_events > 0 else 0.0
+
+        return {
+            "total_events_observed": total_events,
+            "unknown_events_count": unknown_events,
+            "overall_unknown_rate": unknown_rate,
+            "validation_threshold": 0.02,
+            "drift_status": "DRIFT_SURGE" if unknown_rate > 0.02 else "NORMAL",
+            "event_status_distribution": status_counts,
+            "top_unmatched_templates": unmatched_samples,
+        }
+
+    # --- Model Registry ---
+
+    def register_model(
+        self,
+        model_id: str,
+        name: str,
+        version: str,
+        model_type: str,
+        artifact_path: str,
+        threshold: float,
+        metrics: dict[str, Any] | None = None,
+    ) -> None:
+        """Register model metadata and operational thresholds in the registry."""
+        metrics_json = json.dumps(metrics or {}, ensure_ascii=False)
+        with self._lock, self._connection:
+            self._connection.execute(
+                """
+                INSERT OR REPLACE INTO model_registry (
+                    model_id, name, version, model_type, artifact_path,
+                    threshold, metrics_json, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                """,
+                (model_id, name, version, model_type, artifact_path, float(threshold), metrics_json),
+            )
+
+    def get_models(self) -> list[dict[str, Any]]:
+        """List registered models and active thresholds."""
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT * FROM model_registry ORDER BY registered_at DESC"
+            ).fetchall()
+        models = []
+        for row in rows:
+            item = dict(row)
+            try:
+                item["metrics"] = json.loads(item.get("metrics_json", "{}"))
+            except (json.JSONDecodeError, TypeError):
+                item["metrics"] = {}
+            models.append(item)
+        return models
+
+    # --- Maintenance & Retention ---
 
     def purge_retention(
         self,

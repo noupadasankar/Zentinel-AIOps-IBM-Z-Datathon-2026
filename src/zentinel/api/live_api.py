@@ -1,4 +1,6 @@
+import csv
 import hashlib
+import io
 import os
 import threading
 import uuid
@@ -6,12 +8,15 @@ from collections import deque
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from zentinel.alerts.explanations import generate_incident_evidence
+from zentinel.alerts.policy import IncidentPolicy
 from zentinel.api.live_store import LiveStateStore
 from zentinel.api.security import SecurityManager
 from zentinel.config import (
@@ -42,6 +47,7 @@ SECURITY = SecurityManager(
     rate_limit_rps=CONFIG.rate_limit_rps,
     rate_limit_burst=CONFIG.rate_limit_burst,
 )
+INCIDENT_POLICY = IncidentPolicy(threshold=3.4791)
 
 
 @asynccontextmanager
@@ -66,6 +72,8 @@ async def lifespan(app: FastAPI):
 
     # Load frozen Drain3 matcher and LSTM next-event model
     ENGINE.load()
+    INCIDENT_POLICY.threshold = ENGINE.lstm_threshold
+    INCIDENT_POLICY.hysteresis_threshold = ENGINE.lstm_threshold * 0.70
 
     # Initialize SQLite store and restore previous state
     STORE = LiveStateStore(CONFIG.db_path)
@@ -78,6 +86,24 @@ async def lifespan(app: FastAPI):
         CURRENT_WINDOW.extend(restored["current_window"])
         RECENT_WINDOWS.clear()
         RECENT_WINDOWS.extend(restored["recent_windows"])
+
+    # Register default active model in model registry
+    STORE.register_model(
+        model_id="lstm_next_event_v1",
+        name="LSTM Next-Event Predictor",
+        version="1.0.0",
+        model_type="LSTMNextEvent",
+        artifact_path="artifacts/lstm_next_event.pt",
+        threshold=ENGINE.lstm_threshold,
+        metrics={
+            "validation_pr_auc": 0.9279,
+            "validation_f1": 0.8482,
+            "validation_precision": 0.9574,
+            "validation_recall": 0.7613,
+            "exploratory_test_precision": 0.8173,
+            "coverage": 0.3322,
+        },
+    )
 
     yield
 
@@ -92,7 +118,7 @@ app = FastAPI(
         "Enterprise log anomaly detection with frozen Drain3 template matching, "
         "known-run LSTM scoring, and novelty/drift review."
     ),
-    version="0.3.0",
+    version="0.4.0",
     lifespan=lifespan,
 )
 
@@ -115,8 +141,6 @@ async def add_request_id_middleware(request: Request, call_next):
     response.headers["X-Request-ID"] = req_id
     return response
 
-
-from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # --- Uniform Error Handlers (Suppresses stack traces, includes request_id) ---
 
@@ -199,7 +223,6 @@ def get_current_role(
     request: Request = None,
 ) -> str:
     """Validate API key role and enforce rate limits."""
-    # Enforce rate limit per key (or client IP if no key)
     client_ip = request.client.host if request and request.client else "unknown"
     rate_key = x_api_key or client_ip
     SECURITY.check_rate_limit(rate_key)
@@ -228,15 +251,57 @@ def require_admin(
     return get_current_role("admin", x_api_key, request)
 
 
-# --- Request & Response Models ---
+# --- Request & Response Models with OpenAPI Examples ---
 
 
 class IngestRequest(BaseModel):
-    raw_line: str = Field(min_length=1, max_length=20000)
+    raw_line: str = Field(
+        min_length=1,
+        max_length=20000,
+        description="Single raw BGL-format log line",
+        json_schema_extra={
+            "example": "- 1117838570 2005.06.03 R02-M1-N0-C:J12-U11 2005-06-03-15.42.50.363779 R02-M1-N0-C:J12-U11 RAS KERNEL INFO instruction cache parity error corrected"
+        },
+    )
     idempotency_key: str | None = Field(
         default=None,
         min_length=1,
         max_length=512,
+        description="Unique deduplication key: sha256(file_id:offset)",
+        json_schema_extra={"example": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    )
+
+
+class BatchIngestRequest(BaseModel):
+    lines: list[str] = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Array of up to 500 BGL log lines to ingest sequentially",
+    )
+    source_id: str = Field(default="default", max_length=64, description="Identifier for log source or component")
+
+
+class BatchIngestResponse(BaseModel):
+    ingested_count: int = Field(description="Number of valid lines successfully processed")
+    rejected_count: int = Field(description="Number of invalid lines rejected")
+    completed_windows: int = Field(description="Number of 100-line windows completed")
+    alerts_generated: int = Field(description="Number of new or updated incidents")
+    decisions: list[dict[str, Any]] = Field(description="Window decision results completed in this batch")
+
+
+class AlertActionRequest(BaseModel):
+    actor: str = Field(default="operator", description="Operator name or service identifier")
+    comment: str = Field(default="", description="Operator note explaining the action")
+
+
+class AlertCloseRequest(BaseModel):
+    actor: str = Field(default="operator", description="Operator name or service identifier")
+    comment: str = Field(default="", description="Closure rationale")
+    reason: str = Field(
+        default="RESOLVED",
+        description="Resolution reason (RESOLVED, FALSE_POSITIVE)",
+        pattern="^(RESOLVED|FALSE_POSITIVE)$",
     )
 
 
@@ -250,6 +315,7 @@ def root():
         "mode": "live_ingestion",
         "health": "/health",
         "documentation": "/docs",
+        "version": "0.4.0",
     }
 
 
@@ -367,6 +433,20 @@ def ingest_log(
                 **decision,
             }
 
+            # Generate evidence & evaluate incident policy
+            evidence = generate_incident_evidence(
+                completed_events,
+                window_result,
+                model=ENGINE.model,
+            )
+            incident, action = INCIDENT_POLICY.process_window(
+                window_result, evidence=evidence
+            )
+            if incident is not None:
+                store.save_or_update_alert(incident.to_dict())
+                window_result["incident_id"] = incident.incident_id
+                window_result["incident_action"] = action
+
             new_recent_window = window_result
             candidate_window.clear()
 
@@ -397,6 +477,55 @@ def ingest_log(
         return response
 
 
+@app.post(
+    "/api/v1/live/ingest/batch",
+    response_model=BatchIngestResponse,
+    tags=["Live Ingestion"],
+)
+def ingest_batch(
+    request: BatchIngestRequest,
+    role: str = Depends(require_ingest),
+):
+    """
+    Ingest a batch of up to 500 BGL log lines sequentially.
+    Completed windows generate decisions and update incidents.
+    """
+    ingested_count = 0
+    rejected_count = 0
+    decisions = []
+    alerts_count = 0
+
+    for raw in request.lines:
+        line_clean = raw.strip()
+        if not line_clean:
+            continue
+
+        try:
+            resp = ingest_log(
+                IngestRequest(raw_line=line_clean),
+                role=role,
+            )
+            ingested_count += 1
+            if resp.get("window_completed") and resp.get("window_decision"):
+                w = resp["window_decision"]
+                decisions.append(w)
+                if w.get("decision") == "ANOMALY_ALERT":
+                    alerts_count += 1
+        except HTTPException as exc:
+            if exc.status_code == 422:
+                rejected_count += 1
+            else:
+                raise
+
+    return BatchIngestResponse(
+        ingested_count=ingested_count,
+        rejected_count=rejected_count,
+        completed_windows=len(decisions),
+        alerts_generated=alerts_count,
+        decisions=decisions,
+    )
+
+
 @app.get("/api/v1/live/status", tags=["Live Ingestion"])
 def live_status(role: str = Depends(require_read)):
     """Return live ingestion counters, window state, and persistence details."""
@@ -421,10 +550,10 @@ def live_status(role: str = Depends(require_read)):
             "recent_windows_retained": len(RECENT_WINDOWS),
             "persistence": "sqlite",
             "database": str(CONFIG.db_path),
-            "persistence_note": (
-                "SQLite persists event metadata, counters, unfinished "
-                "windows, and completed-window decisions. Raw log lines "
-                "are not stored."
+            "active_incident": (
+                INCIDENT_POLICY.current_incident.to_dict()
+                if INCIDENT_POLICY.current_incident
+                else None
             ),
         }
 
@@ -443,6 +572,221 @@ def recent_windows(
             "count": len(items),
             "items": items,
         }
+
+
+# --- Alert Management Endpoints ---
+
+
+@app.get("/api/v1/alerts", tags=["Alerts"])
+def list_alerts(
+    status: str | None = Query(None, description="Filter by status (OPEN, ACKNOWLEDGED, CLOSED)"),
+    severity: str | None = Query(None, description="Filter by severity (LOW, MEDIUM, HIGH)"),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    role: str = Depends(require_read),
+):
+    """List operational alerts and incidents with optional filtering."""
+    store = STORE or LiveStateStore(CONFIG.db_path)
+    alerts = store.get_alerts(status=status, severity=severity, limit=limit, offset=offset)
+    return {
+        "count": len(alerts),
+        "limit": limit,
+        "offset": offset,
+        "items": alerts,
+    }
+
+
+@app.get("/api/v1/alerts/{alert_id}", tags=["Alerts"])
+def get_alert_detail(
+    alert_id: str,
+    role: str = Depends(require_read),
+):
+    """Get single alert details including evidence and action history."""
+    store = STORE or LiveStateStore(CONFIG.db_path)
+    alert = store.get_alert(alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+    return alert
+
+
+@app.post("/api/v1/alerts/{alert_id}/ack", tags=["Alerts"])
+def acknowledge_alert(
+    alert_id: int,
+    action: AlertActionRequest,
+    role: str = Depends(require_admin),
+):
+    """Acknowledge an open alert/incident."""
+    store = STORE or LiveStateStore(CONFIG.db_path)
+    alert = store.get_alert(alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+
+    updated = store.add_alert_action(
+        alert_id=alert_id,
+        action_type="ACKNOWLEDGE",
+        actor=action.actor,
+        comment=action.comment,
+    )
+    return updated
+
+
+@app.post("/api/v1/alerts/{alert_id}/close", tags=["Alerts"])
+def close_alert(
+    alert_id: int,
+    action: AlertCloseRequest,
+    role: str = Depends(require_admin),
+):
+    """Close an alert/incident (marked as RESOLVED or FALSE_POSITIVE)."""
+    store = STORE or LiveStateStore(CONFIG.db_path)
+    alert = store.get_alert(alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+
+    updated = store.add_alert_action(
+        alert_id=alert_id,
+        action_type=action.reason,
+        actor=action.actor,
+        comment=action.comment,
+    )
+
+    # If policy has this as current incident, reset it
+    if (
+        INCIDENT_POLICY.current_incident
+        and INCIDENT_POLICY.current_incident.incident_id == alert.get("incident_id")
+    ):
+        INCIDENT_POLICY.current_incident = None
+
+    return updated
+
+
+# --- Review Queue and Drift Endpoints ---
+
+
+@app.get("/api/v1/review", tags=["Review Queue"])
+def review_queue(
+    format: str = Query(default="json", pattern="^(json|csv)$"),
+    limit: int = Query(default=50, ge=1, le=200),
+    role: str = Depends(require_read),
+):
+    """
+    Retrieve windows routed to NOVELTY_DRIFT_REVIEW.
+    Supports CSV export for retraining dataset curation.
+    """
+    store = STORE or LiveStateStore(CONFIG.db_path)
+    windows = store.get_review_windows(limit=limit)
+
+    if format == "csv":
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "window_id",
+            "first_line_number",
+            "last_line_number",
+            "decision",
+            "decision_reason",
+            "unknown_event_rate",
+            "unknown_event_count",
+            "known_transitions_scored",
+            "lstm_anomaly_score",
+            "persisted_at",
+        ])
+        for w in windows:
+            writer.writerow([
+                w.get("window_id"),
+                w.get("first_line_number"),
+                w.get("last_line_number"),
+                w.get("decision"),
+                w.get("decision_reason"),
+                w.get("unknown_event_rate"),
+                w.get("unknown_event_count"),
+                w.get("known_transitions_scored"),
+                w.get("lstm_anomaly_score"),
+                w.get("persisted_at"),
+            ])
+        csv_content = output.getvalue()
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=zentinel_review_queue.csv"},
+        )
+
+    return {
+        "count": len(windows),
+        "limit": limit,
+        "items": windows,
+    }
+
+
+@app.get("/api/v1/drift", tags=["Drift & Diagnostics"])
+def drift_diagnostics(role: str = Depends(require_read)):
+    """Aggregate template drift diagnostics and unknown event distributions."""
+    store = STORE or LiveStateStore(CONFIG.db_path)
+    return store.get_drift_summary()
+
+
+@app.get("/api/v1/models", tags=["Model Registry"])
+def list_models(role: str = Depends(require_read)):
+    """List registered models, thresholds, and performance metrics."""
+    store = STORE or LiveStateStore(CONFIG.db_path)
+    return {
+        "active_models": store.get_models(),
+    }
+
+
+@app.get("/api/v1/metrics", tags=["Metrics"])
+def prometheus_metrics():
+    """Expose Prometheus exposition text format metrics."""
+    with STATE_LOCK:
+        logs_total = int(STATE["logs_received"])
+        windows_total = int(STATE["windows_completed"])
+        unknown_total = int(STATE["unknown_events_received"])
+        curr_unknown = sum(e["token"] == UNKNOWN_TOKEN for e in CURRENT_WINDOW)
+        unknown_rate = (curr_unknown / len(CURRENT_WINDOW)) if CURRENT_WINDOW else 0.0
+
+        decision_counts = {"ANOMALY_ALERT": 0, "NO_ANOMALY_DETECTED": 0, "NOVELTY_DRIFT_REVIEW": 0}
+        for w in RECENT_WINDOWS:
+            dec = w.get("decision")
+            if dec in decision_counts:
+                decision_counts[dec] += 1
+
+    active_incidents = 1 if INCIDENT_POLICY.current_incident else 0
+
+    lines = [
+        "# HELP zentinel_logs_ingested_total Total raw log lines ingested",
+        "# TYPE zentinel_logs_ingested_total counter",
+        f"zentinel_logs_ingested_total {logs_total}",
+        "",
+        "# HELP zentinel_windows_completed_total Total windows evaluated",
+        "# TYPE zentinel_windows_completed_total counter",
+        f"zentinel_windows_completed_total {windows_total}",
+        "",
+        "# HELP zentinel_windows_decision_total Windows completed per decision category",
+        "# TYPE zentinel_windows_decision_total counter",
+        f'zentinel_windows_decision_total{{decision="ANOMALY_ALERT"}} {decision_counts["ANOMALY_ALERT"]}',
+        f'zentinel_windows_decision_total{{decision="NO_ANOMALY_DETECTED"}} {decision_counts["NO_ANOMALY_DETECTED"]}',
+        f'zentinel_windows_decision_total{{decision="NOVELTY_DRIFT_REVIEW"}} {decision_counts["NOVELTY_DRIFT_REVIEW"]}',
+        "",
+        "# HELP zentinel_unknown_events_total Total unknown events received",
+        "# TYPE zentinel_unknown_events_total counter",
+        f"zentinel_unknown_events_total {unknown_total}",
+        "",
+        "# HELP zentinel_current_window_unknown_rate Current in-flight window unknown rate",
+        "# TYPE zentinel_current_window_unknown_rate gauge",
+        f"zentinel_current_window_unknown_rate {unknown_rate:.4f}",
+        "",
+        "# HELP zentinel_open_incidents Current number of open anomaly incidents",
+        "# TYPE zentinel_open_incidents gauge",
+        f"zentinel_open_incidents {active_incidents}",
+        "",
+        "# HELP zentinel_lstm_threshold Active LSTM anomaly score threshold",
+        "# TYPE zentinel_lstm_threshold gauge",
+        f"zentinel_lstm_threshold {ENGINE.lstm_threshold:.4f}",
+    ]
+
+    return PlainTextResponse(
+        content="\n".join(lines) + "\n",
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
 
 
 # --- Admin Maintenance Endpoints ---
