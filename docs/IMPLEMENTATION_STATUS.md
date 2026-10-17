@@ -13,7 +13,7 @@ Baseline: prior sessions completed the core platform (see [PROJECT_AUDIT.md](PRO
 | Phase 5 — alert & review workflows | **DONE** | hysteresis/cooldown/severity/audit history/CSV export (`/api/v1/review?format=csv`); tests `test_alerts_policy.py`, `test_alerts_explanations.py` |
 | Phase 6 — dashboard, 5 required screens | **DONE** | live ops overview, incident investigation, drift & review queue, model evaluation, platform health/security pages present in `dashboard/app.py`; live-API-first with labelled demo fallback. Added: loading/empty/error handling verified via `tests/test_dashboard_feeds.py` |
 | Phase 7 — evaluation & benchmark reporting | **DONE** | committed reports (walk-forward, model comparison, ONNX parity, ingestion benchmark); notebooks re-derive/visualize them |
-| Phase 8 — containers & CI | **DONE** | Dockerfile (fixed torch index), compose, ci.yml (ruff + pip-audit + gitleaks + pytest + ONNX + smoke); local container registry access unavailable → compose startup validation done via native stack (`make run-api`, `/health`, `/ready`) |
+| Phase 8 — containers & CI | **DONE** | Dockerfile (fixed torch index), compose, ci.yml (ruff + pip-audit + gitleaks + pytest + ONNX + smoke); BLOCKED for in-session execution: docker daemon not running on host (npipe error, see FINAL_COMPLETION_REPORT §J); no git remote/runner for Actions — native stack validated instead (make run-api, /health, /ready, NB 11 live subprocess) |
 | Phase 9 — LinuxONE (s390x) | **BLOCKED (no target hardware)** | portable-by-design; `docs/LINUXONE_DEPLOYMENT.md` written; no s390x claims made |
 | Phase 10 — documentation, packaging, final ZIP | **DONE** | docs complete; final ZIP built + verified (19.5 MB, 191 files, SHA-256 in `reports/ZIP_VERIFICATION.md`); `reports/FINAL_COMPLETION_REPORT.md` acceptance matrix |
 
@@ -50,3 +50,11 @@ All 13 pass on the final sweep; `.ipynb` outputs are committed as executed (plot
 2. **No Docker engine reachable from the session** — container build/health verified best-effort; native `uvicorn` + `streamlit + watcher` path used instead; compose design unchanged. (Docker daemon: `docker` CLI not accessible in this environment.)
 3. **743 MB BGL.log** present on disk but excluded from Git/ZIP (distribution rules); notebooks use committed processed artifacts or the committed 4.75 M-line parquet slices; re-obtain commands documented in `docs/DATA_CARD.md`.
 4. matplotlib not installed → notebooks render figures with plotly (already pinned project-wide).
+
+## Acceptance session (2026-10-18) — extra quality-gate evidence
+
+- pip-audit 2.10.1: pytest 8.4.2 → PYSEC-2026-1845 found; upgraded to pytest 9.1.1 (`requirements.txt`, `requirements.lock`); re-run → **No known vulnerabilities found** (`reports/dependency_audit.json`).
+- Local deterministic secret scan over 109 tracked code/doc files: **PASS, 0 findings** (`reports/secret_scan.json`); gitleaks still CI-only.
+- `docker version` client 29.5.3 present but daemon unreachable (npipe dockerDesktopLinuxEngine) — container build/start BLOCKED, native-stack equivalence exercised (NB 11 real server replay).
+- CI config validated by YAML parse (jobs: lint-and-security, test-and-verify); no remote/runner configured, so Actions were not executed in-session.
+- FINAL_COMPLETION_REPORT.md rewritten in master-prompt §26 A–R format with honest PASS/PARTIAL/BLOCKED/FAIL/NOT STARTED statuses.
