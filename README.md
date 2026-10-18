@@ -181,7 +181,7 @@ jupyter nbconvert --to notebook --execute notebooks/05_lstm_next_event_model.ipy
 
 | Gate | Result |
 |---|---|
-| pytest (parser, drain matcher, scorer, policy, store, API, watcher, ONNX, dashboard feeds, unified single-port server, dashboard AppTest page renders, alert-status preservation, Retry-After header, admin ping, fail-closed auth config matrix + keyless-start refusal) | **99 passed** (executed 2026-10-18, 04:16; 8 m 05 s) |
+| pytest (parser, drain matcher, scorer, policy, store, API, watcher, ONNX, dashboard feeds, unified single-port server, dashboard AppTest page renders, alert-status preservation, Retry-After header, admin ping, fail-closed auth config matrix + keyless-start refusal) | **99 passed** (executed 2026-10-18, 04:16; 8m05s; re-verified 2026-10-18 on the final tree — 99/99, 7m10s) |
 | ruff | clean |
 | pip-audit 2.10.1 | clean after pytest 9.1.1 upgrade (PYSEC-2026-1845 fixed); CI step now fails on findings (no `|| true`) |
 | local secret scan (`scripts/secret_scan.py`, tracked + untracked text files) | 0 findings |
