@@ -176,11 +176,21 @@ class UnifiedServer:
             async with self.client.stream(
                 scope["method"], target, headers=headers, content=bytes(body)
             ) as response:
-                response_headers = [
-                    (name.encode("latin-1"), value.encode("latin-1"))
-                    for name, value in response.headers.multi_items()
-                    if name.lower() not in {"connection", "transfer-encoding"}
-                ]
+                child_origins = (
+                    f"http://127.0.0.1:{self.dashboard_port}",
+                    f"http://localhost:{self.dashboard_port}",
+                )
+                response_headers = []
+                for name, value in response.headers.multi_items():
+                    lower = name.lower()
+                    if lower in {"connection", "transfer-encoding"}:
+                        continue
+                    if lower == "location":
+                        for child_origin in child_origins:
+                            if value.startswith(child_origin):
+                                value = value[len(child_origin):] or "/"
+                                break
+                    response_headers.append((name.encode("latin-1"), value.encode("latin-1")))
                 await send(
                     {
                         "type": "http.response.start",

@@ -232,7 +232,7 @@ instance); stop the other server or pass `--port 8001`. One-click test run:
 
 - API at `http://127.0.0.1:8000/` (interactive OpenAPI at `/docs`)
 - Dashboard at `http://127.0.0.1:8000/dashboard` (proxied + websocket-forwarded to a managed internal Streamlit child that never leaves localhost)
-- Verified end-to-end: `/health` 200, `/ready` 200, `/dashboard/_stcore/health` 200, dashboard static assets and the Streamlit websocket pipe all served from the single port; covered by `tests/test_unified_server.py` (97/97 suite).
+- Verified end-to-end: `/health` 200, `/ready` 200, `/dashboard/_stcore/health` 200, dashboard static assets and the Streamlit websocket pipe all served from the single port; the `/dashboard` entry redirect is rewritten to the public path so the internal child origin never leaks; covered by `tests/test_unified_server.py` (99/99 suite).
 
 Classic two-process mode (unchanged, still supported):
 

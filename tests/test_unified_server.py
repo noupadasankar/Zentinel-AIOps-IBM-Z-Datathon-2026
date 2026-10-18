@@ -142,6 +142,14 @@ def test_unified_single_port_end_to_end(unified_server: dict[str, Any]) -> None:
         assert "<html" in page.text.lower()
         assert "./static/" in page.text or "static/" in page.text
 
+        entry = client.get("/dashboard", follow_redirects=False)
+        assert entry.status_code in (301, 302, 307, 308), entry.status_code
+        location = entry.headers.get("location", "")
+        assert location == "/dashboard/", f"internal origin leaked in redirect: {location!r}"
+        followed = client.get("/dashboard", follow_redirects=True)
+        assert followed.status_code == 200
+        assert "<html" in followed.text.lower()
+
         replay = json.dumps(
             {"lines": SAMPLE.read_text(encoding="utf-8", errors="replace").splitlines()[:120], "source_id": "unified-test"}
         ).encode()
